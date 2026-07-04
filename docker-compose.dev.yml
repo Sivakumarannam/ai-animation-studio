@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: cartoon_studio
       POSTGRES_USER: cartoon_user
-      POSTGRES_PASSWORD: cartoon_pass
+      POSTGRES_PASSWORD: Tiger
     ports:
       - "5432:5432"
     volumes:
