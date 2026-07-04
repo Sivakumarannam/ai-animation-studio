@@ -109,8 +109,9 @@ class CharacterTemplateRepository(BaseRepository[CharacterTemplate]):
         plugin_id: str | None = None,
         archetype: str | None = None,
         search: str | None = None,
+        show_deleted: bool = False,
     ) -> PaginatedResult[CharacterTemplate]:
-        stmt = select(CharacterTemplate).where(CharacterTemplate.is_library == True, CharacterTemplate.is_deleted == False)  # noqa: E712
+        stmt = select(CharacterTemplate).where(CharacterTemplate.is_library == True, CharacterTemplate.is_deleted == show_deleted)  # noqa: E712
         if plugin_id:
             stmt = stmt.where(
                 or_(CharacterTemplate.plugin_id == plugin_id, CharacterTemplate.plugin_id == "")

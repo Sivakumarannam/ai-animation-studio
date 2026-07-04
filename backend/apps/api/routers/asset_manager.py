@@ -18,8 +18,9 @@ from packages.schemas.library import (
 )
 from packages.schemas.assets import (
     BackgroundResponse, PropResponse, AudioResponse, MusicResponse, SoundEffectResponse, AnimationPresetResponse,
-    CharacterTemplateResponse, BulkDeleteRequest, BulkRestoreRequest, BulkUpdateRequest
+    BulkDeleteRequest, BulkRestoreRequest, BulkUpdateRequest
 )
+from packages.schemas.character_templates import CharacterTemplateResponse
 from packages.utils.pagination import PaginationParams
 from services.animation_service import AssetManagerService, CharacterTemplateService
 from services.library_service import (
@@ -160,7 +161,7 @@ async def search_assets(body: AssetSearchRequest, current_user: CurrentUser, svc
         tags=body.tags or None,
         page=body.page,
         page_size=body.page_size,
-        show_deleted=body.is_library is False,
+        show_deleted=body.show_deleted,
     )
     return AssetSearchResponse(**result)
 
@@ -308,7 +309,7 @@ async def list_assets(
     tag_list = [t for t in tags.split(",") if t] if tags else None
 
     if asset_type == "character_template":
-        res = await char_svc.get_library(pagination, search=search)
+        res = await char_svc.get_library(pagination, search=search, show_deleted=deleted)
     else:
         svc = _get_service_for_type(asset_type, bg_svc, prop_svc, char_svc, preset_svc, audio_svc, music_svc, sfx_svc)
         res = await svc.search(pagination, query=search, category=category, tags=tag_list, show_deleted=deleted)

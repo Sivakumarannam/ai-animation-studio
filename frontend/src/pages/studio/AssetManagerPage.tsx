@@ -280,7 +280,12 @@ export function AssetManagerPage() {
               <Icon className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-white truncate">{stats?.[id === 'character_template' ? 'characters' : id === 'animation_preset' ? 'presets' : id] ?? 0}</p>
+              <p className="text-sm font-bold text-white truncate">{stats?.[
+                id === 'character_template' ? 'characters' :
+                id === 'animation_preset' ? 'presets' :
+                id === 'sound_effect' ? 'sound_effects' :
+                id
+              ] ?? 0}</p>
               <p className="text-[10px] text-gray-400 truncate">{label}</p>
             </div>
           </div>

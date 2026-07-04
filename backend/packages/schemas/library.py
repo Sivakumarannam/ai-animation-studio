@@ -106,6 +106,7 @@ class AssetSearchRequest(BaseModel):
     categories: list[str] = []
     tags: list[str] = []
     is_library: bool | None = None
+    show_deleted: bool = False
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=24, ge=1, le=100)
 

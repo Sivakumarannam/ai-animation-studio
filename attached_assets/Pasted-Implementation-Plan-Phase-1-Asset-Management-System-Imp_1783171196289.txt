@@ -1,0 +1,108 @@
+Implementation Plan — Phase 1: Asset Management System
+Implement a production-ready Asset Management module supporting Character, Background, Props, Animation, Audio, Music, and Sound Effects libraries with features like versioning, preview, metadata, upload, import, export, soft delete, restore, pagination, drag-and-drop upload, and bulk operations.
+
+Proposed Changes
+We will extend the existing clean architecture by adding new SQLAlchemy models, updating existing ones to support soft-deletes/metadata, generating an Alembic migration, writing repositories/services, exposing unified REST API routes, and designing a tabbed React page.
+
+1. Database Layer
+We will modify existing models to support soft delete and metadata, and define three new models for audio-based assets.
+
+[MODIFY] 
+asset.py
+Add is_deleted column (Boolean, default False) to Background, Prop, and AnimationPreset.
+Add metadata_ column (JSON, default dict) to Background, Prop, and AnimationPreset.
+Add tags column (JSON, default list) to AnimationPreset.
+Define Audio model with columns: id, name, category, tags, file_url, preview_url, duration_seconds, is_library, project_id, is_deleted, metadata, created_at, updated_at.
+Define Music model with the same columns.
+Define SoundEffect model with the same columns.
+[MODIFY] 
+animation.py
+Add is_deleted column (Boolean, default False) to CharacterTemplate.
+[MODIFY] 
+init
+.py
+Import and export the new Audio, Music, and SoundEffect models.
+[NEW] 
+Alembic Migration
+A manual migration script to add is_deleted, metadata, tags columns, and create the audio, music, and sound_effects tables.
+2. Repositories
+[MODIFY] 
+asset_repository.py
+Add repository classes:
+AnimationPresetRepository
+AudioRepository
+MusicRepository
+SoundEffectRepository
+Update existing BackgroundRepository and PropRepository to support querying by is_deleted status (excluding deleted items by default).
+[MODIFY] 
+animation_repository.py
+Update CharacterTemplateRepository to filter out soft-deleted items by default.
+3. Services
+[MODIFY] 
+library_service.py
+Enhance BackgroundLibraryService and PropLibraryService to support soft delete, restore, and bulk operations.
+Implement new services:
+AnimationPresetLibraryService
+AudioLibraryService
+MusicLibraryService
+SoundEffectLibraryService
+[MODIFY] 
+animation_service.py
+Enhance CharacterTemplateService with soft-delete, restore, and bulk operations.
+Extend AssetManagerService to support search, import, export, and versioning across all 7 asset types.
+4. Pydantic Schemas
+[MODIFY] 
+assets.py
+Add CRUD Pydantic schemas for the new models: AudioCreate, AudioResponse, AudioUpdate, MusicCreate, MusicResponse, MusicUpdate, SoundEffectCreate, SoundEffectResponse, SoundEffectUpdate, AnimationPresetCreate, AnimationPresetResponse, AnimationPresetUpdate.
+Add bulk operation schemas: BulkDeleteRequest, BulkRestoreRequest, BulkUpdateRequest.
+5. Dependency Injection & Routing
+[MODIFY] 
+dependencies.py
+Wire up repository and service dependencies for the new models.
+Wire up a get_storage dependency using the MinIOStorage class.
+[MODIFY] 
+asset_manager.py
+Implement REST endpoints for the asset libraries under /asset-manager:
+POST /asset-manager/upload — upload binary assets to MinIO.
+POST /asset-manager/import — create asset record from metadata.
+POST /asset-manager/export — export snapshot.
+DELETE /asset-manager/{asset_type}/{asset_id} — soft delete.
+POST /asset-manager/{asset_type}/{asset_id}/restore — restore.
+POST /asset-manager/{asset_type}/bulk-delete — bulk soft delete.
+POST /asset-manager/{asset_type}/bulk-restore — bulk restore.
+POST /asset-manager/{asset_type}/bulk-update — bulk update metadata/tags.
+GET /asset-manager/{asset_type} — paginated search/browse with filters.
+Extend versioning endpoints to support all 7 asset types.
+6. React Frontend Pages
+[MODIFY] 
+library.ts
+Add frontend API integration methods for the new libraries, upload, soft-delete, restore, versioning, and bulk operations.
+[MODIFY] 
+AssetManagerPage.tsx
+Design a premium dashboard with a tabbed view for all 7 libraries:
+Character Library
+Background Library
+Props Library
+Animation Library
+Audio Library
+Music Library
+Sound Effects Library
+Integrate search, category/tags filters, pagination.
+Add drag-and-drop file upload zone.
+Add bulk operations toolbar (select multiple, delete/update categories/tags/restore in bulk).
+Add soft-delete filter checkbox (show/hide trash) with a "Restore" button.
+Integrate preview modal: play audio/music/sfx, view images, inspect character parameters.
+Integrate version history slider/modal with restore version action.
+Verification Plan
+Automated Tests
+Propose to write unit tests for the backend repository and service layers under backend/tests/ to verify:
+Soft delete and restore operations.
+Bulk update, bulk delete, and bulk restore.
+Version creation and rollbacks.
+Manual Verification
+Run the FastAPI dev server and React dev server locally to check:
+Asset Manager page loads successfully with tabs.
+Drag-and-drop file upload uploads files to MinIO.
+Creating, updating, exporting, and soft-deleting assets.
+Bulk select and execution of category updates or deletes.
+Viewing version history and creating a new version.

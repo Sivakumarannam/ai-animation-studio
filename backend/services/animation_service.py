@@ -208,9 +208,10 @@ class CharacterTemplateService:
         plugin_id: str | None = None,
         archetype: str | None = None,
         search: str | None = None,
+        show_deleted: bool = False,
     ) -> PaginatedResult[CharacterTemplate]:
         return await self._repo.get_library(
-            pagination, plugin_id=plugin_id, archetype=archetype, search=search
+            pagination, plugin_id=plugin_id, archetype=archetype, search=search, show_deleted=show_deleted
         )
 
     async def get_by_plugin(self, plugin_id: str) -> list[CharacterTemplate]:

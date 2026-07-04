@@ -1,45 +1,64 @@
-# [Project name]
+# AI Animation Studio
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A plugin-based, provider-agnostic AI animation studio platform. Generates complete animated videos from story prompts using interchangeable AI providers and a content plugin system.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- **Backend API**: `cd backend && PYTHONPATH=. uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --reload` (port 8000)
+- **Frontend**: `cd frontend && PORT=5173 npm run dev` (port 5173, proxies /api → 8000)
+- Both start automatically via the `Backend API` and `Frontend` workflows
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- **Backend**: Python 3.12, FastAPI, Celery + Redis, SQLAlchemy (asyncpg), Alembic, PostgreSQL
+- **Frontend**: React 18, Vite, TypeScript, Tailwind CSS 3, TanStack Query, Zustand, Wouter
+- **Storage**: MinIO (object storage for assets), PostgreSQL (relational data)
+- **AI Providers**: Ollama (LLM), ComfyUI (image), Piper TTS (voice), Whisper (STT), FFmpeg (render)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `backend/apps/api/` — FastAPI application, routers, config, dependencies
+- `backend/database/models/` — SQLAlchemy models (asset.py, animation.py, character.py, etc.)
+- `backend/repositories/` — Data access layer
+- `backend/services/` — Business logic (library_service.py, animation_service.py)
+- `backend/packages/schemas/` — Pydantic request/response schemas
+- `backend/alembic/` — Database migrations
+- `backend/plugins/` — Content type plugins (e.g. `telugu_family_comedy`)
+- `frontend/src/pages/studio/AssetManagerPage.tsx` — Main Asset Manager UI
+- `frontend/src/api/library.ts` — Unified API client for all asset operations
+
+## Required Environment Variables
+
+See `.env.example` for all variables. Key ones:
+- `DATABASE_URL` — PostgreSQL connection string (asyncpg driver)
+- `SECRET_KEY` — JWT signing key (min 64 chars)
+- `REDIS_URL` — Redis for Celery broker/backend
+- `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` — Object storage
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Clean architecture: models → repositories → services → routers (no cross-layer skips)
+- Plugin system: content type plugins register character archetypes, voice profiles, workflows
+- Provider registry: LLM/Image/TTS/STT/Renderer are swappable at startup via `AGENTS_*` env vars
+- Asset versioning: `AssetVersion` table snapshots any asset type by `(asset_type, asset_id)`
+- Soft delete: all library assets use `is_deleted` flag; hard delete not exposed via API
 
-## Product
+## Implemented Features (Phase 1)
 
-_Describe the high-level user-facing capabilities of this app once they exist._
-
-## User preferences
-
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Asset Manager with 7 library tabs: Characters, Backgrounds, Props, Animations, Audio, Music, Sound Effects
+- Drag-and-drop file upload to MinIO
+- Soft delete + restore (single and bulk)
+- Bulk category/tag updates
+- Version history with snapshot + restore
+- Paginated search with category/tag/deleted filters
+- Stats dashboard board
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- `DATABASE_URL` must use `postgresql+asyncpg://` driver prefix — the config validator normalizes it automatically
+- asyncpg does not support `sslmode` query param — the config validator strips it
+- `email-validator` package is required separately for Pydantic v2 `EmailStr`
+- MinIO `ensure_bucket` runs at startup; MinIO service must be reachable or startup will fail
+- The `CORS_ORIGINS` setting must include the Replit dev proxy domain in production
 
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+## User preferences
