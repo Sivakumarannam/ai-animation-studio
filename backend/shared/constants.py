@@ -1,0 +1,23 @@
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+REFRESH_TOKEN_EXPIRE_DAYS = 30
+JWT_ALGORITHM = "HS256"
+
+DEFAULT_PAGE_SIZE = 20
+MAX_PAGE_SIZE = 100
+
+MINIO_BUCKET_ASSETS = "assets"
+MINIO_BUCKET_VIDEOS = "videos"
+MINIO_BUCKET_THUMBNAILS = "thumbnails"
+
+CELERY_QUEUE_DEFAULT = "default"
+CELERY_QUEUE_AI = "ai"
+CELERY_QUEUE_RENDER = "render"
+CELERY_QUEUE_PUBLISH = "publish"
+
+PLUGIN_REGISTRY_KEY = "plugin_registry"
+
+API_V1_PREFIX = "/api/v1"
+
+SUPPORTED_IMAGE_FORMATS = {"png", "jpg", "jpeg", "webp", "svg"}
+SUPPORTED_AUDIO_FORMATS = {"mp3", "wav", "ogg", "flac"}
+SUPPORTED_VIDEO_FORMATS = {"mp4", "webm", "avi", "mov"}

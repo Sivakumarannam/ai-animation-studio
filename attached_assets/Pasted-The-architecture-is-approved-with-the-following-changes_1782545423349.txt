@@ -1,0 +1,162 @@
+The architecture is approved with the following changes.
+
+This project must be built as a production-grade AI platform using FREE and OPEN-SOURCE technologies by default.
+
+Do NOT tightly couple the architecture to any paid AI provider.
+
+The system must use Provider Interfaces so any AI provider can be swapped later without changing business logic.
+
+Replace all provider-specific implementations with generic interfaces and default open-source implementations.
+
+Instead of:
+
+* openai_story_agent.py
+* openai_image_agent.py
+* elevenlabs_voice_agent.py
+* openai_seo_agent.py
+
+Use:
+
+agents/
+interfaces/
+llm_provider.py
+image_provider.py
+tts_provider.py
+subtitle_provider.py
+renderer_provider.py
+seo_provider.py
+
+```
+implementations/
+    ollama_provider.py
+    comfyui_provider.py
+    piper_provider.py
+    whisper_provider.py
+    ffmpeg_provider.py
+    local_seo_provider.py
+```
+
+The platform must be provider-agnostic.
+
+Business logic must never import a specific AI vendor directly.
+
+All AI providers must be injected using Dependency Injection.
+
+Use adapter classes so future providers (OpenAI, Anthropic, Gemini, ElevenLabs, Azure, AWS, etc.) can be added later without modifying existing services.
+
+Default Open Source Stack
+
+LLM
+
+* Ollama
+* Qwen 3
+* Llama 3
+* Gemma
+
+Image Generation
+
+* ComfyUI
+* Stable Diffusion XL
+* FLUX Dev (optional)
+
+Text To Speech
+
+* Piper TTS
+* Coqui TTS (optional)
+
+Speech To Text
+
+* Whisper
+
+Video Rendering
+
+* FFmpeg
+
+Storage
+
+* MinIO
+
+Database
+
+* PostgreSQL
+
+Queue
+
+* Redis
+
+Workers
+
+* Celery
+
+Backend
+
+* Python
+* FastAPI
+* SQLAlchemy
+* Alembic
+* Pydantic
+
+Frontend
+
+* React
+* TypeScript
+* Vite
+* TailwindCSS
+
+Docker
+
+* Docker Compose
+
+Now begin implementing Foundation Module 1.
+
+Generate as much production-ready code as possible.
+
+Implement completely:
+
+* FastAPI application
+* React application
+* Docker Compose
+* Dockerfiles
+* PostgreSQL configuration
+* SQLAlchemy async configuration
+* Alembic
+* Authentication (JWT)
+* User registration
+* Login
+* Refresh tokens
+* Repository Pattern
+* Dependency Injection
+* Base Repository
+* Base Service
+* Configuration management
+* Logging
+* Error handling
+* Health endpoints
+* Database initialization
+* Redis configuration
+* Celery configuration
+* MinIO configuration
+* API routing
+* Project CRUD
+* Story CRUD
+* Scene CRUD
+* Character CRUD
+* Background CRUD
+* Asset CRUD
+
+Requirements
+
+* Every file must compile.
+* Every import must resolve.
+* Follow SOLID principles.
+* Use asynchronous programming wherever appropriate.
+* Use Clean Architecture.
+* Keep every module independent.
+* No circular dependencies.
+* Write production-quality code.
+
+Do NOT implement AI generation, image generation, voice generation, subtitle generation, rendering, SEO generation, or YouTube publishing yet.
+
+Only build the complete production-ready software foundation.
+
+When the response limit is reached, continue automatically until the Foundation Module is fully generated.

@@ -1,0 +1,254 @@
+# AI Cartoon Studio Platform
+
+I want to build a production-grade AI software platform, not a demo, website template, or single animation.
+
+## Goal
+
+Create a scalable AI platform that automatically generates unlimited original 2D cartoon videos.
+
+The platform should support Telugu initially but be designed for future multilingual support.
+
+This is a software engineering project.
+
+The output of the software is videos.
+
+The deliverable is NOT a single video.
+
+---
+
+# Technology Stack
+
+Backend
+
+* Python 3.12+
+* FastAPI
+* AsyncIO
+* SQLAlchemy 2.x
+* PostgreSQL
+* Alembic
+* Pydantic v2
+* Dependency Injection
+* Repository Pattern
+* SOLID Principles
+
+Frontend
+
+* React
+* TypeScript
+* Vite
+* Tailwind CSS
+
+Infrastructure
+
+* Docker
+* Docker Compose
+* Redis
+* Celery
+* MinIO
+* Nginx
+
+---
+
+# System Requirements
+
+The platform should be modular.
+
+Every feature must be replaceable.
+
+AI providers must use interfaces.
+
+No business logic should depend directly on any AI provider.
+
+---
+
+# Main Features
+
+Authentication
+
+Projects
+
+Stories
+
+Scenes
+
+Characters
+
+Background Library
+
+Props Library
+
+Voice Library
+
+Animation Library
+
+Asset Management
+
+Workflow Engine
+
+Video Rendering
+
+YouTube Publishing
+
+Analytics
+
+Settings
+
+---
+
+# AI Pipeline
+
+The platform should support this workflow.
+
+Project
+
+↓
+
+Story Generation
+
+↓
+
+Script Generation
+
+↓
+
+Scene Breakdown
+
+↓
+
+Storyboard
+
+↓
+
+Asset Selection
+
+↓
+
+Image Generation
+
+↓
+
+Voice Generation
+
+↓
+
+Subtitle Generation
+
+↓
+
+Animation
+
+↓
+
+Rendering
+
+↓
+
+Thumbnail
+
+↓
+
+SEO
+
+↓
+
+YouTube Upload
+
+↓
+
+Analytics
+
+---
+
+# Architecture
+
+Follow Clean Architecture.
+
+Organize the project into
+
+apps/
+
+packages/
+
+services/
+
+repositories/
+
+agents/
+
+workflows/
+
+database/
+
+assets/
+
+plugins/
+
+shared/
+
+tests/
+
+infrastructure/
+
+Every module must be independent.
+
+---
+
+# Database
+
+Design reusable tables for
+
+Users
+
+Projects
+
+Stories
+
+Scenes
+
+Characters
+
+Backgrounds
+
+Props
+
+Voices
+
+Animations
+
+Assets
+
+Pipeline Runs
+
+Rendered Videos
+
+SEO Metadata
+
+Analytics
+
+---
+
+# Development Strategy
+
+Do NOT immediately build the entire application.
+
+First generate
+
+1. Complete system architecture
+
+2. Folder structure
+
+3. Database schema
+
+4. API design
+
+5. Service architecture
+
+6. Dependency graph
+
+7. Docker architecture
+
+8. Development roadmap
+
+After completing the architecture, wait for my approval before writing implementation code.
+
+The architecture should be suitable for a production-scale AI SaaS application.

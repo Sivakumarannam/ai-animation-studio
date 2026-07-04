@@ -1,0 +1,18 @@
+[project]
+name = "ai-animation-studio"
+version = "0.1.0"
+description = "AI Animation Studio Platform — Generic, Plugin-Based"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true

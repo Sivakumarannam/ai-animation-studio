@@ -1,0 +1,3 @@
+- [PostgreSQL asyncpg URL quirks](postgres-asyncpg-url.md) — Replit DATABASE_URL is `postgresql://` and has `sslmode` param; both break asyncpg. Must normalize in config validator AND Alembic env.py.
+- [PyJWT vs python-jose](pyjwt-usage.md) — python-jose is blocked by Replit package firewall (HTTP 403). Use PyJWT==2.10.1 + cryptography instead; import is `import jwt` not `from jose import`.
+- [email-validator required](email-validator.md) — Pydantic v2 `EmailStr` requires `email-validator` package separately; add to requirements.txt.

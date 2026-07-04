@@ -1,0 +1,307 @@
+Excellent.
+
+The platform foundation is now complete.
+
+Do NOT refactor the existing architecture unless necessary.
+
+From this point onward, implement production features on top of the existing architecture.
+
+## Module 2 — AI Animation Engine
+
+Build a complete reusable animation engine.
+
+The animation engine must be independent of any language.
+
+The first implementation will support Telugu content.
+
+---
+
+## Character System
+
+Create a reusable character asset system.
+
+Every character must contain:
+
+* Character ID
+* Name
+* Personality
+* Age
+* Gender
+* Voice Profile
+* Animation Rig
+* Expression Library
+* Pose Library
+* Clothing Variants
+* Accessories
+* Metadata
+
+Support reusable character templates.
+
+Support project-specific character overrides.
+
+---
+
+## Expression Library
+
+Support reusable expressions.
+
+Examples:
+
+* Happy
+* Sad
+* Angry
+* Laugh
+* Smile
+* Shock
+* Fear
+* Cry
+* Thinking
+* Confused
+* Sleeping
+* Excited
+* Embarrassed
+
+Expressions must be reusable across characters.
+
+---
+
+## Pose Library
+
+Support reusable poses.
+
+Examples:
+
+* Idle
+* Walk
+* Run
+* Sit
+* Stand
+* Jump
+* Point
+* Wave
+* Eat
+* Drink
+* Read
+* Phone
+* Dance
+* Drive
+
+---
+
+## Background Library
+
+Create reusable backgrounds.
+
+Examples:
+
+Village
+
+House
+
+Kitchen
+
+Bedroom
+
+School
+
+Hospital
+
+Market
+
+Farm
+
+Office
+
+Road
+
+Temple
+
+Restaurant
+
+Festival
+
+Rain
+
+Night
+
+Sunset
+
+Support categories, tags, search, preview and project overrides.
+
+---
+
+## Props Library
+
+Create reusable props.
+
+Support:
+
+Furniture
+
+Vehicles
+
+Kitchen Items
+
+School Items
+
+Office Items
+
+Food
+
+Electronics
+
+Nature
+
+Money
+
+Medical
+
+Support drag-and-drop placement metadata.
+
+---
+
+## Scene Composition Engine
+
+Each scene must support:
+
+Characters
+
+Background
+
+Props
+
+Camera
+
+Lighting
+
+Audio
+
+Subtitles
+
+Animation Timeline
+
+Layers
+
+Object Positions
+
+Scale
+
+Rotation
+
+Visibility
+
+Z-index
+
+---
+
+## Timeline Engine
+
+Create a timeline system supporting:
+
+Frame ranges
+
+Keyframes
+
+Animation clips
+
+Transitions
+
+Camera events
+
+Audio events
+
+Subtitle events
+
+---
+
+## Asset Manager
+
+Support:
+
+Import
+
+Export
+
+Versioning
+
+Preview
+
+Metadata
+
+Caching
+
+Search
+
+Duplicate detection
+
+---
+
+## Frontend
+
+Build pages for:
+
+Character Library
+
+Background Library
+
+Props Library
+
+Scene Editor
+
+Timeline Editor
+
+Asset Manager
+
+Preview Player
+
+All pages should integrate with the existing backend APIs.
+
+---
+
+## Backend
+
+Implement:
+
+Database models
+
+Repositories
+
+Services
+
+REST APIs
+
+Validation
+
+Permissions
+
+Caching
+
+Pagination
+
+Search
+
+Filtering
+
+Bulk operations
+
+---
+
+## Requirements
+
+Use the existing Provider Interfaces.
+
+Use the existing Workflow Engine.
+
+Use the existing Repository Pattern.
+
+Use Dependency Injection.
+
+Do not duplicate business logic.
+
+All modules must compile.
+
+All APIs must be documented.
+
+All frontend pages must function.
+
+Generate as much production-quality code as possible before stopping.
