@@ -10,7 +10,7 @@ from uuid import UUID
 import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from apps.api.dependencies import CurrentUser, SessionDep, get_dispatcher_dep
+from apps.api.dependencies import CurrentUser, SessionDep
 from apps.api.schemas.intelligence import (
     DispatchResponse,
     EpisodeCreate,
@@ -167,7 +167,7 @@ async def update_world(
     return WorldResponse.model_validate(world)
 
 
-@router.delete("/worlds/{world_id}", status_code=204)
+@router.delete("/worlds/{world_id}", status_code=204, response_model=None)
 async def delete_world(world_id: UUID, current_user: CurrentUser, session: SessionDep) -> None:
     svc = _make_services(session)
     await svc["world"].delete(world_id)
@@ -223,7 +223,7 @@ async def update_season(
     )
 
 
-@router.delete("/seasons/{season_id}", status_code=204)
+@router.delete("/seasons/{season_id}", status_code=204, response_model=None)
 async def delete_season(season_id: UUID, current_user: CurrentUser, session: SessionDep) -> None:
     svc = _make_services(session)
     await svc["season"].delete(season_id)
@@ -279,7 +279,7 @@ async def update_episode(
     )
 
 
-@router.delete("/episodes/{episode_id}", status_code=204)
+@router.delete("/episodes/{episode_id}", status_code=204, response_model=None)
 async def delete_episode(episode_id: UUID, current_user: CurrentUser, session: SessionDep) -> None:
     svc = _make_services(session)
     await svc["episode"].delete(episode_id)
@@ -359,7 +359,7 @@ async def update_story_scene(
     )
 
 
-@router.delete("/scenes/{scene_id}", status_code=204)
+@router.delete("/scenes/{scene_id}", status_code=204, response_model=None)
 async def delete_story_scene(scene_id: UUID, current_user: CurrentUser, session: SessionDep) -> None:
     svc = _make_services(session)
     await svc["scene"].delete(scene_id)
@@ -430,7 +430,7 @@ async def update_idea(
     )
 
 
-@router.delete("/ideas/{idea_id}", status_code=204)
+@router.delete("/ideas/{idea_id}", status_code=204, response_model=None)
 async def delete_idea(idea_id: UUID, current_user: CurrentUser, session: SessionDep) -> None:
     svc = _make_services(session)
     await svc["idea"].delete(idea_id)

@@ -1,12 +1,11 @@
 import { useState, useRef, DragEvent } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Database, Search, Download, Sparkles, RefreshCw,
+  Database, Search, Sparkles, RefreshCw,
   Users, ImageIcon, Package, PersonStanding, Volume2, Music, Disc,
   Trash2, Upload, Play, Pause, ChevronLeft, ChevronRight, X, History,
-  CheckCircle, AlertCircle, Eye, CornerUpLeft, Plus, CheckSquare, Square
+  AlertCircle, Eye, CornerUpLeft, CheckSquare, Square
 } from 'lucide-react'
-import apiClient from '@/api/client'
 import { libraryApi } from '@/api/library'
 import { Spinner } from '@/components/ui/Spinner'
 import { clsx } from 'clsx'

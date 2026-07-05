@@ -1,0 +1,370 @@
+Continue it.
+
+Do not regenerate completed code.
+
+Do not duplicate models.
+
+Do not duplicate APIs.
+
+Do not create conflicting migrations.
+
+Phase 3 Scope
+
+Implement completely:
+
+Database
+
+StoryIdea
+
+World
+
+Story
+
+Season
+
+Episode
+
+StoryScene
+
+Dialogue
+
+Narration
+
+StoryMemory
+
+StoryEvaluation
+
+StoryVersion
+
+GenerationLog
+
+RetryQueue
+
+Create Alembic migrations.
+
+Use SQLAlchemy.
+
+Add indexes.
+
+Use proper relationships.
+
+Repository Layer
+
+Implement repositories for every model.
+
+Follow the existing repository pattern.
+
+AI Layer
+
+Implement provider abstraction.
+
+Create:
+
+StoryAIProvider interface.
+
+Implement:
+
+MockStoryAIProvider
+
+The architecture must support future providers:
+
+Ollama
+OpenAI
+Anthropic
+Gemini
+OpenRouter
+
+Do not hardcode any provider.
+
+Story Pipeline
+
+Implement:
+
+Idea Generation
+
+↓
+
+Story Planning
+
+↓
+
+Season Planning
+
+↓
+
+Episode Planning
+
+↓
+
+Scene Planning
+
+↓
+
+Dialogue Generation
+
+↓
+
+Narration Generation
+
+↓
+
+Image Prompt Generation
+
+↓
+
+Animation Prompt Generation
+
+↓
+
+Quality Evaluation
+
+↓
+
+Story Memory Update
+
+Each stage must be modular.
+
+Backend Services
+
+Implement:
+
+StoryGenerationService
+
+StoryPlanningService
+
+SeasonPlanner
+
+EpisodePlanner
+
+ScenePlanner
+
+DialogueGenerator
+
+NarrationGenerator
+
+PromptGenerator
+
+ConsistencyValidator
+
+StoryEvaluator
+
+RetryService
+
+MemoryService
+
+VersionService
+
+GenerationLogService
+
+Dispatcher
+
+Implement production architecture.
+
+Support Celery.
+
+If Redis is unavailable, automatically fall back to synchronous execution while preserving the same interfaces.
+
+Do not redesign the architecture around Replit limitations.
+
+Celery Tasks
+
+Create tasks for:
+
+Generate Story
+
+Generate Season
+
+Generate Episode
+
+Generate Scene
+
+Generate Dialogue
+
+Generate Narration
+
+Evaluate Story
+
+Save Story Memory
+
+Retry Story
+
+Update Progress
+
+APIs
+
+Implement REST APIs.
+
+Stories
+
+Worlds
+
+Seasons
+
+Episodes
+
+Scenes
+
+Memory
+
+Evaluation
+
+Retry
+
+Generation Queue
+
+Versions
+
+History
+
+Use:
+
+FastAPI
+
+Pydantic
+
+Validation
+
+Dependency Injection
+
+Authentication
+
+Authorization
+
+Workflow Integration
+
+Integrate with the existing Workflow Engine.
+
+The Story Intelligence Engine must become the next stage after Character Studio.
+
+Maintain workflow progress.
+
+Maintain task status.
+
+Maintain logs.
+
+Dashboard
+
+Integrate into the dashboard.
+
+Display:
+
+Stories
+
+Seasons
+
+Episodes
+
+Scenes
+
+Generation Queue
+
+Running Jobs
+
+Failed Jobs
+
+Average Story Score
+
+Retry Queue
+
+Memory Usage
+
+Frontend
+
+Create production-ready pages:
+
+Story Dashboard
+
+Story Library
+
+Story Detail
+
+World Builder
+
+Season Manager
+
+Episode Manager
+
+Scene Manager
+
+Story Memory
+
+Retry Queue
+
+Story Analytics
+
+Use the existing React architecture.
+
+Reuse existing components.
+
+Testing
+
+Create:
+
+Unit Tests
+
+Integration Tests
+
+API Tests
+
+Workflow Tests
+
+Celery Tests
+
+Frontend Tests
+
+Keep all previous tests passing.
+
+Documentation
+
+Update:
+
+README
+
+Architecture
+
+API Docs
+
+Database Diagram
+
+Workflow Diagram
+
+Phase 3 Documentation
+
+Production Readiness
+
+Development Rules
+Inspect before modifying.
+Continue existing work instead of replacing it.
+Reuse existing architecture.
+Do not duplicate implementations.
+Build incrementally.
+Verify after every major milestone:
+Backend builds.
+Frontend builds.
+Alembic migration succeeds.
+Tests pass.
+Resolve regressions immediately.
+Do not leave TODOs or placeholder implementations for Phase 3.
+Definition of Done
+
+Phase 3 is complete only when:
+
+Database models implemented and migrated.
+Repository layer complete.
+Services complete.
+Story pipeline operational.
+AI provider abstraction implemented.
+Dispatcher implemented.
+Celery integration complete.
+API endpoints complete.
+Frontend pages complete.
+Workflow integration complete.
+Dashboard integration complete.
+Documentation updated.
+Existing tests still pass.
+New tests pass.
+No duplicate models or routes.
+No broken imports.
+No unfinished migrations.
+No placeholder code.
+Phase 3 is production-ready.

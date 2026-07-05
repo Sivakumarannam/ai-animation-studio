@@ -52,7 +52,6 @@ class TestAssetManagerSearch:
         assert r.json()["total"] == 0
 
     async def test_search_show_deleted(self, client: AsyncClient, auth_headers: dict):
-<<<<<<< HEAD
         """Deleted assets must appear when show_deleted=True and be absent when False."""
         # Create and immediately soft-delete a background
         r = await client.post("/asset-manager/background", headers=auth_headers,
@@ -76,12 +75,6 @@ class TestAssetManagerSearch:
         assert r2.status_code == 200
         ids_not_deleted = [x["id"] for x in r2.json()["results"]]
         assert aid not in ids_not_deleted, "Deleted asset must be hidden when show_deleted=False"
-=======
-        r = await client.post("/asset-manager/search", headers=auth_headers, json={
-            "query": "", "show_deleted": True, "page": 1, "page_size": 10
-        })
-        assert r.status_code == 200
->>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b
 
 
 class TestAssetManagerSeed:

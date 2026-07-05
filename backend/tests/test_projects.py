@@ -1,16 +1,12 @@
 """Tests for project CRUD, story CRUD, scene CRUD, and character CRUD."""
 from __future__ import annotations
 
-<<<<<<< HEAD
 from uuid import uuid4
 
-=======
->>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b
 import pytest
 from httpx import AsyncClient
 
 
-<<<<<<< HEAD
 async def _make_user(client: AsyncClient) -> dict[str, str]:
     """Register a fresh user and return Bearer headers."""
     email = f"u_{uuid4().hex[:8]}@authz-check.com"
@@ -20,8 +16,6 @@ async def _make_user(client: AsyncClient) -> dict[str, str]:
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
-=======
->>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b
 class TestProjects:
     async def test_list_projects_empty(self, client: AsyncClient, auth_headers: dict):
         r = await client.get("/projects", headers=auth_headers)
@@ -177,7 +171,6 @@ class TestCharacters:
         cid = r.json()["id"]
         r = await client.delete(f"/characters/{cid}", headers=auth_headers)
         assert r.status_code in (200, 204)
-<<<<<<< HEAD
 
 
 class TestCrossUserAuthorization:
@@ -208,5 +201,3 @@ class TestCrossUserAuthorization:
         r = await client.post(f"/projects/{project['id']}/stories", headers=other,
                               json={"title": "Hijacked Story", "description": ""})
         assert r.status_code in (403, 404)
-=======
->>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b

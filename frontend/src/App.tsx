@@ -17,6 +17,14 @@ import { SceneEditorPage } from '@/pages/studio/SceneEditorPage'
 import { TimelineEditorPage } from '@/pages/studio/TimelineEditorPage'
 import { AssetManagerPage } from '@/pages/studio/AssetManagerPage'
 import { PreviewPlayerPage } from '@/pages/studio/PreviewPlayerPage'
+// Phase 3 — Story Intelligence
+import { StoryIntelligenceDashboardPage } from '@/pages/intelligence/StoryIntelligenceDashboardPage'
+import { WorldsPage } from '@/pages/intelligence/WorldsPage'
+import { WorldDetailPage } from '@/pages/intelligence/WorldDetailPage'
+import { SeasonDetailPage } from '@/pages/intelligence/SeasonDetailPage'
+import { EpisodeDetailPage } from '@/pages/intelligence/EpisodeDetailPage'
+import { StoryIdeasPage } from '@/pages/intelligence/StoryIdeasPage'
+import { RetryQueuePage } from '@/pages/intelligence/RetryQueuePage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -42,6 +50,15 @@ export default function App() {
         <Route path="/projects/:projectId/stories" element={<StoriesPage />} />
         <Route path="/projects/:projectId/characters" element={<CharactersPage />} />
         <Route path="/settings" element={<SettingsPage />} />
+
+        {/* Phase 3 — Story Intelligence */}
+        <Route path="/projects/:projectId/intelligence" element={<StoryIntelligenceDashboardPage />} />
+        <Route path="/projects/:projectId/intelligence/worlds" element={<WorldsPage />} />
+        <Route path="/projects/:projectId/intelligence/worlds/:worldId" element={<WorldDetailPage />} />
+        <Route path="/projects/:projectId/intelligence/seasons/:seasonId" element={<SeasonDetailPage />} />
+        <Route path="/projects/:projectId/intelligence/episodes/:episodeId" element={<EpisodeDetailPage />} />
+        <Route path="/projects/:projectId/intelligence/ideas" element={<StoryIdeasPage />} />
+        <Route path="/projects/:projectId/intelligence/jobs" element={<RetryQueuePage />} />
 
         {/* Module 2 — Libraries */}
         <Route path="/library/characters" element={<CharacterLibraryPage />} />

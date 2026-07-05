@@ -26,6 +26,11 @@ A plugin-based, provider-agnostic AI animation studio platform. Generates comple
 - `backend/plugins/` — Content type plugins (e.g. `telugu_family_comedy`)
 - `frontend/src/pages/studio/AssetManagerPage.tsx` — Main Asset Manager UI
 - `frontend/src/api/library.ts` — Unified API client for all asset operations
+- `backend/apps/api/routers/story_intelligence.py` — Phase 3 `/si` router (worlds, seasons, episodes, scenes, ideas, memory, jobs, stats)
+- `backend/services/intelligence/` — Story Intelligence business logic + orchestrator
+- `backend/database/models/intelligence.py` — World/Season/Episode/StoryScene/StoryIdea/StoryMemory/GenerationJob models
+- `frontend/src/pages/intelligence/` — Story Intelligence UI (dashboard, worlds, world/season/episode detail, ideas, retry queue)
+- `frontend/src/api/storyIntelligence.ts` — API client for `/si` endpoints
 
 ## Required Environment Variables
 
@@ -53,6 +58,16 @@ See `.env.example` for all variables. Key ones:
 - Paginated search with category/tag/deleted filters
 - Stats dashboard board
 
+## Implemented Features (Phase 3 — Story Intelligence)
+
+- Worlds → Seasons → Episodes → Scenes hierarchy with full CRUD
+- Story idea generation (LLM-backed) plus manual idea creation, status workflow, and deletion
+- World-scoped story memory (facts/rules/lore) with type filtering
+- Episode evaluation + version history (snapshot/restore) via the shared `AssetVersion`-style versioning table
+- Generation job queue with Celery dispatch + synchronous fallback (`TaskDispatcher`), job logs, and a retry queue
+- Story Intelligence dashboard with per-project stats (worlds/seasons/episodes/scenes/ideas/memories, job counts, avg story score)
+- Frontend: dashboard, Worlds list, World/Season/Episode detail pages, Story Ideas board, Retry Queue — all under `/projects/:projectId/intelligence/...`
+
 ## Gotchas
 
 - `DATABASE_URL` must use `postgresql+asyncpg://` driver prefix — the config validator normalizes it automatically
@@ -60,5 +75,7 @@ See `.env.example` for all variables. Key ones:
 - `email-validator` package is required separately for Pydantic v2 `EmailStr`
 - MinIO `ensure_bucket` runs at startup; MinIO service must be reachable or startup will fail
 - The `CORS_ORIGINS` setting must include the Replit dev proxy domain in production
+- The `/api/v1` router lives on a separate mounted `FastAPI` sub-app (`v1 = FastAPI(...)`, then `app.mount(...)`) — exception handlers registered only on the outer `app` do NOT apply to sub-app routes; they must also be registered on `v1` directly, or `AppError`/`NotFoundError` etc. surface as raw 500s instead of mapped status codes
+- Story generation endpoints (`/si/.../ideas/generate`, `/si/projects/{id}/generate`, `/si/seasons/{id}/generate-episode`) require a reachable Ollama server; they will fail in environments without a running LLM provider — this is expected, not a bug
 
 ## User preferences

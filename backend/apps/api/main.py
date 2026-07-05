@@ -30,6 +30,7 @@ from apps.api.routers import (
     library,
     compositions,
     asset_manager,
+    story_intelligence,
 )
 from database.connection import close_db, init_db
 from packages.core.exceptions import AppError
@@ -156,6 +157,17 @@ async def unhandled_error_handler(request: Request, exc: Exception) -> JSONRespo
 
 v1 = FastAPI(title=settings.APP_NAME)
 
+
+@v1.exception_handler(AppError)
+async def v1_app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+    return await app_error_handler(request, exc)
+
+
+@v1.exception_handler(Exception)
+async def v1_unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    return await unhandled_error_handler(request, exc)
+
+
 # Module 1 — Core platform
 v1.include_router(health.router)
 v1.include_router(auth.router)
@@ -177,5 +189,8 @@ v1.include_router(character_templates.router)
 v1.include_router(library.router)
 v1.include_router(compositions.router)
 v1.include_router(asset_manager.router)
+
+# Phase 3 — Story Intelligence
+v1.include_router(story_intelligence.router)
 
 app.mount(API_V1_PREFIX, v1)
