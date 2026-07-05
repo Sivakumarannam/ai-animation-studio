@@ -1,0 +1,760 @@
+IMPORTANT
+
+DO NOT IMPLEMENT ANY NEW FEATURES.
+
+DO NOT START PHASE 3.
+
+DO NOT CHANGE THE EXISTING ARCHITECTURE.
+
+Your ONLY goal is to verify, test, debug, stabilize, optimize, and production-validate EVERYTHING that already exists in this project.
+
+Treat this as a Senior QA Engineer, Senior Backend Engineer, Senior Frontend Engineer, DevOps Engineer, and Software Architect performing a complete production readiness audit.
+
+══════════════════════════════════════════════════════════════
+
+PROJECT ARCHITECTURE
+
+This project is an AI Animation Studio built using:
+
+• Python
+• FastAPI
+• React
+• TypeScript
+• PostgreSQL
+• SQLAlchemy
+• Alembic
+• Redis
+• Celery
+• MinIO
+• Docker
+• Workflow Engine
+• Provider Abstraction
+• Dependency Injection
+• Repository Pattern
+• Service Layer
+• SOLID Principles
+
+══════════════════════════════════════════════════════════════
+
+VERIFY PHASE 1
+
+Asset Management System
+
+Verify ALL implemented features.
+
+Libraries
+
+✓ Character Library
+
+✓ Background Library
+
+✓ Props Library
+
+✓ Animation Library
+
+✓ Audio Library
+
+✓ Music Library
+
+✓ Sound Effects Library
+
+Verify every feature.
+
+CRUD
+
+Upload
+
+Preview
+
+Search
+
+Filtering
+
+Sorting
+
+Pagination
+
+Metadata
+
+Tags
+
+Categories
+
+Asset Linking
+
+Drag & Drop Upload
+
+Import
+
+Export
+
+Version History
+
+Soft Delete
+
+Restore
+
+Bulk Delete
+
+Bulk Restore
+
+Bulk Update
+
+MinIO Upload
+
+PostgreSQL Persistence
+
+══════════════════════════════════════════════════════════════
+
+VERIFY PHASE 2
+
+Character Studio
+
+Verify ALL implemented features.
+
+✓ Character Profiles
+
+✓ Animation Rig
+
+✓ Expressions
+
+✓ Poses
+
+✓ Accessories
+
+✓ Clothing Variants
+
+✓ Voice Profiles
+
+✓ Relationships
+
+✓ Family Trees
+
+✓ Reusable Templates
+
+✓ Character Overrides
+
+Verify
+
+CRUD
+
+Search
+
+Filtering
+
+Preview
+
+Character Editor
+
+Rig Editor
+
+Expression Editor
+
+Pose Editor
+
+Voice Assignment
+
+Relationship Graph
+
+Family Tree
+
+Reusable Templates
+
+Character Overrides
+
+Workflow Engine Integration
+
+Database Relationships
+
+══════════════════════════════════════════════════════════════
+
+START EVERY SERVICE
+
+Actually run every service.
+
+Backend
+
+Frontend
+
+PostgreSQL
+
+Redis
+
+MinIO
+
+Celery Worker
+
+Celery Beat
+
+WebSocket Server
+
+If any service fails
+
+Find root cause
+
+Fix it
+
+Restart it
+
+Verify again
+
+Do not continue until everything starts successfully.
+
+══════════════════════════════════════════════════════════════
+
+BACKEND VERIFICATION
+
+Verify
+
+FastAPI startup
+
+Dependency Injection
+
+Provider Registry
+
+Workflow Engine
+
+Repositories
+
+Services
+
+Database Models
+
+Alembic
+
+Authentication
+
+Authorization
+
+Validation
+
+Configuration
+
+WebSocket
+
+Celery
+
+Redis
+
+SQLAlchemy
+
+Open Swagger.
+
+Automatically test EVERY endpoint.
+
+Verify proper HTTP status codes.
+
+No unexpected
+
+500
+
+404
+
+422
+
+ImportError
+
+ValidationError
+
+AttributeError
+
+TypeError
+
+RuntimeError
+
+══════════════════════════════════════════════════════════════
+
+DATABASE VERIFICATION
+
+Verify PostgreSQL.
+
+Actually perform
+
+Create
+
+Read
+
+Update
+
+Delete
+
+Restore
+
+Bulk Update
+
+Bulk Delete
+
+Pagination
+
+Search
+
+Filtering
+
+Relationships
+
+Foreign Keys
+
+Indexes
+
+Constraints
+
+Restart backend.
+
+Verify data still exists.
+
+══════════════════════════════════════════════════════════════
+
+MINIO VERIFICATION
+
+Upload
+
+Images
+
+Audio
+
+Animation Assets
+
+Documents
+
+Verify
+
+Objects stored
+
+URLs generated
+
+Preview
+
+Download
+
+Delete
+
+Restore
+
+Metadata
+
+══════════════════════════════════════════════════════════════
+
+FRONTEND VERIFICATION
+
+Run React.
+
+Verify
+
+Dashboard
+
+Navigation
+
+Character Studio
+
+Asset Manager
+
+Forms
+
+Dialogs
+
+Modals
+
+Tables
+
+Pagination
+
+Upload
+
+Search
+
+Filtering
+
+Responsive Layout
+
+Verify there are
+
+NO
+
+Console Errors
+
+React Errors
+
+Warnings
+
+Broken Imports
+
+Missing CSS
+
+Unhandled Exceptions
+
+══════════════════════════════════════════════════════════════
+
+ASSET MANAGER TESTS
+
+For every asset type
+
+Characters
+
+Backgrounds
+
+Props
+
+Animations
+
+Audio
+
+Music
+
+Sound Effects
+
+Verify
+
+Create
+
+Update
+
+Delete
+
+Restore
+
+Upload
+
+Preview
+
+Search
+
+Filter
+
+Sort
+
+Pagination
+
+Import
+
+Export
+
+Version History
+
+Bulk Delete
+
+Bulk Restore
+
+Bulk Update
+
+Metadata
+
+Tags
+
+Categories
+
+Restart backend.
+
+Refresh browser.
+
+Verify persistence.
+
+══════════════════════════════════════════════════════════════
+
+CHARACTER STUDIO TESTS
+
+Create multiple characters.
+
+Edit them.
+
+Delete them.
+
+Restore them.
+
+Assign
+
+Voice
+
+Accessories
+
+Clothing
+
+Expressions
+
+Poses
+
+Animation Rig
+
+Relationships
+
+Family Tree
+
+Templates
+
+Overrides
+
+Verify database saves correctly.
+
+Verify UI loads correctly.
+
+Verify workflow engine recognizes characters.
+
+══════════════════════════════════════════════════════════════
+
+WORKFLOW ENGINE TESTS
+
+Verify
+
+Provider Registry
+
+Workflow Context
+
+Workflow State
+
+Pipeline
+
+Retry Policy
+
+Progress Tracker
+
+Redis
+
+Celery
+
+WebSocket
+
+Run a complete workflow.
+
+Verify every step executes correctly.
+
+══════════════════════════════════════════════════════════════
+
+API TESTING
+
+Automatically test every existing API endpoint.
+
+Generate a report.
+
+For every endpoint include
+
+Endpoint
+
+Method
+
+Status Code
+
+Result
+
+Response
+
+Error
+
+Fix Applied
+
+══════════════════════════════════════════════════════════════
+
+AUTOMATED TESTING
+
+If automated tests already exist
+
+Run all tests.
+
+If tests are missing
+
+Create
+
+pytest unit tests
+
+Repository tests
+
+Service tests
+
+API integration tests
+
+Workflow tests
+
+Frontend tests if supported
+
+Run every test.
+
+Fix failures.
+
+Run tests again.
+
+Repeat until all tests pass.
+
+══════════════════════════════════════════════════════════════
+
+CODE QUALITY AUDIT
+
+Scan the ENTIRE codebase.
+
+Find
+
+TODO
+
+FIXME
+
+pass
+
+NotImplementedError
+
+Mock
+
+Fake
+
+Stub
+
+Placeholder
+
+Temporary Code
+
+Unused Code
+
+Unused Imports
+
+Circular Imports
+
+Broken Imports
+
+Dead Code
+
+Fix them where appropriate.
+
+══════════════════════════════════════════════════════════════
+
+SECURITY AUDIT
+
+Verify
+
+JWT
+
+Password Hashing
+
+Environment Variables
+
+Secrets
+
+CORS
+
+SQL Injection Protection
+
+File Upload Validation
+
+Pydantic Validation
+
+Authentication
+
+Authorization
+
+══════════════════════════════════════════════════════════════
+
+PERFORMANCE AUDIT
+
+Verify
+
+Pagination
+
+Database Queries
+
+Indexes
+
+Redis
+
+Caching
+
+Celery
+
+Large Uploads
+
+Large Responses
+
+Memory Usage
+
+══════════════════════════════════════════════════════════════
+
+LOGGING
+
+Inspect
+
+Backend Logs
+
+Frontend Console
+
+Celery Logs
+
+Redis Logs
+
+MinIO Logs
+
+There should be no unexpected exceptions.
+
+══════════════════════════════════════════════════════════════
+
+FIX EVERYTHING FOUND
+
+If ANY bug is found
+
+Fix it immediately.
+
+Restart affected services.
+
+Retest.
+
+Continue until no critical bugs remain.
+
+══════════════════════════════════════════════════════════════
+
+GENERATE DOCUMENTATION
+
+Create or update:
+
+TEST_REPORT.md
+BUG_REPORT.md
+PRODUCTION_READINESS.md
+
+Include:
+
+• Services started
+• APIs tested
+• Database verification
+• MinIO verification
+• Frontend verification
+• Asset Manager verification
+• Character Studio verification
+• Workflow verification
+• Celery verification
+• WebSocket verification
+• Test summary
+• Bugs found
+• Bugs fixed
+• Remaining issues
+• Production readiness score (0–100%)
+• Recommendations before Phase 3
+
+══════════════════════════════════════════════════════════════
+
+FINAL REQUIREMENTS
+
+Do NOT stop after fixing one issue.
+
+Continue testing until the ENTIRE application has been validated.
+
+Only finish after:
+
+✓ Every service starts successfully.
+
+✓ Every existing API endpoint has been tested.
+
+✓ Every frontend page has been tested.
+
+✓ Database persistence has been verified.
+
+✓ MinIO storage has been verified.
+
+✓ Workflow Engine has been verified.
+
+✓ Asset Manager has been verified.
+
+✓ Character Studio has been verified.
+
+✓ Automated tests have been executed.
+
+✓ Critical bugs have been fixed.
+
+✓ Documentation has been generated.
+
+✓ The project is evaluated for production readiness.
+
+DO NOT IMPLEMENT PHASE 3.
+
+ONLY VERIFY, TEST, DEBUG, FIX, STABILIZE, AND DOCUMENT THE EXISTING PHASE 1 AND PHASE 2 IMPLEMENTATION.

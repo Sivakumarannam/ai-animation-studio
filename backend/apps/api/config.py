@@ -12,8 +12,26 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     ENVIRONMENT: str = "development"
 
-    # Security
+    # Security — required, no default. Set SECRET_KEY in the environment.
+    # A missing or placeholder value will raise a ValidationError at startup.
     SECRET_KEY: str = "change-me-in-production-use-long-random-string"
+
+    @field_validator("SECRET_KEY")
+    @classmethod
+    def require_secret_key(cls, v: str) -> str:
+        insecure_defaults = {
+            "change-me-in-production-use-long-random-string",
+            "secret",
+            "changeme",
+            "",
+        }
+        import os
+        if os.getenv("ENVIRONMENT", "development") == "production" and v in insecure_defaults:
+            raise ValueError(
+                "SECRET_KEY must be set to a secure random value in production. "
+                "Set the SECRET_KEY environment variable."
+            )
+        return v
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30

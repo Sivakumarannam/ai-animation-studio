@@ -134,9 +134,8 @@ class BackgroundLibraryService:
 
     async def seed_defaults(self) -> int:
         """Seed default background library entries."""
-        from sqlalchemy import func as f_
         count_result = await self._repo._session.execute(
-            select(f_(func.count)(Background.id)).where(Background.is_library == True).where(Background.is_deleted == False)  # noqa: E712
+            select(func.count(Background.id)).where(Background.is_library == True).where(Background.is_deleted == False)  # noqa: E712
         )
         if count_result.scalar_one() > 0:
             return 0
@@ -290,9 +289,8 @@ class PropLibraryService:
 
     async def seed_defaults(self) -> int:
         """Seed default prop library entries."""
-        from sqlalchemy import func as f_
         count_result = await self._repo._session.execute(
-            select(f_(func.count)(Prop.id)).where(Prop.is_library == True).where(Prop.is_deleted == False)  # noqa: E712
+            select(func.count(Prop.id)).where(Prop.is_library == True).where(Prop.is_deleted == False)  # noqa: E712
         )
         if count_result.scalar_one() > 0:
             return 0
@@ -452,9 +450,8 @@ class AnimationPresetLibraryService:
 
     async def seed_defaults(self) -> int:
         """Seed default animation preset library entries."""
-        from sqlalchemy import func as f_
         count_result = await self._repo._session.execute(
-            select(f_(func.count)(AnimationPreset.id)).where(AnimationPreset.is_library == True).where(AnimationPreset.is_deleted == False)  # noqa: E712
+            select(func.count(AnimationPreset.id)).where(AnimationPreset.is_library == True).where(AnimationPreset.is_deleted == False)  # noqa: E712
         )
         if count_result.scalar_one() > 0:
             return 0
@@ -602,9 +599,8 @@ class AudioLibraryService:
 
     async def seed_defaults(self) -> int:
         """Seed default audio library entries."""
-        from sqlalchemy import func as f_
         count_result = await self._repo._session.execute(
-            select(f_(func.count)(Audio.id)).where(Audio.is_library == True).where(Audio.is_deleted == False)  # noqa: E712
+            select(func.count(Audio.id)).where(Audio.is_library == True).where(Audio.is_deleted == False)  # noqa: E712
         )
         if count_result.scalar_one() > 0:
             return 0
@@ -745,9 +741,8 @@ class MusicLibraryService:
 
     async def seed_defaults(self) -> int:
         """Seed default music library entries."""
-        from sqlalchemy import func as f_
         count_result = await self._repo._session.execute(
-            select(f_(func.count)(Music.id)).where(Music.is_library == True).where(Music.is_deleted == False)  # noqa: E712
+            select(func.count(Music.id)).where(Music.is_library == True).where(Music.is_deleted == False)  # noqa: E712
         )
         if count_result.scalar_one() > 0:
             return 0
@@ -888,9 +883,8 @@ class SoundEffectLibraryService:
 
     async def seed_defaults(self) -> int:
         """Seed default sound effect library entries."""
-        from sqlalchemy import func as f_
         count_result = await self._repo._session.execute(
-            select(f_(func.count)(SoundEffect.id)).where(SoundEffect.is_library == True).where(SoundEffect.is_deleted == False)  # noqa: E712
+            select(func.count(SoundEffect.id)).where(SoundEffect.is_library == True).where(SoundEffect.is_deleted == False)  # noqa: E712
         )
         if count_result.scalar_one() > 0:
             return 0

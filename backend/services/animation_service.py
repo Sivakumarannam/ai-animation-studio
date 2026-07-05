@@ -510,7 +510,7 @@ class AssetManagerService:
 
         if "character_template" in types_to_search:
             tmpls = await self._templates.get_library(
-                pagination, search=query or None
+                pagination, search=query or None, show_deleted=show_deleted
             )
             for t in tmpls.items:
                 results.append({

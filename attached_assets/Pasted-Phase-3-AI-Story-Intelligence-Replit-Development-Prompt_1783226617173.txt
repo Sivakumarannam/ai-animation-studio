@@ -1,0 +1,702 @@
+Phase 3 — AI Story Intelligence (Replit Development Prompt)
+
+Do NOT recreate the project.
+
+Do NOT modify existing functionality unless required for integration.
+
+Read the existing architecture first.
+
+Understand all current models, APIs, frontend, workflow engine, Celery tasks, database structure, and dashboard before making any changes.
+
+The current project status is:
+
+Phase 1 completed
+Phase 2 completed
+Character Studio working
+Workflow Engine working
+Backend tests passing
+Frontend operational
+
+Your job is ONLY to implement Phase 3 — AI Story Intelligence.
+
+OBJECTIVE
+
+Build an AI Story Intelligence Engine that can automatically create high-quality stories for YouTube videos while maintaining long-term consistency across seasons, episodes, scenes, and characters.
+
+This engine will become the brain of the automation platform.
+
+It must integrate with all existing systems and be production-ready.
+
+RESPONSIBILITIES
+
+The Story Intelligence Engine must:
+
+Generate story ideas
+Generate complete stories
+Generate seasons
+Generate episodes
+Generate scene breakdowns
+Generate dialogues
+Generate narration
+Generate prompts for image generation
+Generate prompts for animation generation
+Maintain character consistency
+Maintain story consistency
+Maintain memory
+Maintain world consistency
+STORY GENERATION PIPELINE
+
+Implement the following workflow.
+
+Idea Generation
+
+↓
+
+Story Planning
+
+↓
+
+Season Planning
+
+↓
+
+Episode Planning
+
+↓
+
+Scene Planning
+
+↓
+
+Dialogue Generation
+
+↓
+
+Narration Generation
+
+↓
+
+Image Prompt Generation
+
+↓
+
+Animation Prompt Generation
+
+↓
+
+Quality Evaluation
+
+↓
+
+Save Story Memory
+
+Every stage must be independent.
+
+Each stage should be reusable.
+
+STORY TYPES
+
+Support multiple story formats.
+
+Examples:
+
+Comedy
+
+Educational
+
+Kids Stories
+
+Adventure
+
+Sci-Fi
+
+Fantasy
+
+Motivational
+
+History
+
+Technology
+
+Horror
+
+Mystery
+
+Custom
+
+Store story type in the database.
+
+WORLD BUILDING
+
+Create a World Builder.
+
+Each story belongs to one world.
+
+A world contains:
+
+name
+description
+rules
+locations
+timeline
+factions
+objects
+lore
+
+Characters belong to worlds.
+
+Episodes belong to worlds.
+
+Scenes belong to worlds.
+
+STORY MEMORY
+
+Implement persistent story memory.
+
+Store:
+
+Story Summary
+
+Characters Used
+
+Locations Used
+
+Objects Used
+
+Relationships
+
+Timeline
+
+Previous Episodes
+
+Running Jokes
+
+Character Personality
+
+Goals
+
+Conflicts
+
+Lessons Learned
+
+Memory should be queryable.
+
+CHARACTER CONSISTENCY
+
+Never randomly change:
+
+Hair
+
+Eyes
+
+Clothes
+
+Age
+
+Voice
+
+Personality
+
+Relationships
+
+Abilities
+
+Catchphrases
+
+Goals
+
+Character traits should remain consistent across every episode.
+
+SEASON MANAGEMENT
+
+Create Season model.
+
+Fields:
+
+Season Number
+
+Title
+
+Description
+
+Story Arc
+
+Status
+
+Episode Count
+
+Created Date
+
+Updated Date
+
+EPISODE MANAGEMENT
+
+Episode should contain:
+
+Episode Number
+
+Title
+
+Summary
+
+Opening
+
+Middle
+
+Ending
+
+Moral
+
+Duration Target
+
+Story Score
+
+Status
+
+SCENE MANAGEMENT
+
+Each episode contains scenes.
+
+Scene fields:
+
+Scene Number
+
+Scene Goal
+
+Characters
+
+Location
+
+Dialogue
+
+Narration
+
+Image Prompt
+
+Animation Prompt
+
+Camera Direction
+
+Duration
+
+Status
+
+STORY QUALITY ENGINE
+
+Evaluate every generated story.
+
+Score:
+
+Originality
+
+Consistency
+
+Creativity
+
+Grammar
+
+Flow
+
+Entertainment
+
+Educational Value
+
+Story Arc
+
+Dialogue
+
+Overall Quality
+
+Return score from 0–100.
+
+Only approve stories above configurable thresholds.
+
+AUTO IMPROVEMENT
+
+If score below threshold:
+
+Regenerate weak sections only.
+
+Do NOT regenerate the entire story unless necessary.
+
+Retry automatically.
+
+Maximum retries configurable.
+
+LONG TERM MEMORY
+
+Implement memory tables.
+
+Store:
+
+Previous stories
+
+Previous episodes
+
+Successful prompts
+
+Failed prompts
+
+Frequently used characters
+
+Frequently used locations
+
+Frequently used jokes
+
+Story embeddings (placeholder for Phase 4 RAG integration)
+
+Memory must be reusable.
+
+DATABASE MODELS
+
+Create production-ready SQLAlchemy models with Alembic migrations.
+
+Suggested models:
+
+Story
+
+StoryIdea
+
+World
+
+Season
+
+Episode
+
+Scene
+
+Dialogue
+
+Narration
+
+StoryMemory
+
+StoryEvaluation
+
+StoryVersion
+
+GenerationJob
+
+GenerationLog
+
+RetryQueue
+
+Relationships must be fully normalized with indexes and foreign keys.
+
+BACKEND SERVICES
+
+Implement service layer.
+
+Examples:
+
+StoryGenerationService
+
+StoryPlanningService
+
+SeasonPlanner
+
+EpisodePlanner
+
+ScenePlanner
+
+DialogueGenerator
+
+NarrationGenerator
+
+PromptGenerator
+
+ConsistencyValidator
+
+StoryEvaluator
+
+RetryService
+
+MemoryService
+
+VersionService
+
+LoggingService
+
+API ENDPOINTS
+
+Create REST APIs.
+
+Examples:
+
+POST /stories/generate
+
+GET /stories
+
+GET /stories/{id}
+
+PUT /stories/{id}
+
+DELETE /stories/{id}
+
+POST /stories/{id}/evaluate
+
+POST /stories/{id}/retry
+
+POST /stories/{id}/approve
+
+POST /stories/{id}/publish-ready
+
+GET /stories/{id}/versions
+
+GET /stories/{id}/memory
+
+POST /seasons
+
+POST /episodes
+
+POST /scenes
+
+Return proper HTTP status codes.
+
+Use Pydantic schemas.
+
+Add validation.
+
+CELERY TASKS
+
+Create asynchronous jobs.
+
+Tasks:
+
+Generate Story
+
+Generate Episode
+
+Generate Scene
+
+Generate Dialogue
+
+Generate Narration
+
+Evaluate Story
+
+Retry Failed Story
+
+Save Story Memory
+
+Update Progress
+
+Support retries.
+
+Support task status.
+
+WORKFLOW ENGINE
+
+Integrate Story Intelligence into existing workflow.
+
+Workflow:
+
+Character Studio
+
+↓
+
+Story Intelligence
+
+↓
+
+Asset Generation (future)
+
+↓
+
+Animation (future)
+
+Expose progress updates.
+
+Persist workflow state.
+
+FRONTEND
+
+Build complete UI.
+
+Pages:
+
+Story Dashboard
+
+Story Library
+
+Season Manager
+
+Episode Manager
+
+Scene Editor
+
+World Builder
+
+Story Memory
+
+Generation Queue
+
+Story Analytics
+
+Retry Queue
+
+DASHBOARD
+
+Show:
+
+Stories Generated
+
+Episodes
+
+Scenes
+
+Average Score
+
+Pending Jobs
+
+Running Jobs
+
+Completed Jobs
+
+Failed Jobs
+
+Retry Queue
+
+Memory Usage
+
+Generation Time
+
+STORY DETAIL PAGE
+
+Display:
+
+Story
+
+World
+
+Characters
+
+Episodes
+
+Scenes
+
+Dialogue
+
+Narration
+
+Scores
+
+Versions
+
+Logs
+
+Retry History
+
+FRONTEND FEATURES
+
+Search
+
+Filtering
+
+Sorting
+
+Pagination
+
+Status Badges
+
+Progress Bars
+
+Live Updates
+
+Dark Mode Support
+
+Responsive Layout
+
+Loading States
+
+Error Handling
+
+LOGGING
+
+Log every generation step.
+
+Include:
+
+Prompt
+
+Response
+
+Duration
+
+Score
+
+Retries
+
+Errors
+
+Worker
+
+Timestamp
+
+CONFIGURATION
+
+All thresholds configurable.
+
+Examples:
+
+Minimum Story Score
+
+Maximum Retries
+
+Target Episode Length
+
+Scene Count
+
+Target Duration
+
+Temperature
+
+Model Name
+
+TESTING
+
+Write comprehensive tests.
+
+Unit Tests
+
+Integration Tests
+
+API Tests
+
+Workflow Tests
+
+Celery Tests
+
+Frontend Component Tests
+
+Maintain or improve overall coverage.
+
+DOCUMENTATION
+
+Update:
+
+README
+
+API Documentation
+
+Architecture Diagram
+
+Database Diagram
+
+Workflow Diagram
+
+Developer Documentation
+
+User Documentation
+
+Deployment Notes
+
+BUG FIXING
+
+Fix any issues encountered during implementation.
+
+Do not ignore warnings.
+
+Remove dead code.
+
+Maintain code quality.
