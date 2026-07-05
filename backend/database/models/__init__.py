@@ -1,38 +1,19 @@
-from database.models.user import User, RefreshToken
-from database.models.project import Project
-from database.models.story import Story
-from database.models.scene import Scene, SceneCharacter
-from database.models.character import Character
-from database.models.asset import Asset, Background, Prop, VoiceProfile, AnimationPreset, Audio, Music, SoundEffect
-from database.models.animation import (
-    Expression,
-    Pose,
-    CharacterTemplate,
-    SceneComposition,
-    Timeline,
-    AssetVersion,
+# Ensures all models are registered with SQLAlchemy metadata.
+# Import order does not matter — all tables are declared on the same Base.
+from database.models.user import User, RefreshToken  # noqa: F401
+from database.models.project import Project  # noqa: F401
+from database.models.story import Story  # noqa: F401
+from database.models.scene import Scene  # noqa: F401
+from database.models.character import Character  # noqa: F401
+from database.models.asset import (  # noqa: F401
+    Background, Prop, AnimationPreset, Audio, Music, SoundEffect
 )
-
-__all__ = [
-    "User",
-    "RefreshToken",
-    "Project",
-    "Story",
-    "Scene",
-    "SceneCharacter",
-    "Character",
-    "Asset",
-    "Background",
-    "Prop",
-    "VoiceProfile",
-    "AnimationPreset",
-    "Audio",
-    "Music",
-    "SoundEffect",
-    "Expression",
-    "Pose",
-    "CharacterTemplate",
-    "SceneComposition",
-    "Timeline",
-    "AssetVersion",
-]
+from database.models.animation import (  # noqa: F401
+    Expression, Pose, CharacterTemplate,
+    SceneComposition, Timeline, AssetVersion,
+)
+from database.models.intelligence import (  # noqa: F401
+    World, Season, Episode, StoryScene, StoryIdea,
+    StoryMemory, StoryEvaluation, GenerationJob,
+    GenerationLog, RetryQueue, StoryVersion,
+)

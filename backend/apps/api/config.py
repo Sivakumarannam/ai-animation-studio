@@ -87,6 +87,23 @@ class Settings(BaseSettings):
     # Plugin system
     ENABLED_PLUGINS: list[str] = ["telugu_family_comedy"]
 
+    # ── Phase 3 — Story Intelligence ──────────────────────────────────────────
+    # AI provider selection: "mock" | "ollama" | "openai" | "anthropic" | "gemini" | "openrouter"
+    # Set to "mock" by default — no paid API required.  Switch via env var only.
+    SI_AI_PROVIDER: str = "mock"
+
+    # Quality thresholds
+    SI_MIN_STORY_SCORE: float = 70.0          # Episodes below this are auto-retried
+    SI_MAX_RETRIES: int = 3                    # Max auto-improvement attempts
+
+    # Generation defaults
+    SI_TARGET_EPISODE_LENGTH_SECONDS: int = 300   # 5 minutes
+    SI_DEFAULT_SCENE_COUNT: int = 5
+    SI_DEFAULT_EPISODES_PER_SEASON: int = 10
+    SI_AI_TEMPERATURE: float = 0.7
+    SI_AI_MAX_TOKENS: int = 4096
+    SI_AI_MODEL: str = "mock"                 # Model name passed to the provider
+
 
 @lru_cache
 def get_settings() -> Settings:
