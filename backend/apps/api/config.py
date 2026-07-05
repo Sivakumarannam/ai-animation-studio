@@ -3,6 +3,7 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
@@ -37,7 +38,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
     # Database — always normalized to use asyncpg driver
-    DATABASE_URL: str = "postgresql+asyncpg://cartoon_user:cartoon_pass@localhost:5432/cartoon_studio"
+    DATABASE_URL: str = "postgresql+asyncpg://cartoon_user:Tiger@localhost:5432/cartoon_studio"
     DATABASE_POOL_SIZE: int = 10
     DATABASE_MAX_OVERFLOW: int = 20
 

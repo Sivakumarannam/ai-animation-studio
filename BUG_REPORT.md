@@ -66,6 +66,7 @@ All Critical and High bugs have been **fixed** in this audit. Medium and Low ite
 
 ---
 
+<<<<<<< HEAD
 ### BUG-010 (Fixed) — Cross-asset search silently dropped `show_deleted` for character templates
 **Severity:** Medium  
 **File:** `backend/services/animation_service.py`  
@@ -75,6 +76,8 @@ All Critical and High bugs have been **fixed** in this audit. Medium and Low ite
 
 ---
 
+=======
+>>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b
 ### BUG-006 — Frontend stats key mismatch
 **Severity:** Medium  
 **File:** `frontend/src/pages/studio/AssetManagerPage.tsx`  

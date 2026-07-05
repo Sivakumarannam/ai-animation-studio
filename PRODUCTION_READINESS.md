@@ -25,7 +25,11 @@ The application core (auth, asset management, library, project/story/scene/chara
 | WebSockets | ❌ Blocked | Redis pubsub required for progress events |
 | Security | ⚠️ Issues | JWT default secret, CORS gap, unset user_id in generation |
 | Frontend | ✅ Functional | Asset Manager page renders; animations work |
+<<<<<<< HEAD
 | Test Coverage | ✅ 81/81 | Covers Phase 1 + Phase 2 core flows + cross-user authz |
+=======
+| Test Coverage | ✅ 76/76 | Covers Phase 1 + Phase 2 core flows |
+>>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b
 
 ---
 
@@ -127,8 +131,11 @@ Default `pool_size=10, max_overflow=20` is fine for development but should be tu
 - ✅ Asset Manager: version snapshot + restore
 - ✅ Asset Manager: search (GET + POST), stats, show_deleted filter
 - ✅ Seed endpoints idempotent (running twice returns 0 on second call)
+<<<<<<< HEAD
 - ✅ Cross-user isolation: User A's projects/stories/scenes are inaccessible to User B (returns 403/404)
 - ✅ `show_deleted` filter correctly includes/excludes soft-deleted records across all 7 asset types including character templates
+=======
+>>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b
 
 ## Not Tested (Blocked by Missing Infrastructure)
 

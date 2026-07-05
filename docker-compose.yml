@@ -96,7 +96,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-cartoon_studio}
       POSTGRES_USER: ${POSTGRES_USER:-cartoon_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cartoon_pass}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Tiger}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:

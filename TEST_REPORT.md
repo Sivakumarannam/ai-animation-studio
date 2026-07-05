@@ -9,11 +9,19 @@
 
 | Metric | Result |
 |--------|--------|
+<<<<<<< HEAD
 | Automated test cases | **81** |
 | Tests passing | **81 / 81 (100%)** |
 | API endpoints swept (live server) | **50** |
 | API endpoints passing | **49 / 50 (98%)** |
 | Bugs fixed during audit | **10** |
+=======
+| Automated test cases | **76** |
+| Tests passing | **76 / 76 (100%)** |
+| API endpoints swept (live server) | **50** |
+| API endpoints passing | **49 / 50 (98%)** |
+| Bugs fixed during audit | **9** |
+>>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b
 
 ---
 
@@ -45,12 +53,19 @@ Execution: `cd backend && PYTHONPATH=. python -m pytest tests/ -v`
 | `test_asset_manager.py` | `TestAssetManagerBulk` | 3 | Bulk delete, restore, update |
 | `test_asset_manager.py` | `TestAssetManagerVersions` | 2 | Create version snapshot, restore version |
 | `test_asset_manager.py` | `TestCharacterTemplateAssetManager` | 1 | List character templates through asset manager |
+<<<<<<< HEAD
 | `test_projects.py` | `TestCrossUserAuthorization` | 5 | User A cannot read/mutate/delete User B's projects or stories |
+=======
+>>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b
 
 ### Final Run Output
 
 ```
+<<<<<<< HEAD
 81 passed in 42.33s
+=======
+76 passed in 38.49s
+>>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b
 ```
 
 All tests green. No flakes observed across 3 sequential runs.
