@@ -3,4 +3,32 @@ name = "repl-nix-workspace"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "aioboto3==13.2.0",
+    "aiofiles==24.1.0",
+    "alembic==1.14.0",
+    "asyncpg==0.30.0",
+    "celery[redis]==5.4.0",
+    "cryptography==44.0.0",
+    "email-validator==2.2.0",
+    "factory-boy==3.3.3",
+    "faker==40.28.1",
+    "fakeredis==2.36.2",
+    "fastapi==0.115.5",
+    "httpx==0.28.1",
+    "minio==7.2.11",
+    "passlib[bcrypt]==1.7.4",
+    "pillow==11.0.0",
+    "pydantic==2.10.3",
+    "pydantic-settings==2.7.0",
+    "pyjwt==2.10.1",
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "python-dotenv==1.0.1",
+    "python-multipart==0.0.18",
+    "redis==5.2.1",
+    "sqlalchemy[asyncio]==2.0.36",
+    "structlog==24.4.0",
+    "tenacity==9.0.0",
+    "uvicorn[standard]==0.32.1",
+]

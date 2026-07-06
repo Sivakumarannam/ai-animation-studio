@@ -1,0 +1,596 @@
+# AI Animation Studio — Continue Phase 4 (Do NOT Restart)
+
+---
+
+# IMPORTANT
+
+Do NOT restart Phase 4.
+
+Do NOT regenerate implementation plans that have already been completed.
+
+Do NOT recreate existing code.
+
+Read the current repository first and determine the exact implementation state before making any modifications.
+
+Continue from the current repository state.
+
+---
+
+# Current Project Status
+
+Completed:
+
+* ✅ Phase 1 — Foundation Platform
+* ✅ Phase 2 — Character Studio
+* ✅ Phase 3 — AI Story Intelligence
+* ✅ Phase 3 Production Hardening
+* ✅ 142/142 backend tests passing
+* ✅ Frontend production build passing
+* ✅ Mock AI Provider architecture completed
+* ✅ Provider factory abstraction completed
+* ✅ Dispatcher fallback architecture completed
+* ✅ Documentation updated
+
+Currently implementing:
+
+# Phase 4 — RAG & Knowledge Intelligence Engine
+
+---
+
+# Previous Phase 4 Progress
+
+The following design decisions have already been made.
+
+Do NOT redesign unless technically necessary.
+
+---
+
+## Architecture
+
+The Knowledge module uses the prefix:
+
+kn_
+
+Models are intentionally consolidated instead of creating unnecessary tables.
+
+Current planned models:
+
+* KnowledgeCollection
+* KnowledgeDocument
+* KnowledgeChunk
+* EmbeddingJob
+* KnowledgeMemory
+* RetrievalHistory
+* KnowledgeVersion
+
+Instead of separate tables:
+
+* KnowledgeSource
+* KnowledgeMetadata
+* ContextSnapshot
+* VectorIndex
+
+their information should be stored inside JSON metadata fields where appropriate.
+
+This is an intentional production design decision.
+
+---
+
+## Embeddings
+
+Create an EmbeddingProvider abstraction.
+
+Support:
+
+* MockEmbeddingProvider
+* OllamaEmbeddingProvider
+
+Configuration:
+
+EMBEDDING_PROVIDER
+
+Values:
+
+* mock
+* ollama
+
+Unknown providers must safely fall back to mock.
+
+Follow exactly the same provider architecture used for Story Intelligence.
+
+---
+
+## Vector Store
+
+Create a VectorStoreProvider abstraction.
+
+Support:
+
+Default:
+
+* In-memory deterministic vector search
+
+Optional:
+
+* ChromaDB
+
+Future:
+
+* Qdrant
+
+Configuration:
+
+VECTOR_DB_PROVIDER
+
+Values:
+
+* memory
+* chromadb
+* qdrant
+
+Do not hardcode providers.
+
+---
+
+## Embeddings
+
+KnowledgeChunk stores embedding vectors directly.
+
+Use JSON float arrays.
+
+Do not depend on pgvector.
+
+Cosine similarity should be implemented in pure Python.
+
+---
+
+## Document Parsing
+
+Supported formats:
+
+* txt
+* md
+* csv
+* json
+* pdf
+* docx
+
+Dependencies:
+
+* python-docx
+* pypdf
+
+Gracefully handle unsupported formats.
+
+---
+
+## Story Intelligence Integration
+
+The Knowledge Engine automatically integrates into Phase 3.
+
+Pipeline:
+
+Story Request
+
+↓
+
+Retrieve Context
+
+↓
+
+Build Prompt Context
+
+↓
+
+Story Intelligence
+
+↓
+
+LLM
+
+↓
+
+Generated Story
+
+If no knowledge exists:
+
+Return empty context.
+
+Never fail.
+
+---
+
+# BEFORE WRITING CODE
+
+Inspect the repository.
+
+Determine:
+
+* Existing Phase 4 models
+* Existing migrations
+* Existing repositories
+* Existing services
+* Existing providers
+* Existing routers
+* Existing frontend pages
+* Existing Celery tasks
+* Existing tests
+
+Continue existing work.
+
+Do NOT duplicate implementations.
+
+---
+
+# Continue Implementation
+
+Complete Phase 4.
+
+---
+
+## Database
+
+Implement remaining SQLAlchemy models.
+
+Create Alembic migrations.
+
+Verify migrations reach head.
+
+---
+
+## Repository Layer
+
+Implement:
+
+DocumentRepository
+
+ChunkRepository
+
+CollectionRepository
+
+EmbeddingRepository
+
+MemoryRepository
+
+RetrievalRepository
+
+VersionRepository
+
+Follow the existing repository pattern.
+
+---
+
+## Provider Layer
+
+Complete:
+
+EmbeddingProvider
+
+MockEmbeddingProvider
+
+OllamaEmbeddingProvider
+
+VectorStoreProvider
+
+MemoryVectorStore
+
+ChromaVectorStore
+
+Provider factory registration.
+
+Dependency injection.
+
+Configuration support.
+
+Fallback behavior.
+
+---
+
+## Services
+
+Complete:
+
+ParserService
+
+CleaningService
+
+ChunkingService
+
+EmbeddingService
+
+VectorStoreService
+
+RetrievalService
+
+SemanticSearchService
+
+ContextBuilderService
+
+KnowledgeMemoryService
+
+CollectionService
+
+DocumentService
+
+ImportExportService
+
+VersionService
+
+HistoryService
+
+Every service must be independently testable.
+
+---
+
+## Celery
+
+Implement:
+
+ImportDocument
+
+ExtractText
+
+ChunkDocument
+
+GenerateEmbeddings
+
+StoreVectors
+
+ReindexCollection
+
+SemanticSearch
+
+ContextAssembly
+
+Cleanup
+
+RetryEmbedding
+
+Dispatcher fallback must work without Redis.
+
+---
+
+## REST API
+
+Implement:
+
+POST /knowledge/upload
+
+GET /knowledge
+
+GET /knowledge/{id}
+
+DELETE /knowledge/{id}
+
+POST /knowledge/search
+
+POST /knowledge/semantic-search
+
+POST /knowledge/reindex
+
+POST /knowledge/rebuild
+
+GET /knowledge/history
+
+GET /knowledge/collections
+
+POST /knowledge/context
+
+POST /knowledge/import
+
+POST /knowledge/export
+
+Use:
+
+Authentication
+
+Authorization
+
+Validation
+
+Pagination
+
+Filtering
+
+Sorting
+
+Error handling
+
+---
+
+## Story Intelligence
+
+Automatically retrieve context before:
+
+Story generation
+
+Episode generation
+
+Scene generation
+
+Dialogue generation
+
+Narration generation
+
+Use ContextBuilder.
+
+Gracefully degrade when no knowledge exists.
+
+---
+
+## Frontend
+
+Complete production pages:
+
+Knowledge Dashboard
+
+Knowledge Library
+
+Upload Center
+
+Document Viewer
+
+Collections
+
+Semantic Search
+
+Retrieval History
+
+Embedding Jobs
+
+Knowledge Settings
+
+Integrate with existing navigation.
+
+Reuse existing components.
+
+Responsive.
+
+---
+
+## Dashboard
+
+Display:
+
+Documents
+
+Chunks
+
+Collections
+
+Embeddings
+
+Retrievals
+
+Storage
+
+Jobs
+
+History
+
+Performance metrics
+
+---
+
+## Testing
+
+Create deterministic tests.
+
+Use mock providers.
+
+No external AI required.
+
+Cover:
+
+Document upload
+
+Parsing
+
+Cleaning
+
+Chunking
+
+Embeddings
+
+Retrieval
+
+Semantic Search
+
+Collections
+
+History
+
+Dispatcher fallback
+
+Workflow integration
+
+Authorization
+
+Validation
+
+Run the complete backend suite.
+
+Run frontend build.
+
+Resolve regressions.
+
+---
+
+## Documentation
+
+Update:
+
+README
+
+Architecture
+
+API docs
+
+Database diagrams
+
+Knowledge pipeline
+
+Configuration
+
+Deployment
+
+TEST_REPORT.md
+
+BUG_REPORT.md
+
+PRODUCTION_READINESS.md
+
+Create:
+
+PHASE4_COMPLETION_REPORT.md
+
+---
+
+# Development Rules
+
+* Continue existing work.
+* Do not replace completed implementations.
+* Reuse Phase 3 architecture.
+* Use dependency injection.
+* Keep providers configurable.
+* Keep mock-first testing.
+* Keep production architecture intact.
+* Do not introduce paid APIs.
+* Do not implement Phase 5.
+
+---
+
+# Definition of Done
+
+Phase 4 is complete only when:
+
+* Document ingestion works.
+* Parsing works.
+* Chunking works.
+* Embeddings work.
+* Vector storage works.
+* Semantic retrieval works.
+* Context Builder works.
+* Story Intelligence automatically consumes retrieved context.
+* APIs are complete.
+* Frontend is complete.
+* Celery integration is complete.
+* Dispatcher fallback works.
+* Backend tests pass.
+* Frontend builds.
+* Documentation updated.
+* PHASE4_COMPLETION_REPORT.md created.
+* No TODOs.
+* No placeholder implementations.
+* Phase 4 is production-ready.
+
+Work incrementally.
+
+After every major milestone:
+
+* Verify backend.
+* Verify frontend.
+* Verify migrations.
+* Verify tests.
+
+Continue until Phase 4 is fully complete.
