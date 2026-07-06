@@ -6,12 +6,14 @@ from __future__ import annotations
 
 import structlog
 
+from agents.interfaces.embedding_provider import EmbeddingProvider
 from agents.interfaces.image_provider import ImageProvider
 from agents.interfaces.llm_provider import LLMProvider
 from agents.interfaces.renderer_provider import RendererProvider
 from agents.interfaces.seo_provider import SEOProvider
 from agents.interfaces.subtitle_provider import SubtitleProvider
 from agents.interfaces.tts_provider import TTSProvider
+from agents.interfaces.vector_store_provider import VectorStoreProvider
 from agents.registry import ProviderRegistry
 
 logger = structlog.get_logger()
@@ -28,6 +30,8 @@ def setup_providers(settings: object, registry: ProviderRegistry) -> None:
     _register_subtitle(settings, registry)
     _register_renderer(settings, registry)
     _register_seo(settings, registry)
+    _register_embedding(settings, registry)
+    _register_vector_store(settings, registry)
 
     registered = registry.list_registered()
     logger.info("providers_registered", providers=registered)
@@ -101,3 +105,67 @@ def _register_seo(settings: object, registry: ProviderRegistry) -> None:
     model: str = getattr(settings, "OLLAMA_MODEL", "qwen2.5:7b")
     llm = OllamaProvider(base_url=base_url, model=model)
     registry.register(SEOProvider, OllamaSEOProvider(llm=llm))
+
+
+def _register_embedding(settings: object, registry: ProviderRegistry) -> None:
+    """
+    Select the embedding implementation based on `EMBEDDING_PROVIDER`.
+
+    Supported values today: "mock" (deterministic, zero-dependency) and
+    "ollama" (local embedding model server). Unknown/future values fall back
+    to "mock" with a warning so the app never crashes at startup.
+    """
+    provider_name: str = getattr(settings, "EMBEDDING_PROVIDER", "mock").lower()
+
+    if provider_name == "ollama":
+        from agents.implementations.ollama_embedding_provider import OllamaEmbeddingProvider
+
+        base_url: str = getattr(settings, "OLLAMA_BASE_URL", "http://localhost:11434")
+        model: str = getattr(settings, "OLLAMA_EMBEDDING_MODEL", "nomic-embed-text")
+        registry.register(EmbeddingProvider, OllamaEmbeddingProvider(base_url=base_url, model=model))
+        return
+
+    if provider_name != "mock":
+        logger.warning(
+            "embedding_provider_unsupported_falling_back_to_mock",
+            requested=provider_name,
+        )
+
+    from agents.implementations.mock_embedding_provider import MockEmbeddingProvider
+
+    registry.register(EmbeddingProvider, MockEmbeddingProvider())
+
+
+def _register_vector_store(settings: object, registry: ProviderRegistry) -> None:
+    """
+    Select the vector store implementation based on `VECTOR_DB_PROVIDER`.
+
+    Supported values today: "memory" (default, zero-dependency, pure Python
+    cosine similarity) and "chromadb" (optional persistent store). Unknown
+    values, or chromadb import/instantiation failures, fall back to "memory"
+    so the app never crashes at startup.
+    """
+    provider_name: str = getattr(settings, "VECTOR_DB_PROVIDER", "memory").lower()
+
+    if provider_name == "chromadb":
+        try:
+            from agents.implementations.chroma_vector_store import ChromaVectorStore
+
+            persist_dir: str = getattr(settings, "CHROMA_PERSIST_DIR", "./chroma_data")
+            registry.register(VectorStoreProvider, ChromaVectorStore(persist_directory=persist_dir))
+            return
+        except Exception as exc:
+            logger.warning(
+                "vector_store_chromadb_unavailable_falling_back_to_memory",
+                error=str(exc),
+            )
+
+    if provider_name not in ("memory", "chromadb"):
+        logger.warning(
+            "vector_store_provider_unsupported_falling_back_to_memory",
+            requested=provider_name,
+        )
+
+    from agents.implementations.memory_vector_store import InMemoryVectorStore
+
+    registry.register(VectorStoreProvider, InMemoryVectorStore())

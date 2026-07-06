@@ -68,6 +68,7 @@ class StoryIntelligenceOrchestrator:
         job_svc: GenerationJobService,
         version_svc: VersionService,
         llm: LLMProvider,
+        retrieval_svc: Any | None = None,
     ) -> None:
         self._world = world_svc
         self._idea = idea_svc
@@ -79,7 +80,30 @@ class StoryIntelligenceOrchestrator:
         self._jobs = job_svc
         self._versions = version_svc
         self._llm = llm
+        self._retrieval = retrieval_svc
         self._cfg = get_settings()
+
+    async def _get_rag_context(
+        self, project_id: UUID, knowledge_collection_id: UUID | None, query: str
+    ) -> str:
+        """
+        Best-effort Phase 4 RAG context lookup. Returns "" (empty context) if
+        no knowledge collection was specified, no retrieval service is wired
+        up, or anything goes wrong — the SI pipeline must always be able to
+        proceed without a knowledge base.
+        """
+        if not knowledge_collection_id or self._retrieval is None:
+            return ""
+        try:
+            return await self._retrieval.build_context_text(
+                project_id=project_id,
+                collection_id=knowledge_collection_id,
+                query=query,
+                query_source="si_pipeline",
+            )
+        except Exception:
+            logger.warning("rag_context_lookup_failed", collection_id=str(knowledge_collection_id))
+            return ""
 
     # ──────────────────────────────────────────────────────────────────────────
     # Public pipeline entry points
@@ -95,10 +119,15 @@ class StoryIntelligenceOrchestrator:
         story_type: str = "comedy",
         episode_count: int | None = None,
         world_data: dict[str, Any] | None = None,
+        knowledge_collection_id: UUID | None = None,
     ) -> dict[str, Any]:
         """
         Full pipeline: World → Idea → Season → Episode → Scenes → Eval → Memory.
         Updates job progress throughout.  Returns a summary dict.
+
+        `knowledge_collection_id` (Phase 4) optionally scopes RAG retrieval to a
+        specific knowledge base collection; when omitted (or when nothing is
+        found) the pipeline runs exactly as before with an empty context.
         """
         try:
             await self._jobs.start_job(job_id, mode="sync")
@@ -115,13 +144,18 @@ class StoryIntelligenceOrchestrator:
 
             # Stage 2: Story Idea
             await self._jobs.update_progress(job_id, 15, "Generating story idea")
+            rag_context = await self._get_rag_context(
+                project_id, knowledge_collection_id, f"{genre} {story_type} {world.name}"
+            )
             ideas = await self._idea.generate_ideas(
                 project_id, genre=genre, story_type=story_type,
                 count=1, world_id=world.id,
                 world_context={"name": world.name, "description": world.description},
+                rag_context=rag_context,
             )
             idea = ideas[0]
             result["idea_id"] = str(idea.id)
+            result["rag_context_used"] = bool(rag_context)
             logger.info("pipeline_idea_ready", idea_id=str(idea.id))
 
             # Stage 3: Season Plan
@@ -132,7 +166,9 @@ class StoryIntelligenceOrchestrator:
 
             # Stage 4: Episode Plan
             await self._jobs.update_progress(job_id, 40, "Planning episode")
-            episode = await self._create_episode(project_id, world, season, idea)
+            episode = await self._create_episode(
+                project_id, world, season, idea, knowledge_collection_id=knowledge_collection_id
+            )
             result["episode_id"] = str(episode.id)
             logger.info("pipeline_episode_ready", episode_id=str(episode.id))
 
@@ -189,6 +225,7 @@ class StoryIntelligenceOrchestrator:
         job_id: UUID,
         season_id: UUID,
         world_id: UUID,
+        knowledge_collection_id: UUID | None = None,
     ) -> dict[str, Any]:
         """Generate a single episode (including scenes) within an existing season."""
         await self._jobs.start_job(job_id, mode="sync")
@@ -203,7 +240,9 @@ class StoryIntelligenceOrchestrator:
             )
 
             await self._jobs.update_progress(job_id, 20, "Planning episode")
-            episode = await self._create_episode(project_id, world, season, idea)
+            episode = await self._create_episode(
+                project_id, world, season, idea, knowledge_collection_id=knowledge_collection_id
+            )
 
             await self._jobs.update_progress(job_id, 50, "Breaking scenes")
             scenes = await self._create_scenes(world, episode)
@@ -270,12 +309,21 @@ class StoryIntelligenceOrchestrator:
         })
 
     async def _create_episode(
-        self, project_id: UUID, world: World, season: Season, idea: StoryIdea
+        self,
+        project_id: UUID,
+        world: World,
+        season: Season,
+        idea: StoryIdea,
+        knowledge_collection_id: UUID | None = None,
     ) -> Episode:
+        rag_context = await self._get_rag_context(
+            project_id, knowledge_collection_id, f"{season.title} {idea.title} {idea.premise}"
+        )
         plan = await self._episode.ai_plan_episode(
             world_context={"name": world.name, "description": world.description},
             season_context={"title": season.title, "story_arc": season.story_arc},
             episode_number=1,
+            rag_context=rag_context,
         )
         return await self._episode.create(season.id, world.id, project_id, {
             "title": plan.get("title", idea.title),

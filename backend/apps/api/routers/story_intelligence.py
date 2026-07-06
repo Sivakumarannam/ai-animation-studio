@@ -77,9 +77,11 @@ def _make_services(session):
     from services.intelligence.job_service import GenerationJobService
     from services.intelligence.version_service import VersionService
     from services.intelligence.orchestrator import StoryIntelligenceOrchestrator
+    from services.knowledge import build_retrieval_service
 
     llm = get_provider_registry().resolve(LLMProvider)
     version_repo = StoryVersionRepository(session)
+    retrieval_svc = build_retrieval_service(session)
 
     world_svc = WorldService(WorldRepository(session), version_repo)
     idea_svc = StoryIdeaService(StoryIdeaRepository(session), llm)
@@ -100,6 +102,7 @@ def _make_services(session):
         world_svc=world_svc, idea_svc=idea_svc, season_svc=season_svc,
         episode_svc=episode_svc, scene_svc=scene_svc, evaluator_svc=eval_svc,
         memory_svc=memory_svc, job_svc=job_svc, version_svc=version_svc, llm=llm,
+        retrieval_svc=retrieval_svc,
     )
     return {
         "world": world_svc, "idea": idea_svc, "season": season_svc,
@@ -554,6 +557,7 @@ async def run_full_pipeline(
             "story_type": body.story_type,
             "episode_count": body.episode_count,
             "world_data": body.world_data,
+            "knowledge_collection_id": str(body.knowledge_collection_id) if body.knowledge_collection_id else None,
         },
     )
     return DispatchResponse(**dispatch_result)
@@ -574,6 +578,7 @@ async def _run_pipeline_core(
         story_type=body.story_type,
         episode_count=body.episode_count,
         world_data=body.world_data,
+        knowledge_collection_id=body.knowledge_collection_id,
     )
 
 
@@ -601,7 +606,7 @@ async def generate_episode(
         core_coro_factory=lambda: _run_episode_core(
             project_id=season.project_id, job_id=job.id,
             season_id=season_id, world_id=body.world_id,
-            session=session,
+            session=session, knowledge_collection_id=body.knowledge_collection_id,
         ),
         job_id=str(job.id),
         queue="ai",
@@ -609,6 +614,7 @@ async def generate_episode(
             "project_id": str(season.project_id),
             "season_id": str(season_id),
             "world_id": str(body.world_id),
+            "knowledge_collection_id": str(body.knowledge_collection_id) if body.knowledge_collection_id else None,
         },
     )
     return DispatchResponse(**dispatch_result)
@@ -620,11 +626,13 @@ async def _run_episode_core(
     season_id: UUID,
     world_id: UUID,
     session: Any,
+    knowledge_collection_id: UUID | None = None,
 ) -> dict[str, Any]:
     svc = _make_services(session)
     return await svc["orchestrator"].generate_episode_only(
         project_id=project_id, job_id=job_id,
         season_id=season_id, world_id=world_id,
+        knowledge_collection_id=knowledge_collection_id,
     )
 
 

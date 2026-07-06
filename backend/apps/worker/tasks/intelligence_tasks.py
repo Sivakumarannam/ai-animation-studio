@@ -52,6 +52,7 @@ async def _run_full_pipeline_core(
     story_type: str = "comedy",
     episode_count: int | None = None,
     world_data: dict[str, Any] | None = None,
+    knowledge_collection_id: str | None = None,
 ) -> dict[str, Any]:
     from database.connection import get_session
     from agents.registry import get_provider_registry
@@ -72,6 +73,7 @@ async def _run_full_pipeline_core(
     from services.intelligence.memory_service import MemoryService
     from services.intelligence.job_service import GenerationJobService
     from services.intelligence.version_service import VersionService
+    from services.knowledge import build_retrieval_service
 
     llm = get_provider_registry().resolve(LLMProvider)
 
@@ -96,6 +98,7 @@ async def _run_full_pipeline_core(
             ),
             version_svc=VersionService(version_repo),
             llm=llm,
+            retrieval_svc=build_retrieval_service(session),
         )
         return await orchestrator.run_full_pipeline(
             project_id=UUID(project_id),
@@ -105,6 +108,7 @@ async def _run_full_pipeline_core(
             story_type=story_type,
             episode_count=episode_count,
             world_data=world_data or {},
+            knowledge_collection_id=UUID(knowledge_collection_id) if knowledge_collection_id else None,
         )
     return {}
 
@@ -114,6 +118,7 @@ async def _generate_episode_core(
     job_id: str,
     season_id: str,
     world_id: str,
+    knowledge_collection_id: str | None = None,
 ) -> dict[str, Any]:
     from database.connection import get_session
     from agents.registry import get_provider_registry
@@ -134,6 +139,7 @@ async def _generate_episode_core(
     from services.intelligence.memory_service import MemoryService
     from services.intelligence.job_service import GenerationJobService
     from services.intelligence.version_service import VersionService
+    from services.knowledge import build_retrieval_service
 
     llm = get_provider_registry().resolve(LLMProvider)
 
@@ -158,12 +164,14 @@ async def _generate_episode_core(
             ),
             version_svc=VersionService(version_repo),
             llm=llm,
+            retrieval_svc=build_retrieval_service(session),
         )
         return await orchestrator.generate_episode_only(
             project_id=UUID(project_id),
             job_id=UUID(job_id),
             season_id=UUID(season_id),
             world_id=UUID(world_id),
+            knowledge_collection_id=UUID(knowledge_collection_id) if knowledge_collection_id else None,
         )
     return {}
 
@@ -189,6 +197,7 @@ def si_run_full_pipeline(
     story_type: str = "comedy",
     episode_count: int | None = None,
     world_data: dict[str, Any] | None = None,
+    knowledge_collection_id: str | None = None,
 ) -> dict[str, Any]:
     logger.info(f"si_run_full_pipeline start job_id={job_id}")
     try:
@@ -196,6 +205,7 @@ def si_run_full_pipeline(
             project_id=project_id, job_id=job_id,
             world_id=world_id, genre=genre, story_type=story_type,
             episode_count=episode_count, world_data=world_data,
+            knowledge_collection_id=knowledge_collection_id,
         ))
     except Exception as exc:
         logger.error(f"si_run_full_pipeline failed job_id={job_id} error={exc}")
@@ -227,12 +237,14 @@ def si_generate_episode(
     job_id: str,
     season_id: str,
     world_id: str,
+    knowledge_collection_id: str | None = None,
 ) -> dict[str, Any]:
     logger.info(f"si_generate_episode start job_id={job_id}")
     try:
         return _run_async(_generate_episode_core(
             project_id=project_id, job_id=job_id,
             season_id=season_id, world_id=world_id,
+            knowledge_collection_id=knowledge_collection_id,
         ))
     except Exception as exc:
         logger.error(f"si_generate_episode failed job_id={job_id} error={exc}")

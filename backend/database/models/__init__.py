@@ -17,3 +17,7 @@ from database.models.intelligence import (  # noqa: F401
     StoryMemory, StoryEvaluation, GenerationJob,
     GenerationLog, RetryQueue, StoryVersion,
 )
+from database.models.knowledge import (  # noqa: F401
+    KnowledgeCollection, KnowledgeDocument, KnowledgeChunk,
+    EmbeddingJob, KnowledgeMemory, RetrievalHistory, KnowledgeVersion,
+)

@@ -26,8 +26,15 @@ class StoryIdeaService:
         count: int = 3,
         world_context: dict[str, Any] | None = None,
         world_id: UUID | None = None,
+        rag_context: str = "",
     ) -> list[StoryIdea]:
-        """Generate N story ideas via LLM and persist them."""
+        """Generate N story ideas via LLM and persist them.
+
+        `rag_context` is optional retrieved knowledge-base text (Phase 4 RAG).
+        Empty string is the expected/valid default when no knowledge base is
+        configured or nothing relevant was retrieved — the prompt degrades
+        gracefully with no knowledge-base section in that case.
+        """
         world_info = ""
         if world_context:
             world_info = (
@@ -35,9 +42,11 @@ class StoryIdeaService:
                 f"Description: {world_context.get('description', '')}\n"
                 f"Rules: {world_context.get('rules', [])}\n"
             )
+        knowledge_info = f"\nRelevant knowledge base context:\n{rag_context}\n" if rag_context else ""
         prompt = (
             f"Generate {count} unique story ideas for a {genre} {story_type} animation.\n"
             f"{world_info}"
+            f"{knowledge_info}"
             "Each idea should have: title, premise, genre, tone, story_type, "
             "target_audience, estimated_episodes, themes (list)."
         )

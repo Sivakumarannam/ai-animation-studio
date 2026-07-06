@@ -68,13 +68,21 @@ class EpisodeService:
         season_context: dict[str, Any],
         episode_number: int,
         previous_episode_summaries: list[str] | None = None,
+        rag_context: str = "",
     ) -> dict[str, Any]:
+        """
+        `rag_context` is optional retrieved knowledge-base text (Phase 4 RAG).
+        Empty string (the default) means no knowledge base is configured or
+        nothing relevant was retrieved — the prompt proceeds without it.
+        """
         prev = "\n".join(previous_episode_summaries or []) or "None (first episode)"
+        knowledge_info = f"Relevant knowledge base context:\n{rag_context}\n\n" if rag_context else ""
         prompt = (
             f"Plan episode {episode_number} for:\n"
             f"World: {world_context.get('name', '')}\n"
             f"Season: {season_context.get('title', '')} — arc: {season_context.get('story_arc', '')}\n"
             f"Previous episodes:\n{prev}\n\n"
+            f"{knowledge_info}"
             "Generate a complete episode plan with opening, middle, ending, moral, and scene count."
         )
         return await self._llm.generate_json(

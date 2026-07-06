@@ -105,6 +105,22 @@ class Settings(BaseSettings):
     SI_AI_MAX_TOKENS: int = 4096
     SI_AI_MODEL: str = "mock"                 # Model name passed to the provider
 
+    # ── Phase 4 — RAG & Knowledge Intelligence Engine ──────────────────────────
+    # Embedding provider selection: "mock" | "ollama"
+    EMBEDDING_PROVIDER: str = "mock"
+    OLLAMA_EMBEDDING_MODEL: str = "nomic-embed-text"
+
+    # Vector store provider selection: "memory" | "chromadb"
+    VECTOR_DB_PROVIDER: str = "memory"
+    CHROMA_PERSIST_DIR: str = "./chroma_data"
+
+    # Chunking defaults
+    KN_CHUNK_SIZE_TOKENS: int = 400
+    KN_CHUNK_OVERLAP_TOKENS: int = 50
+    KN_MAX_DOCUMENT_SIZE_MB: int = 20
+    KN_DEFAULT_TOP_K: int = 5
+    KN_MIN_SIMILARITY_SCORE: float = 0.15
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -27,6 +27,8 @@ celery_app = Celery(
     include=[
         "apps.worker.tasks.workflow_tasks",
         "apps.worker.tasks.dead_letter",
+        "apps.worker.tasks.intelligence_tasks",
+        "apps.worker.tasks.knowledge_tasks",
     ],
 )
 
@@ -52,6 +54,8 @@ celery_app.conf.update(
         "workflow.run_pipeline": {"queue": "ai"},
         "workflow.resume_pipeline": {"queue": "ai"},
         "workflow.run_step": {"queue": "ai"},
+        "intelligence.*": {"queue": "ai"},
+        "knowledge.*": {"queue": "ai"},
         "render.*": {"queue": "render"},
         "publish.*": {"queue": "publish"},
         "dlq.*": {"queue": "dlq"},

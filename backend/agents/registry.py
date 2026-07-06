@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from packages.core.exceptions import AppError
 
 if TYPE_CHECKING:
+    from agents.interfaces.embedding_provider import EmbeddingProvider
     from agents.interfaces.image_provider import ImageProvider
     from agents.interfaces.llm_provider import LLMProvider
     from agents.interfaces.renderer_provider import RendererProvider
@@ -32,6 +33,7 @@ if TYPE_CHECKING:
     from agents.interfaces.stt_provider import STTProvider
     from agents.interfaces.subtitle_provider import SubtitleProvider
     from agents.interfaces.tts_provider import TTSProvider
+    from agents.interfaces.vector_store_provider import VectorStoreProvider
 
 T = TypeVar("T")
 
@@ -156,3 +158,13 @@ def get_renderer_provider() -> "RendererProvider":
 def get_seo_provider() -> "SEOProvider":
     from agents.interfaces.seo_provider import SEOProvider
     return get_provider_registry().resolve(SEOProvider)
+
+
+def get_embedding_provider() -> "EmbeddingProvider":
+    from agents.interfaces.embedding_provider import EmbeddingProvider
+    return get_provider_registry().resolve(EmbeddingProvider)
+
+
+def get_vector_store_provider() -> "VectorStoreProvider":
+    from agents.interfaces.vector_store_provider import VectorStoreProvider
+    return get_provider_registry().resolve(VectorStoreProvider)

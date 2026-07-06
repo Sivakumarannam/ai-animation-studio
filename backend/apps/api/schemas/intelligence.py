@@ -378,11 +378,13 @@ class RunFullPipelineRequest(BaseModel):
     episode_count: int | None = None
     world_id: UUID | None = None
     world_data: dict[str, Any] = {}
+    knowledge_collection_id: UUID | None = None
 
 
 class GenerateEpisodeRequest(BaseModel):
     season_id: UUID
     world_id: UUID
+    knowledge_collection_id: UUID | None = None
 
 
 class DispatchResponse(BaseModel):
