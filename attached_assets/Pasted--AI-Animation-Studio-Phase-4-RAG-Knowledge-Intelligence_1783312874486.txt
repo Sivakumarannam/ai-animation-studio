@@ -1,0 +1,926 @@
+# AI Animation Studio — Phase 4: RAG & Knowledge Intelligence Engine (Production Implementation)
+
+## Project
+
+Repository:
+
+https://github.com/Sivakumarannam/ai-animation-studio
+
+Current Status
+
+Completed
+
+* Phase 1 — Foundation Platform
+* Phase 2 — Character Studio
+* Phase 3 — AI Story Intelligence
+
+All backend tests are passing.
+
+Frontend builds successfully.
+
+Story Intelligence is production-ready.
+
+Do NOT recreate existing functionality.
+
+Read and understand the current architecture before making any changes.
+
+Continue from the existing codebase.
+
+---
+
+# OBJECTIVE
+
+Implement **Phase 4 — RAG & Knowledge Intelligence Engine**.
+
+This phase builds the long-term knowledge layer that powers every future AI feature.
+
+The Knowledge Engine must:
+
+* Reduce hallucinations
+* Maintain long-term memory
+* Retrieve relevant context automatically
+* Support semantic search
+* Store embeddings
+* Build reusable knowledge
+* Improve Story Intelligence
+* Learn continuously
+* Be completely modular
+* Be provider-independent
+* Be production-ready
+
+Do not implement future phases such as Content Discovery, SEO, Video Rendering, Publishing, or Analytics. Build only the reusable knowledge infrastructure required by those phases.
+
+---
+
+# PHASE 4 ARCHITECTURE
+
+Create a dedicated Knowledge Intelligence module integrated with the existing architecture.
+
+Major components include:
+
+* Knowledge Engine
+* RAG Pipeline
+* Document Processing
+* Chunking Engine
+* Embedding Engine
+* Vector Database Integration
+* Retrieval Engine
+* Context Builder
+* Knowledge Memory
+* Semantic Search
+* Knowledge Collections
+* Retrieval History
+* Knowledge Administration
+
+Everything must integrate cleanly with the Story Intelligence Engine from Phase 3.
+
+---
+
+# KNOWLEDGE SOURCES
+
+Support importing knowledge from:
+
+* PDF
+* DOCX
+* TXT
+* Markdown
+* CSV
+* JSON
+
+Internal sources:
+
+* Story Memory
+* Character Profiles
+* World Definitions
+* Seasons
+* Episodes
+* Story Versions
+* Prompt Library
+
+Design extension points for future sources:
+
+* RSS
+* Websites
+* Wikipedia
+* YouTube transcripts
+* Whisper transcripts
+* Google Trends
+* Reddit
+
+Do not implement those future connectors yet.
+
+---
+
+# DOCUMENT INGESTION PIPELINE
+
+Implement the complete ingestion workflow.
+
+Upload
+
+↓
+
+Validation
+
+↓
+
+Metadata Extraction
+
+↓
+
+Text Extraction
+
+↓
+
+Cleaning
+
+↓
+
+Normalization
+
+↓
+
+Chunking
+
+↓
+
+Embedding Generation
+
+↓
+
+Vector Storage
+
+↓
+
+Metadata Storage
+
+↓
+
+Index Verification
+
+↓
+
+Ready for Retrieval
+
+Each stage must be independently testable.
+
+---
+
+# DOCUMENT PARSER
+
+Create parser services supporting:
+
+* PDF
+* DOCX
+* TXT
+* Markdown
+* CSV
+* JSON
+
+Extract:
+
+* title
+* author
+* language
+* creation date
+* modification date
+* headings
+* paragraphs
+* metadata
+* file size
+* source type
+
+Gracefully handle parsing failures.
+
+---
+
+# TEXT CLEANING
+
+Normalize:
+
+* whitespace
+* encoding
+* unicode
+* line endings
+* duplicate paragraphs
+* invalid characters
+
+Preserve document structure.
+
+---
+
+# CHUNKING ENGINE
+
+Support configurable strategies.
+
+Implement:
+
+* Fixed-size chunking
+* Paragraph chunking
+* Sentence chunking
+* Recursive chunking
+
+Configuration:
+
+* chunk size
+* overlap
+* minimum chunk size
+* maximum chunk size
+
+Store chunk metadata.
+
+---
+
+# EMBEDDING ENGINE
+
+Implement provider abstraction.
+
+Create:
+
+EmbeddingProvider interface.
+
+Support:
+
+* MockEmbeddingProvider
+* OllamaEmbeddingProvider
+
+Future support:
+
+* Sentence Transformers
+* HuggingFace
+* OpenAI
+* Gemini
+
+Do not hardcode providers.
+
+Use dependency injection.
+
+---
+
+# VECTOR DATABASE
+
+Support:
+
+Primary:
+
+* ChromaDB
+
+Optional:
+
+* Qdrant
+
+Provider selectable through configuration.
+
+Never hardcode.
+
+Collections:
+
+* Knowledge
+* Stories
+* Characters
+* Worlds
+* Episodes
+* Prompts
+* Memory
+* Research
+
+---
+
+# RETRIEVAL PIPELINE
+
+Query
+
+↓
+
+Embedding
+
+↓
+
+Vector Search
+
+↓
+
+Similarity Ranking
+
+↓
+
+Metadata Filtering
+
+↓
+
+Context Assembly
+
+↓
+
+Story Intelligence
+
+↓
+
+LLM
+
+↓
+
+Final Response
+
+Automatically execute retrieval whenever Story Intelligence requests external knowledge.
+
+---
+
+# CONTEXT BUILDER
+
+Construct optimized prompts using:
+
+* Relevant chunks
+* Character memory
+* Story memory
+* World memory
+* Episode history
+* Prompt templates
+
+Respect configurable context limits.
+
+Prioritize relevance.
+
+---
+
+# SEMANTIC SEARCH
+
+Implement:
+
+* Semantic search
+* Keyword search
+* Hybrid search
+* Similarity search
+* Metadata filtering
+* Collection filtering
+* Date filtering
+* Source filtering
+
+Return ranked results.
+
+---
+
+# KNOWLEDGE MEMORY
+
+Persist:
+
+Facts
+
+Relationships
+
+Locations
+
+Lore
+
+Character history
+
+Story history
+
+Research
+
+Prompt history
+
+Retrieved context
+
+Successful retrievals
+
+Failed retrievals
+
+Learning metadata
+
+---
+
+# KNOWLEDGE COLLECTIONS
+
+Create configurable collections.
+
+Examples:
+
+General Knowledge
+
+Animation
+
+History
+
+Technology
+
+Education
+
+Fantasy
+
+Comedy
+
+Custom
+
+Collections must support independent indexing.
+
+---
+
+# DATABASE
+
+Create production-ready SQLAlchemy models.
+
+Suggested models:
+
+KnowledgeDocument
+
+KnowledgeChunk
+
+KnowledgeCollection
+
+EmbeddingRecord
+
+EmbeddingJob
+
+KnowledgeMemory
+
+RetrievalHistory
+
+KnowledgeSource
+
+KnowledgeMetadata
+
+KnowledgeVersion
+
+ContextSnapshot
+
+VectorIndex
+
+Indexes must be optimized.
+
+Use Alembic migrations.
+
+---
+
+# REPOSITORIES
+
+Implement repositories following the existing project pattern.
+
+Include:
+
+DocumentRepository
+
+ChunkRepository
+
+EmbeddingRepository
+
+CollectionRepository
+
+RetrievalRepository
+
+MemoryRepository
+
+VersionRepository
+
+---
+
+# BACKEND SERVICES
+
+Implement:
+
+KnowledgeService
+
+ParserService
+
+ChunkingService
+
+CleaningService
+
+EmbeddingService
+
+RetrievalService
+
+SemanticSearchService
+
+ContextBuilderService
+
+MemoryService
+
+CollectionService
+
+ImportService
+
+ExportService
+
+VersionService
+
+HistoryService
+
+All services must be modular.
+
+---
+
+# PROVIDER FACTORY
+
+Extend the provider architecture.
+
+Support configuration:
+
+EMBEDDING_PROVIDER
+
+Values:
+
+* mock
+* ollama
+
+Unknown values must safely fall back to mock.
+
+Mirror the provider architecture implemented in Phase 3.
+
+---
+
+# CELERY TASKS
+
+Implement asynchronous jobs.
+
+Tasks include:
+
+ImportDocument
+
+ExtractText
+
+ChunkDocument
+
+GenerateEmbeddings
+
+StoreVectors
+
+ReindexCollection
+
+RebuildEmbeddings
+
+SemanticSearch
+
+ContextAssembly
+
+CleanupUnusedVectors
+
+RetryFailedEmbedding
+
+Dispatcher fallback must work without Redis.
+
+---
+
+# REST API
+
+Implement complete APIs.
+
+Examples:
+
+POST /knowledge/upload
+
+GET /knowledge
+
+GET /knowledge/{id}
+
+DELETE /knowledge/{id}
+
+POST /knowledge/search
+
+POST /knowledge/semantic-search
+
+POST /knowledge/reindex
+
+POST /knowledge/rebuild
+
+GET /knowledge/history
+
+GET /knowledge/collections
+
+POST /knowledge/context
+
+POST /knowledge/import
+
+POST /knowledge/export
+
+Apply:
+
+Authentication
+
+Authorization
+
+Validation
+
+Error handling
+
+Pagination
+
+Filtering
+
+Sorting
+
+---
+
+# WORKFLOW INTEGRATION
+
+Automatically integrate Knowledge Engine into Story Intelligence.
+
+Story generation must:
+
+Request context
+
+↓
+
+Retrieve relevant knowledge
+
+↓
+
+Assemble context
+
+↓
+
+Generate stories
+
+No manual action required.
+
+---
+
+# FRONTEND
+
+Build complete management interface.
+
+Pages:
+
+Knowledge Dashboard
+
+Knowledge Library
+
+Upload Center
+
+Document Viewer
+
+Chunk Viewer
+
+Collections
+
+Semantic Search
+
+Retrieval History
+
+Embedding Jobs
+
+Knowledge Settings
+
+Responsive design.
+
+Reuse existing components.
+
+---
+
+# DASHBOARD
+
+Display:
+
+Documents
+
+Chunks
+
+Embeddings
+
+Collections
+
+Searches
+
+Average retrieval time
+
+Storage usage
+
+Failed jobs
+
+Running jobs
+
+Knowledge growth
+
+---
+
+# DOCUMENT VIEWER
+
+Display:
+
+Metadata
+
+Content
+
+Chunks
+
+Embeddings
+
+Versions
+
+Usage
+
+Retrieval history
+
+---
+
+# SEARCH PAGE
+
+Support:
+
+Live search
+
+Semantic search
+
+Filters
+
+Collections
+
+Sorting
+
+Pagination
+
+Highlighted matches
+
+Similarity scores
+
+---
+
+# CONFIGURATION
+
+Configurable settings include:
+
+Embedding provider
+
+Vector database
+
+Chunk size
+
+Overlap
+
+Top-K retrieval
+
+Similarity threshold
+
+Collection defaults
+
+Cache duration
+
+Maximum context length
+
+---
+
+# LOGGING
+
+Track:
+
+Import time
+
+Embedding time
+
+Chunk count
+
+Retrieval latency
+
+Similarity scores
+
+Context size
+
+Failures
+
+Retries
+
+Worker information
+
+Timestamps
+
+---
+
+# TESTING
+
+Create comprehensive tests.
+
+Unit tests
+
+Integration tests
+
+API tests
+
+Embedding tests
+
+Retrieval tests
+
+Workflow tests
+
+Dispatcher fallback tests
+
+Authorization tests
+
+Validation tests
+
+Maintain or improve total test coverage.
+
+All tests must pass without requiring external AI services.
+
+Use mock providers for deterministic execution.
+
+---
+
+# DOCUMENTATION
+
+Update:
+
+README
+
+Architecture
+
+API documentation
+
+Database diagram
+
+Knowledge pipeline diagram
+
+Configuration guide
+
+Developer guide
+
+Deployment guide
+
+Phase 4 documentation
+
+Production readiness report
+
+---
+
+# SECURITY
+
+Validate uploads.
+
+Restrict supported file types.
+
+Validate MIME types.
+
+Limit file size.
+
+Sanitize extracted text.
+
+Prevent malformed document ingestion.
+
+---
+
+# PERFORMANCE
+
+Optimize for:
+
+Large document collections
+
+Fast retrieval
+
+Concurrent indexing
+
+Efficient chunk storage
+
+Minimal duplicate embeddings
+
+---
+
+# PRODUCTION READINESS
+
+Before marking Phase 4 complete verify:
+
+* Database migrations succeed.
+* Vector database works correctly.
+* Embeddings generate successfully.
+* Retrieval returns relevant results.
+* Story Intelligence automatically uses retrieved context.
+* Dispatcher fallback works without Redis.
+* Frontend builds successfully.
+* Backend tests pass.
+* Frontend tests pass.
+* Documentation is complete.
+* No placeholder implementations remain.
+
+---
+
+# DEVELOPMENT RULES
+
+* Inspect the repository before modifying anything.
+* Reuse existing architecture.
+* Do not duplicate code.
+* Build incrementally.
+* Preserve compatibility with completed phases.
+* Keep all providers configurable.
+* Keep all services modular.
+* Use dependency injection.
+* Keep the implementation production-ready.
+* Do not implement future phases.
+* Do not introduce paid APIs or cloud AI services.
+
+---
+
+# DEFINITION OF DONE
+
+Phase 4 is complete only when:
+
+* Document ingestion works.
+* Chunking works.
+* Embeddings work.
+* Vector storage works.
+* Semantic retrieval works.
+* Context builder works.
+* Story Intelligence automatically consumes retrieved knowledge.
+* APIs are fully implemented.
+* Frontend is complete.
+* Workflow integration is complete.
+* Documentation is complete.
+* Tests pass.
+* Production readiness is verified.
+* No Phase 4 TODOs or placeholder implementations remain.
