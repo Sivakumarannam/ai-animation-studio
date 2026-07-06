@@ -1,4 +1,5 @@
 - [PostgreSQL asyncpg URL quirks](postgres-asyncpg-url.md) — Replit DATABASE_URL is `postgresql://` and has `sslmode` param; both break asyncpg. Must normalize in config validator AND Alembic env.py.
 - [PyJWT vs python-jose](pyjwt-usage.md) — python-jose is blocked by Replit package firewall (HTTP 403). Use PyJWT==2.10.1 + cryptography instead; import is `import jwt` not `from jose import`.
 - [email-validator required](email-validator.md) — Pydantic v2 `EmailStr` requires `email-validator` package separately; add to requirements.txt.
+- [MockLLMProvider routing pitfalls](mock-llm-provider-routing.md) — substring-keyword routing breaks when unrelated prompts embed a matching label; order checks by specificity and verify template keys match consumer contract.
 - [FastAPI mounted sub-app exception handlers](fastapi-mounted-subapp-exception-handlers.md) — handlers on outer `app` don't apply to `app.mount()`-ed sub-apps; register on both or domain errors become raw 500s.

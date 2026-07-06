@@ -39,6 +39,7 @@ See `.env.example` for all variables. Key ones:
 - `SECRET_KEY` — JWT signing key (min 64 chars)
 - `REDIS_URL` — Redis for Celery broker/backend
 - `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` — Object storage
+- `SI_AI_PROVIDER` — Story Intelligence LLM provider: `mock` (default, deterministic, no external dependency) or `ollama` (real generation, requires a reachable Ollama server). Any unrecognized value falls back to `mock` with a warning log. Dev/test environment has this set to `mock`.
 
 ## Architecture decisions
 
@@ -76,6 +77,7 @@ See `.env.example` for all variables. Key ones:
 - MinIO `ensure_bucket` runs at startup; MinIO service must be reachable or startup will fail
 - The `CORS_ORIGINS` setting must include the Replit dev proxy domain in production
 - The `/api/v1` router lives on a separate mounted `FastAPI` sub-app (`v1 = FastAPI(...)`, then `app.mount(...)`) — exception handlers registered only on the outer `app` do NOT apply to sub-app routes; they must also be registered on `v1` directly, or `AppError`/`NotFoundError` etc. surface as raw 500s instead of mapped status codes
-- Story generation endpoints (`/si/.../ideas/generate`, `/si/projects/{id}/generate`, `/si/seasons/{id}/generate-episode`) require a reachable Ollama server; they will fail in environments without a running LLM provider — this is expected, not a bug
+- Story generation endpoints (`/si/.../ideas/generate`, `/si/projects/{id}/generate`, `/si/seasons/{id}/generate-episode`) use whichever provider `SI_AI_PROVIDER` selects. With `SI_AI_PROVIDER=mock` (the dev/test default) they work fully offline with deterministic output; with `SI_AI_PROVIDER=ollama` they require a reachable Ollama server and will fail without one — that failure mode is expected only when `ollama` is explicitly selected
+- `MockLLMProvider._route()` keyword-matches prompts to pick a response template — when adding a new prompt/template pair, always check existing prompts for substring collisions (e.g. an unrelated prompt containing "story idea" or "dialogue" as an embedded label) and order checks from most-specific phrase to least-specific
 
 ## User preferences

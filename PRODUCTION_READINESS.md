@@ -1,13 +1,13 @@
 # Production Readiness Assessment — AI Animation Studio
-**Date:** 2026-07-04  
-**Scope:** Phase 1 (Asset Management) + Phase 2 (Character Studio)  
+**Date:** 2026-07-06 (Phase 3 addendum; original audit 2026-07-04)  
+**Scope:** Phase 1 (Asset Management) + Phase 2 (Character Studio) + Phase 3 (Story Intelligence)  
 **Auditor:** Production-Readiness Audit
 
 ---
 
 ## Overall Rating: ⚠️ NOT PRODUCTION READY
 
-The application core (auth, asset management, library, project/story/scene/character CRUD) is functionally complete and all 76 automated tests pass. However, **critical infrastructure gaps**, **security issues**, and **one unresolved database schema bug** block production deployment.
+The application core (auth, asset management, library, project/story/scene/character CRUD, Story Intelligence) is functionally complete and all 142 automated tests pass. However, **critical infrastructure gaps**, **security issues**, and **one unresolved database schema bug** block production deployment.
 
 ---
 
@@ -19,17 +19,14 @@ The application core (auth, asset management, library, project/story/scene/chara
 | Asset Management CRUD | ✅ Functional | All 6 types, soft-delete, restore, bulk ops, versions |
 | Character Studio (Library) | ✅ Functional | Expressions, poses, backgrounds, props, templates |
 | Project / Story / Scene | ✅ Functional | Full CRUD, cascades, ownership checks |
-| Database (PostgreSQL) | ✅ Provisioned | All 22 tables migrated via Alembic |
-| AI Generation (Celery) | ❌ Blocked | Redis not available — tasks cannot be dispatched |
+| Story Intelligence (Phase 3) | ✅ Functional | Worlds/Seasons/Episodes/Scenes CRUD, idea generation, evaluation, full pipeline dispatch, job queue/retry — all verified with `SI_AI_PROVIDER=mock`, no Ollama dependency in dev/test |
+| Database (PostgreSQL) | ✅ Provisioned | All tables migrated via Alembic |
+| AI Generation (Celery) | ❌ Blocked | Redis not available — tasks cannot be dispatched; Story Intelligence falls back to synchronous execution automatically |
 | File Uploads (MinIO) | ❌ Blocked | MinIO not reachable — no S3-compatible object store |
 | WebSockets | ❌ Blocked | Redis pubsub required for progress events |
 | Security | ⚠️ Issues | JWT default secret, CORS gap, unset user_id in generation |
-| Frontend | ✅ Functional | Asset Manager page renders; animations work |
-<<<<<<< HEAD
-| Test Coverage | ✅ 81/81 | Covers Phase 1 + Phase 2 core flows + cross-user authz |
-=======
-| Test Coverage | ✅ 76/76 | Covers Phase 1 + Phase 2 core flows |
->>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b
+| Frontend | ✅ Functional | Asset Manager + Story Intelligence pages render; production build passes |
+| Test Coverage | ✅ 142/142 | Covers Phase 1 + Phase 2 core flows + cross-user authz + Phase 3 Story Intelligence (CRUD + LLM-backed flows) |
 
 ---
 
@@ -131,16 +128,32 @@ Default `pool_size=10, max_overflow=20` is fine for development but should be tu
 - ✅ Asset Manager: version snapshot + restore
 - ✅ Asset Manager: search (GET + POST), stats, show_deleted filter
 - ✅ Seed endpoints idempotent (running twice returns 0 on second call)
-<<<<<<< HEAD
 - ✅ Cross-user isolation: User A's projects/stories/scenes are inaccessible to User B (returns 403/404)
 - ✅ `show_deleted` filter correctly includes/excludes soft-deleted records across all 7 asset types including character templates
-=======
->>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b
+- ✅ Story Intelligence: full World → Season → Episode → Scene CRUD hierarchy
+- ✅ Story Intelligence: idea generation, episode evaluation, single-episode and full-pipeline dispatch (all mock-LLM backed, deterministic)
+- ✅ Story Intelligence: dispatcher sync-fallback (no Redis/Celery required), job queue, retry queue, job logs
+- ✅ Story Intelligence: end-to-end workflow (manual hierarchy → AI evaluation → memory persistence; idea generation feeding manual season creation)
 
 ## Not Tested (Blocked by Missing Infrastructure)
 
-- ❌ AI generation pipeline (Redis / Celery / MinIO required)
+- ❌ AI generation pipeline via Celery workers (Redis / MinIO required) — Story Intelligence generation itself is fully tested via synchronous dispatcher fallback
 - ❌ WebSocket real-time progress events
 - ❌ File upload / thumbnail retrieval
 - ❌ Celery Beat scheduled tasks
 - ❌ Multi-worker concurrency (session isolation under parallel load)
+- ❌ Real Ollama-backed generation (only exercised with `SI_AI_PROVIDER=mock`; requires a reachable Ollama server to test `SI_AI_PROVIDER=ollama` end-to-end)
+
+---
+
+## Phase 3 Addendum — `SI_AI_PROVIDER` Configuration
+
+Story Intelligence's LLM provider is now correctly selected via the `SI_AI_PROVIDER` environment variable (see `BUG-015`):
+
+| Value | Behavior |
+|-------|----------|
+| `mock` (default) | Uses `MockLLMProvider` — deterministic, no external dependency. Recommended for dev/test. |
+| `ollama` | Uses the real `OllamaProvider`. Requires a reachable Ollama server (`OLLAMA_BASE_URL`, `OLLAMA_MODEL`). |
+| any other value | Falls back to `mock` with a startup warning log — fails safe rather than silently trying to reach a real LLM. |
+
+This project's dev/test environment has `SI_AI_PROVIDER=mock` set, which is why all 142 backend tests (including all Story Intelligence generation flows) pass without any Ollama server running.

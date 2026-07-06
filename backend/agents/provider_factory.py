@@ -38,11 +38,34 @@ def setup_providers(settings: object, registry: ProviderRegistry) -> None:
 # ---------------------------------------------------------------------------
 
 def _register_llm(settings: object, registry: ProviderRegistry) -> None:
-    from agents.implementations.ollama_provider import OllamaProvider
+    """
+    Select the LLM implementation based on `SI_AI_PROVIDER`.
 
-    base_url: str = getattr(settings, "OLLAMA_BASE_URL", "http://localhost:11434")
-    model: str = getattr(settings, "OLLAMA_MODEL", "qwen2.5:7b")
-    registry.register(LLMProvider, OllamaProvider(base_url=base_url, model=model))
+    Supported values today: "mock" (deterministic, zero-dependency) and
+    "ollama" (local LLM server). Unknown/future values (openai, anthropic,
+    gemini, openrouter, ...) fall back to "mock" with a warning so the app
+    never crashes at startup — swap in a real implementation here as those
+    providers are added, without touching any calling code.
+    """
+    provider_name: str = getattr(settings, "SI_AI_PROVIDER", "mock").lower()
+
+    if provider_name == "ollama":
+        from agents.implementations.ollama_provider import OllamaProvider
+
+        base_url: str = getattr(settings, "OLLAMA_BASE_URL", "http://localhost:11434")
+        model: str = getattr(settings, "OLLAMA_MODEL", "qwen2.5:7b")
+        registry.register(LLMProvider, OllamaProvider(base_url=base_url, model=model))
+        return
+
+    if provider_name != "mock":
+        logger.warning(
+            "llm_provider_unsupported_falling_back_to_mock",
+            requested=provider_name,
+        )
+
+    from agents.implementations.mock_llm_provider import MockLLMProvider
+
+    registry.register(LLMProvider, MockLLMProvider())
 
 
 def _register_image(settings: object, registry: ProviderRegistry) -> None:

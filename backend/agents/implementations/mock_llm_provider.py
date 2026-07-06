@@ -51,32 +51,47 @@ class MockLLMProvider(LLMProvider):
     # ------------------------------------------------------------------
 
     def _route(self, prompt: str) -> str:  # noqa: C901
-        if "story idea" in prompt or "generate idea" in prompt or "ideas" in prompt:
+        """
+        Route on the most specific/unambiguous phrase first.
+
+        IMPORTANT: several real prompts embed labels that look like keywords for
+        *other* templates (e.g. the season-planning prompt includes a
+        "Story idea: <premise>" label, and the evaluation prompt lists a
+        "dialogue_score" dimension). Ordering must go from most-specific,
+        least-ambiguous phrases to the most generic ones, and each phrase must
+        be chosen so it cannot appear as an incidental substring of an
+        unrelated prompt.
+        """
+        if "unique story ideas" in prompt or "story idea generator" in prompt:
             return self._story_ideas()
-        if "story plan" in prompt or "plan the story" in prompt:
-            return self._story_plan()
-        if "season plan" in prompt or "plan a season" in prompt:
+        if "plan a season" in prompt or "season planning ai" in prompt:
             return self._season_plan()
-        if "episode plan" in prompt or "plan episode" in prompt or "plan an episode" in prompt:
+        if "plan episode" in prompt or "episode planning ai" in prompt:
             return self._episode_plan()
-        if "scene plan" in prompt or "scene breakdown" in prompt or "break.*scene" in prompt:
+        if "break this episode into" in prompt or "scene planning ai" in prompt:
             return self._scene_breakdown()
-        if "dialogue" in prompt or "conversation" in prompt:
+        if "write dialogue" in prompt or "dialogue writer ai" in prompt:
             return self._dialogue()
-        if "narration" in prompt or "narrator" in prompt:
+        if "write narration" in prompt or "narration writer ai" in prompt:
             return self._narration()
-        if "image prompt" in prompt or "visual prompt" in prompt:
+        if "image prompt" in prompt or "visual prompt ai" in prompt:
             return self._image_prompt()
-        if "animation prompt" in prompt or "motion" in prompt:
+        if "animation prompt" in prompt or "animation prompt ai" in prompt:
             return self._animation_prompt()
-        if "evaluat" in prompt or "score" in prompt or "quality" in prompt:
+        if "evaluate this episode" in prompt or "story quality evaluator ai" in prompt or "scale of 0-100" in prompt:
             return self._evaluation()
-        if "world" in prompt and ("build" in prompt or "creat" in prompt or "design" in prompt):
+        if "build a detailed story world" in prompt or (
+            "world" in prompt and ("build" in prompt or "creat" in prompt or "design" in prompt)
+        ):
             return self._world_building()
-        if "memory" in prompt or "remember" in prompt:
+        if "memory_type" in prompt or "story memory extraction ai" in prompt:
             return self._memory_summary()
         if "character consist" in prompt or "character profile" in prompt:
             return self._character_consistency()
+        if "improve this episode" in prompt or "story improvement ai" in prompt:
+            return self._episode_plan()
+        if "story plan" in prompt or "plan the story" in prompt:
+            return self._story_plan()
         # generic fallback
         return json.dumps({"result": "Mock response for: " + prompt[:80], "status": "ok"})
 
@@ -250,14 +265,8 @@ class MockLLMProvider(LLMProvider):
 
     def _narration(self) -> str:
         return json.dumps({
-            "opening_narration": "In the small Telugu village of Sundarapuram, every year the mango festival was the most important day of the calendar. And Grandmother's prized Alphonso was the star of the show.",
-            "scene_narrations": [
-                "Dawn broke quietly over the old mango tree — but not for long.",
-                "The news spread through the house faster than Grandmother's voice.",
-                "The investigation was thorough. The logic was — creative.",
-                "By the time the whole family had gathered, the argument had taken on a life of its own.",
-            ],
-            "closing_narration": "And so the mystery of the missing mango was solved — not by logic, not by evidence, but by one very opportunistic crow.",
+            "narration": "Dawn broke quietly over the old mango tree — but not for long. "
+                         "The news spread through the house faster than Grandmother's voice.",
         })
 
     def _image_prompt(self) -> str:

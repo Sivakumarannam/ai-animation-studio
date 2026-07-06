@@ -1,6 +1,6 @@
 # Test Report — AI Animation Studio
-**Date:** 2026-07-04  
-**Scope:** Phase 1 (Asset Management) + Phase 2 (Character Studio)  
+**Date:** 2026-07-06 (Phase 3 addendum; original audit 2026-07-04)  
+**Scope:** Phase 1 (Asset Management) + Phase 2 (Character Studio) + Phase 3 (Story Intelligence)  
 **Auditor:** Production-Readiness Audit
 
 ---
@@ -9,19 +9,12 @@
 
 | Metric | Result |
 |--------|--------|
-<<<<<<< HEAD
-| Automated test cases | **81** |
-| Tests passing | **81 / 81 (100%)** |
+| Automated test cases | **142** |
+| Tests passing | **142 / 142 (100%)** |
 | API endpoints swept (live server) | **50** |
 | API endpoints passing | **49 / 50 (98%)** |
-| Bugs fixed during audit | **10** |
-=======
-| Automated test cases | **76** |
-| Tests passing | **76 / 76 (100%)** |
-| API endpoints swept (live server) | **50** |
-| API endpoints passing | **49 / 50 (98%)** |
-| Bugs fixed during audit | **9** |
->>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b
+| Bugs fixed during audit | **12** (10 Phase 1/2 + 2 Phase 3) |
+| Frontend production build | **✅ Passing** (`tsc -b && vite build`) |
 
 ---
 
@@ -53,22 +46,30 @@ Execution: `cd backend && PYTHONPATH=. python -m pytest tests/ -v`
 | `test_asset_manager.py` | `TestAssetManagerBulk` | 3 | Bulk delete, restore, update |
 | `test_asset_manager.py` | `TestAssetManagerVersions` | 2 | Create version snapshot, restore version |
 | `test_asset_manager.py` | `TestCharacterTemplateAssetManager` | 1 | List character templates through asset manager |
-<<<<<<< HEAD
 | `test_projects.py` | `TestCrossUserAuthorization` | 5 | User A cannot read/mutate/delete User B's projects or stories |
-=======
->>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b
+| `test_story_intelligence.py` | `TestWorlds` | 7 | World CRUD, auth guard, 404 |
+| `test_story_intelligence.py` | `TestSeasons` | 5 | Season CRUD |
+| `test_story_intelligence.py` | `TestEpisodes` | 7 | Episode CRUD, evaluation-none, versions-empty |
+| `test_story_intelligence.py` | `TestStoryScenes` | 4 | Scene CRUD under episode |
+| `test_story_intelligence.py` | `TestStoryIdeas` | 4 | Manual idea create/list/update-status/delete |
+| `test_story_intelligence.py` | `TestStoryMemory` | 2 | Store + list memory, filter by type |
+| `test_story_intelligence.py` | `TestGenerationJobs` | 2 | Job list empty, job not found |
+| `test_story_intelligence.py` | `TestStats` | 2 | Stats shape, auth guard |
+| `test_story_intelligence_llm.py` | `TestIdeaGeneration` | 5 | LLM-backed idea generation: with/without world context, count respected, persisted, auth |
+| `test_story_intelligence_llm.py` | `TestEpisodeEvaluation` | 5 | Evaluate episode, score update, version history, not-found, get-evaluation |
+| `test_story_intelligence_llm.py` | `TestGenerateEpisodeDispatch` | 4 | Single-episode generation dispatch shape, sync-fallback result, real episode+scenes created, job record |
+| `test_story_intelligence_llm.py` | `TestFullPipelineDispatch` | 6 | Full pipeline: without world, with existing world, builds world when missing, persists memory, stats reflect generation, auth guard |
+| `test_story_intelligence_llm.py` | `TestDispatcherFallbackBehavior` | 2 | Dispatcher never returns async mode without a broker; result always present on sync completion |
+| `test_story_intelligence_llm.py` | `TestJobLogsAndRetryIntegration` | 4 | Job logs shape, jobs listed after generation, filter by status/type |
+| `test_story_intelligence_llm.py` | `TestWorkflowIntegrationEndToEnd` | 2 | Manual hierarchy → AI evaluation → memory; idea generation feeds manual season creation |
 
 ### Final Run Output
 
 ```
-<<<<<<< HEAD
-81 passed in 42.33s
-=======
-76 passed in 38.49s
->>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b
+142 passed in 108.14s (0:01:48)
 ```
 
-All tests green. No flakes observed across 3 sequential runs.
+All tests green. Full suite (`backend/tests/`) run against the live server with `SI_AI_PROVIDER=mock` — no external LLM dependency required.
 
 ---
 
@@ -149,3 +150,22 @@ Types: `background`, `prop`, `animation_preset`, `audio`, `music`, `sound_effect
 - All slugs and names in library tests use `uuid4().hex[:8]` suffix to avoid unique-constraint conflicts on the real DB
 - Tests do **not** roll back — test data accumulates in the development database
 - The `conftest.py` fixtures are designed to be idempotent (duplicate seed calls return 0)
+
+---
+
+## Phase 3 — Story Intelligence (LLM-Backed Endpoints)
+
+`SI_AI_PROVIDER=mock` is set for the dev/test environment, so all LLM-backed Story Intelligence endpoints are fully covered by deterministic tests with **no dependency on a running Ollama server**. `SI_AI_PROVIDER=ollama` remains available for real generation when an Ollama server is reachable.
+
+| Endpoint | Method | Status | Result |
+|----------|--------|--------|--------|
+| `/si/projects/{id}/ideas/generate` | POST | 201 | ✓ mock-backed idea generation, with/without world context |
+| `/si/episodes/{id}/evaluate` | POST | 200 | ✓ scores computed, episode score updated, version snapshot created |
+| `/si/episodes/{id}/evaluation` | GET | 200 | ✓ |
+| `/si/seasons/{id}/generate-episode` | POST | 200 | ✓ dispatcher sync-fallback, real episode + scenes (with dialogue + narration) persisted |
+| `/si/projects/{id}/generate` (full pipeline) | POST | 200 | ✓ world → idea → season → episodes → scenes → evaluation → memory, sync-fallback dispatch |
+| `/si/projects/{id}/jobs` | GET | 200 | ✓ job records created, filterable by status/type |
+| `/si/projects/{id}/jobs/retry-queue` and job logs | GET | 200 | ✓ |
+| `/si/projects/{id}/stats` | GET | 200 | ✓ reflects worlds/seasons/episodes/scenes/jobs after generation |
+
+**Bugs found and fixed while writing this coverage:** see `BUG-015` and `BUG-016` in `BUG_REPORT.md`.

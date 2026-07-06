@@ -1,6 +1,6 @@
 # Bug Report — AI Animation Studio
-**Date:** 2026-07-04  
-**Scope:** Phase 1 (Asset Management) + Phase 2 (Character Studio)  
+**Date:** 2026-07-06 (Phase 3 addendum; original audit 2026-07-04)  
+**Scope:** Phase 1 (Asset Management) + Phase 2 (Character Studio) + Phase 3 (Story Intelligence)  
 **Auditor:** Production-Readiness Audit
 
 ---
@@ -10,11 +10,39 @@
 | Severity | Count |
 |----------|-------|
 | Critical (crashes all auth) | 1 |
-| High (crashes endpoint) | 3 |
+| High (crashes endpoint) | 6 |
 | Medium (wrong behavior) | 3 |
 | Low (UX / documentation gap) | 4 |
 
 All Critical and High bugs have been **fixed** in this audit. Medium and Low items are documented below.
+
+---
+
+## Phase 3 — Story Intelligence Bugs (Fixed 2026-07-06)
+
+### BUG-015 — `SI_AI_PROVIDER` config setting was ignored
+**Severity:** High  
+**File:** `backend/agents/provider_factory.py`  
+**Symptom:** The LLM provider registered at startup was always Ollama-backed, regardless of the `SI_AI_PROVIDER` environment variable. Any environment without a reachable Ollama server could not start Story Intelligence generation flows, and there was no way to force the mock provider for testing.  
+**Root Cause:** `_register_llm` did not branch on `settings.SI_AI_PROVIDER` at all — it always instantiated the real Ollama provider.  
+**Fix:** `_register_llm` now branches on `SI_AI_PROVIDER`: `"mock"` → `MockLLMProvider`, `"ollama"` → `OllamaProvider`, any other/unrecognized value falls back to mock with a warning log (fail-safe, never silently uses Ollama when unintended). Verified via startup log: `"LLMProvider": "mock/story-intelligence-v1"`.
+
+---
+
+### BUG-016 — `MockLLMProvider` prompt routing produced wrong response shapes for several endpoints
+**Severity:** High  
+**File:** `backend/agents/implementations/mock_llm_provider.py`  
+**Symptom:** With the mock provider active, several LLM-backed endpoints crashed with 500 errors or silently returned empty/wrong data:
+- `POST /si/episodes/{id}/evaluate` → 500 `AttributeError: 'list' object has no attribute 'get'`
+- `POST /si/projects/{id}/generate` (full pipeline) → job failed with the same error during season planning
+- Generated episode scenes had an empty `narration` field
+**Root Cause:** Two separate issues in `_route()`'s keyword matching:
+1. Substring keyword checks were ambiguous across unrelated prompts. The season-planning prompt embeds a `"Story idea: <premise>"` label, which matched the (looser) idea-generation check ahead of the season-plan check, so `ai_plan_season()` received a list where a dict was expected. Similarly, the evaluation prompt lists a `dialogue_score` dimension, which matched the dialogue-template check before reaching the evaluation check, so `evaluator_service._compute_overall()` received a list of dialogue lines instead of a scores dict.
+2. The `_narration()` template returned `{opening_narration, scene_narrations, closing_narration}`, but `scene_service.ai_generate_narration()` reads a `narration` key — a structural mismatch, not a routing issue.
+**Fix:**
+1. Reordered and tightened `_route()` to check the most specific, least-ambiguous phrases first (e.g. `"unique story ideas"` instead of bare `"ideas"`; `"write dialogue"` instead of bare `"dialogue"`; `"evaluate this episode"` / `"scale of 0-100"` instead of bare `"evaluat"`), so no legitimate prompt can accidentally satisfy an earlier, unrelated branch.
+2. Rewrote `_narration()` to return `{"narration": "<text>"}` matching the real service contract.
+**Regression tests added:** `backend/tests/test_story_intelligence_llm.py` (28 tests) exercises every LLM-backed endpoint (idea generation, episode evaluation, single-episode dispatch, full-pipeline dispatch, dispatcher sync-fallback, job logs/retry, end-to-end workflow) purely against the mock provider — no Ollama server required. All 28 pass.
 
 ---
 
@@ -66,7 +94,6 @@ All Critical and High bugs have been **fixed** in this audit. Medium and Low ite
 
 ---
 
-<<<<<<< HEAD
 ### BUG-010 (Fixed) — Cross-asset search silently dropped `show_deleted` for character templates
 **Severity:** Medium  
 **File:** `backend/services/animation_service.py`  
@@ -76,8 +103,6 @@ All Critical and High bugs have been **fixed** in this audit. Medium and Low ite
 
 ---
 
-=======
->>>>>>> f1436ea8acfc6d53e7d3cf98475e4113e09cd69b
 ### BUG-006 — Frontend stats key mismatch
 **Severity:** Medium  
 **File:** `frontend/src/pages/studio/AssetManagerPage.tsx`  
