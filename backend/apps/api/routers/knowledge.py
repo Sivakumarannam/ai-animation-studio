@@ -296,17 +296,17 @@ async def list_jobs(
     return EmbeddingJobListResponse(items=[EmbeddingJobResponse.model_validate(j) for j in result.items], meta=_meta(result))
 
 
-@router.get("/jobs/{job_id}", response_model=EmbeddingJobResponse)
-async def get_job(job_id: UUID, current_user: CurrentUser, session: SessionDep) -> EmbeddingJobResponse:
-    svc = _make_services(session)
-    return EmbeddingJobResponse.model_validate(await svc["jobs"].get_job(job_id))
-
-
 @router.get("/jobs/retry-queue", response_model=list[EmbeddingJobResponse])
 async def get_retry_queue(current_user: CurrentUser, session: SessionDep) -> list[EmbeddingJobResponse]:
     svc = _make_services(session)
     jobs = await svc["jobs"].get_pending_retries()
     return [EmbeddingJobResponse.model_validate(j) for j in jobs]
+
+
+@router.get("/jobs/{job_id}", response_model=EmbeddingJobResponse)
+async def get_job(job_id: UUID, current_user: CurrentUser, session: SessionDep) -> EmbeddingJobResponse:
+    svc = _make_services(session)
+    return EmbeddingJobResponse.model_validate(await svc["jobs"].get_job(job_id))
 
 
 # ─────────────────────────────────────────────────────────────────────────────

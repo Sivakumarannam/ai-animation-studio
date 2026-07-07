@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
-import { BookOpen, Users, ChevronRight, Sparkles } from 'lucide-react'
+import { BookOpen, Users, ChevronRight, Sparkles, Library } from 'lucide-react'
 import { projectsApi } from '@/api/projects'
 import { Spinner } from '@/components/ui/Spinner'
 
@@ -25,6 +25,7 @@ export function ProjectDetailPage() {
     { label: 'Stories', description: 'Scripts and episode stories', icon: BookOpen, to: `/projects/${projectId}/stories` },
     { label: 'Characters', description: 'Character library for this project', icon: Users, to: `/projects/${projectId}/characters` },
     { label: 'Story Intelligence', description: 'AI-driven worlds, seasons, episodes & analytics', icon: Sparkles, to: `/projects/${projectId}/intelligence` },
+    { label: 'Knowledge Intelligence', description: 'RAG knowledge base for AI story generation', icon: Library, to: `/projects/${projectId}/knowledge` },
   ]
 
   return (

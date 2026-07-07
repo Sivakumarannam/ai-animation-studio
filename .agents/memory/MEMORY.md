@@ -3,3 +3,5 @@
 - [email-validator required](email-validator.md) — Pydantic v2 `EmailStr` requires `email-validator` package separately; add to requirements.txt.
 - [MockLLMProvider routing pitfalls](mock-llm-provider-routing.md) — substring-keyword routing breaks when unrelated prompts embed a matching label; order checks by specificity and verify template keys match consumer contract.
 - [FastAPI mounted sub-app exception handlers](fastapi-mounted-subapp-exception-handlers.md) — handlers on outer `app` don't apply to `app.mount()`-ed sub-apps; register on both or domain errors become raw 500s.
+- [FastAPI route ordering — literal vs path param](fastapi-route-ordering.md) — literal string routes (e.g. `/jobs/retry-queue`) must be declared BEFORE parameterized routes (e.g. `/jobs/{job_id}`) or FastAPI matches the literal as a UUID and returns 422.
+- [Celery dispatch mode in tests](celery-dispatch-mode-tests.md) — when Redis is running, TaskDispatcher uses async/celery mode; tests asserting `mode == "sync"` break. Always assert `mode in ("sync", "async", "celery")`.

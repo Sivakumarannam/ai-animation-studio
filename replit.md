@@ -31,6 +31,11 @@ A plugin-based, provider-agnostic AI animation studio platform. Generates comple
 - `backend/database/models/intelligence.py` — World/Season/Episode/StoryScene/StoryIdea/StoryMemory/GenerationJob models
 - `frontend/src/pages/intelligence/` — Story Intelligence UI (dashboard, worlds, world/season/episode detail, ideas, retry queue)
 - `frontend/src/api/storyIntelligence.ts` — API client for `/si` endpoints
+- `backend/apps/api/routers/knowledge.py` — Phase 4 `/kn` router (collections, documents, search, jobs, memory, stats)
+- `backend/services/knowledge/` — Knowledge engine: chunking, embedding, retrieval, RAG context builder
+- `backend/database/models/knowledge.py` — KnowledgeCollection/Document/Chunk/EmbeddingJob/RetrievalHistory/KnowledgeMemory/KnowledgeVersion models
+- `frontend/src/pages/knowledge/` — Knowledge Intelligence UI (dashboard, collections, collection detail, memory, embedding jobs)
+- `frontend/src/api/knowledge.ts` — API client for `/kn` endpoints
 
 ## Required Environment Variables
 
@@ -40,6 +45,11 @@ See `.env.example` for all variables. Key ones:
 - `REDIS_URL` — Redis for Celery broker/backend
 - `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` — Object storage
 - `SI_AI_PROVIDER` — Story Intelligence LLM provider: `mock` (default, deterministic, no external dependency) or `ollama` (real generation, requires a reachable Ollama server). Any unrecognized value falls back to `mock` with a warning log. Dev/test environment has this set to `mock`.
+- `KN_EMBEDDING_PROVIDER` — Knowledge embedding provider: `mock` (default, hash-based deterministic) or `ollama` (requires Ollama server with an embedding model). Falls back to `mock` on any error.
+- `KN_VECTOR_STORE` — Vector store backend: `memory` (default, pure-Python cosine similarity, no external dependency) or `chromadb` (requires ChromaDB). Falls back to `memory` on any error.
+- `KN_CHUNK_SIZE_TOKENS` — Chunk size for document splitting (default: 512)
+- `KN_CHUNK_OVERLAP_TOKENS` — Overlap between chunks (default: 50)
+- `KN_DEFAULT_TOP_K` — Default number of retrieval results (default: 5)
 
 ## Architecture decisions
 
@@ -48,6 +58,8 @@ See `.env.example` for all variables. Key ones:
 - Provider registry: LLM/Image/TTS/STT/Renderer are swappable at startup via `AGENTS_*` env vars
 - Asset versioning: `AssetVersion` table snapshots any asset type by `(asset_type, asset_id)`
 - Soft delete: all library assets use `is_deleted` flag; hard delete not exposed via API
+- RAG integration: Knowledge collections attach to Story Intelligence generation via `knowledge_collection_id`; retrieval failures always fall back gracefully (empty context, generation continues)
+- Dispatcher mode: with Redis available Celery is used (mode=`async`/`celery`); without Redis the `TaskDispatcher` falls back to sync inline execution (mode=`sync`). Tests must accept both modes.
 
 ## Implemented Features (Phase 1)
 
@@ -69,6 +81,20 @@ See `.env.example` for all variables. Key ones:
 - Story Intelligence dashboard with per-project stats (worlds/seasons/episodes/scenes/ideas/memories, job counts, avg story score)
 - Frontend: dashboard, Worlds list, World/Season/Episode detail pages, Story Ideas board, Retry Queue — all under `/projects/:projectId/intelligence/...`
 
+## Implemented Features (Phase 4 — RAG & Knowledge Intelligence Engine)
+
+- **Knowledge Collections**: project/world-scoped document stores; full CRUD with pagination
+- **Document ingestion pipeline**: text input or file upload → parse → chunk (with overlap) → embed → index
+- **Provider-agnostic embeddings**: `MockEmbeddingProvider` (hash-based, zero deps) or `OllamaEmbeddingProvider`; swapped via `KN_EMBEDDING_PROVIDER`
+- **Vector search**: `InMemoryVectorStore` (pure-Python cosine similarity, zero deps) or `ChromaDBVectorStore`; swapped via `KN_VECTOR_STORE`
+- **Semantic search**: `POST /kn/collections/{id}/search` — top-k retrieval with score threshold
+- **RAG context**: `knowledge_collection_id` on generation endpoints prepends relevant chunks to LLM prompts; graceful fallback on any retrieval error
+- **Knowledge memory**: structured facts/rules/lore scoped to project or world
+- **Embedding job queue**: Celery tasks for async document processing with retry queue
+- **Frontend**: Knowledge dashboard, Collections list, Collection detail (docs + search), Knowledge memory, Embedding jobs — all under `/projects/:projectId/knowledge/...`
+- **84 tests** covering CRUD, pipeline, RAG, auth — all passing with mock providers (zero external dependencies)
+- Alembic migration `9c163cebabb8` adds 7 `kn_*` tables
+
 ## Gotchas
 
 - `DATABASE_URL` must use `postgresql+asyncpg://` driver prefix — the config validator normalizes it automatically
@@ -79,5 +105,7 @@ See `.env.example` for all variables. Key ones:
 - The `/api/v1` router lives on a separate mounted `FastAPI` sub-app (`v1 = FastAPI(...)`, then `app.mount(...)`) — exception handlers registered only on the outer `app` do NOT apply to sub-app routes; they must also be registered on `v1` directly, or `AppError`/`NotFoundError` etc. surface as raw 500s instead of mapped status codes
 - Story generation endpoints (`/si/.../ideas/generate`, `/si/projects/{id}/generate`, `/si/seasons/{id}/generate-episode`) use whichever provider `SI_AI_PROVIDER` selects. With `SI_AI_PROVIDER=mock` (the dev/test default) they work fully offline with deterministic output; with `SI_AI_PROVIDER=ollama` they require a reachable Ollama server and will fail without one — that failure mode is expected only when `ollama` is explicitly selected
 - `MockLLMProvider._route()` keyword-matches prompts to pick a response template — when adding a new prompt/template pair, always check existing prompts for substring collisions (e.g. an unrelated prompt containing "story idea" or "dialogue" as an embedded label) and order checks from most-specific phrase to least-specific
+- Knowledge `/kn/jobs/retry-queue` route MUST be declared before `/kn/jobs/{job_id}` in the router — FastAPI will otherwise match the literal string `retry-queue` as a UUID parameter and return 422
+- Dispatch mode (`sync` vs `async`/`celery`) depends on Redis availability at runtime — tests that assert a specific mode must accept both via `in ("sync", "async", "celery")`
 
 ## User preferences

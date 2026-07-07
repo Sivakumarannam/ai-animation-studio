@@ -25,6 +25,12 @@ import { SeasonDetailPage } from '@/pages/intelligence/SeasonDetailPage'
 import { EpisodeDetailPage } from '@/pages/intelligence/EpisodeDetailPage'
 import { StoryIdeasPage } from '@/pages/intelligence/StoryIdeasPage'
 import { RetryQueuePage } from '@/pages/intelligence/RetryQueuePage'
+// Phase 4 — Knowledge Intelligence
+import { KnowledgeDashboardPage } from '@/pages/knowledge/KnowledgeDashboardPage'
+import { CollectionsPage } from '@/pages/knowledge/CollectionsPage'
+import { CollectionDetailPage } from '@/pages/knowledge/CollectionDetailPage'
+import { KnowledgeMemoryPage } from '@/pages/knowledge/KnowledgeMemoryPage'
+import { EmbeddingJobsPage } from '@/pages/knowledge/EmbeddingJobsPage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -59,6 +65,13 @@ export default function App() {
         <Route path="/projects/:projectId/intelligence/episodes/:episodeId" element={<EpisodeDetailPage />} />
         <Route path="/projects/:projectId/intelligence/ideas" element={<StoryIdeasPage />} />
         <Route path="/projects/:projectId/intelligence/jobs" element={<RetryQueuePage />} />
+
+        {/* Phase 4 — Knowledge Intelligence */}
+        <Route path="/projects/:projectId/knowledge" element={<KnowledgeDashboardPage />} />
+        <Route path="/projects/:projectId/knowledge/collections" element={<CollectionsPage />} />
+        <Route path="/projects/:projectId/knowledge/collections/:collectionId" element={<CollectionDetailPage />} />
+        <Route path="/projects/:projectId/knowledge/memory" element={<KnowledgeMemoryPage />} />
+        <Route path="/projects/:projectId/knowledge/jobs" element={<EmbeddingJobsPage />} />
 
         {/* Module 2 — Libraries */}
         <Route path="/library/characters" element={<CharacterLibraryPage />} />
