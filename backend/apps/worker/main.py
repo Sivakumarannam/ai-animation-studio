@@ -14,7 +14,7 @@ from __future__ import annotations
 import os
 
 from celery import Celery
-from celery.signals import task_failure, task_retry, task_success
+from celery.signals import task_failure, task_retry, task_success, worker_process_init
 from celery.utils.log import get_task_logger
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/1")
@@ -29,6 +29,7 @@ celery_app = Celery(
         "apps.worker.tasks.dead_letter",
         "apps.worker.tasks.intelligence_tasks",
         "apps.worker.tasks.knowledge_tasks",
+        "apps.worker.tasks.research_tasks",
     ],
 )
 
@@ -56,6 +57,7 @@ celery_app.conf.update(
         "workflow.run_step": {"queue": "ai"},
         "intelligence.*": {"queue": "ai"},
         "knowledge.*": {"queue": "ai"},
+        "research.*": {"queue": "ai"},
         "render.*": {"queue": "render"},
         "publish.*": {"queue": "publish"},
         "dlq.*": {"queue": "dlq"},
@@ -75,6 +77,30 @@ celery_app.conf.update(
 )
 
 logger = get_task_logger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Worker process bootstrap — each forked worker process needs its own DB
+# engine/session factory, mirroring the FastAPI lifespan startup.
+# ---------------------------------------------------------------------------
+
+@worker_process_init.connect
+def _init_worker_db(**kwargs):
+    from database.connection import init_db
+    from apps.api.config import get_settings
+
+    settings = get_settings()
+    init_db(
+        settings.DATABASE_URL,
+        pool_size=settings.DATABASE_POOL_SIZE,
+        max_overflow=settings.DATABASE_MAX_OVERFLOW,
+    )
+
+    from agents.registry import get_provider_registry
+    from agents.provider_factory import setup_providers
+    setup_providers(settings, get_provider_registry())
+
+    logger.info("worker_process_db_initialized")
 
 
 # ---------------------------------------------------------------------------

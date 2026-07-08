@@ -32,6 +32,10 @@ args = "Redis"
 task = "workflow.run"
 args = "Services"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Celery Worker"
+
 [[workflows.workflow]]
 name = "Backend API"
 author = "agent"
@@ -41,7 +45,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd backend && PYTHONPATH=. uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --reload"
+args = "cd backend && PYTHONPATH=. python3 -m uvicorn apps.api.main:app --host 0.0.0.0 --port 8000 --reload"
 waitForPort = 8000
 
 [[workflows.workflow]]
@@ -76,6 +80,17 @@ author = "agent"
 task = "shell.exec"
 args = "mkdir -p .data/redis .data/minio && redis-server --port 6379 --dir .data/redis --daemonize no --save '' & MINIO_ROOT_USER=minioadmin MINIO_ROOT_PASSWORD=minioadmin123 minio server .data/minio --address :9000 --console-address :9001 & wait"
 waitForPort = 9000
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "Celery Worker"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd backend && PYTHONPATH=. python3 -m celery -A apps.worker.main.celery_app worker --loglevel=info --concurrency=2 -Q default,ai,render,publish,dlq"
 
 [workflows.workflow.metadata]
 outputType = "console"

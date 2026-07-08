@@ -122,6 +122,27 @@ class Settings(BaseSettings):
     KN_MIN_SIMILARITY_SCORE: float = 0.15
 
 
+    # ── Phase 5 — Research & Trend Intelligence Engine ────────────────────────
+    # Trend provider: "mock"
+    RS_TREND_PROVIDER: str = "mock"
+    # Research provider: "mock"
+    RS_RESEARCH_PROVIDER: str = "mock"
+    # Fact verification provider: "mock"
+    RS_FACT_VERIFICATION_PROVIDER: str = "mock"
+    # Search provider: "mock"
+    RS_SEARCH_PROVIDER: str = "mock"
+    # Crawler provider: "mock"
+    RS_CRAWLER_PROVIDER: str = "mock"
+
+    # Scheduler intervals (seconds)
+    RS_TREND_DISCOVERY_INTERVAL: int = 3600       # hourly
+    RS_RESEARCH_REFRESH_INTERVAL: int = 21600     # 6 hours
+    RS_OPPORTUNITY_REPORT_INTERVAL: int = 86400   # daily
+
+    # Opportunity queue threshold
+    RS_MIN_OPPORTUNITY_SCORE: float = 60.0
+
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()

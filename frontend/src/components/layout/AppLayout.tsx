@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FolderKanban, Settings, LogOut, Film,
   Users, ImageIcon, Package, Database, ChevronDown, ChevronRight,
+  TrendingUp, BookOpen, CheckCircle, Clock, Activity, Star, History, Calendar,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth'
 import { authApi } from '@/api/auth'
@@ -26,6 +27,21 @@ const NAV_GROUPS: NavGroupDef[] = [
     label: 'Studio',
     items: [
       { to: '/studio/asset-manager', label: 'Asset Manager', Icon: Database },
+    ],
+  },
+  {
+    label: 'Research',
+    items: [
+      { to: '/research', label: 'Dashboard', Icon: LayoutDashboard },
+      { to: '/research/trends', label: 'Trends', Icon: TrendingUp },
+      { to: '/research/topics', label: 'Topics', Icon: BookOpen },
+      { to: '/research/opportunities', label: 'Opportunities', Icon: Star },
+      { to: '/research/facts', label: 'Fact Check', Icon: CheckCircle },
+      { to: '/research/queue', label: 'Queue', Icon: Clock },
+      { to: '/research/jobs', label: 'Jobs', Icon: Activity },
+      { to: '/research/analytics', label: 'Analytics', Icon: Activity },
+      { to: '/research/history', label: 'History', Icon: History },
+      { to: '/research/scheduler', label: 'Scheduler', Icon: Calendar },
     ],
   },
 ]

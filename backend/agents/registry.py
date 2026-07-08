@@ -34,6 +34,11 @@ if TYPE_CHECKING:
     from agents.interfaces.subtitle_provider import SubtitleProvider
     from agents.interfaces.tts_provider import TTSProvider
     from agents.interfaces.vector_store_provider import VectorStoreProvider
+    from agents.interfaces.trend_provider import TrendProvider
+    from agents.interfaces.research_provider import ResearchProvider
+    from agents.interfaces.fact_verification_provider import FactVerificationProvider
+    from agents.interfaces.search_provider import SearchProvider
+    from agents.interfaces.crawler_provider import CrawlerProvider
 
 T = TypeVar("T")
 
@@ -168,3 +173,28 @@ def get_embedding_provider() -> "EmbeddingProvider":
 def get_vector_store_provider() -> "VectorStoreProvider":
     from agents.interfaces.vector_store_provider import VectorStoreProvider
     return get_provider_registry().resolve(VectorStoreProvider)
+
+
+def get_trend_provider() -> "TrendProvider":
+    from agents.interfaces.trend_provider import TrendProvider
+    return get_provider_registry().resolve(TrendProvider)
+
+
+def get_research_provider() -> "ResearchProvider":
+    from agents.interfaces.research_provider import ResearchProvider
+    return get_provider_registry().resolve(ResearchProvider)
+
+
+def get_fact_verification_provider() -> "FactVerificationProvider":
+    from agents.interfaces.fact_verification_provider import FactVerificationProvider
+    return get_provider_registry().resolve(FactVerificationProvider)
+
+
+def get_search_provider() -> "SearchProvider":
+    from agents.interfaces.search_provider import SearchProvider
+    return get_provider_registry().resolve(SearchProvider)
+
+
+def get_crawler_provider() -> "CrawlerProvider":
+    from agents.interfaces.crawler_provider import CrawlerProvider
+    return get_provider_registry().resolve(CrawlerProvider)

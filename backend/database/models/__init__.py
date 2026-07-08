@@ -21,3 +21,9 @@ from database.models.knowledge import (  # noqa: F401
     KnowledgeCollection, KnowledgeDocument, KnowledgeChunk,
     EmbeddingJob, KnowledgeMemory, RetrievalHistory, KnowledgeVersion,
 )
+from database.models.research import (  # noqa: F401
+    ResearchSource, ResearchTrend, ResearchTopic, ResearchCluster,
+    ResearchArticle, ResearchFact, ResearchEntity, ResearchScore,
+    ResearchQueue, ResearchJob, ResearchHistory, ResearchMemory,
+    ResearchVersion, ResearchAnalytics,
+)

@@ -1,0 +1,653 @@
+# AI Animation Studio
+
+# Phase 5 — AI Research & Trend Intelligence Engine
+
+Continue development of the AI Animation Studio.
+
+Do NOT redesign previous phases.
+
+Do NOT remove existing architecture.
+
+Reuse all existing abstractions.
+
+Maintain production quality.
+
+---
+
+# Current Status
+
+Completed
+
+✅ Phase 1 — Foundation Platform
+
+✅ Phase 2 — Character Studio
+
+✅ Phase 3 — AI Story Intelligence
+
+✅ Phase 4 — RAG & Knowledge Intelligence
+
+Backend
+
+* Production Ready
+
+Frontend
+
+* Production Ready
+
+184+ backend tests passing
+
+Frontend build passing
+
+Documentation updated
+
+---
+
+# Objective
+
+Implement Phase 5.
+
+Phase 5 becomes the autonomous Research Department of the platform.
+
+Its job is to continuously discover, analyze, verify, prioritize, and prepare content opportunities for Story Intelligence.
+
+The user should never need to manually search for topics.
+
+The system should continuously discover what to create next.
+
+---
+
+# User Experience
+
+The user still performs only:
+
+* Start
+* Pause
+* Delete
+
+Everything else happens automatically.
+
+---
+
+# Overall Flow
+
+Scheduler
+
+↓
+
+Trend Discovery
+
+↓
+
+Source Collection
+
+↓
+
+Topic Clustering
+
+↓
+
+Duplicate Detection
+
+↓
+
+Research
+
+↓
+
+Fact Verification
+
+↓
+
+Knowledge Extraction
+
+↓
+
+Knowledge Storage
+
+↓
+
+Opportunity Scoring
+
+↓
+
+Story Generation Queue
+
+↓
+
+Story Intelligence
+
+↓
+
+Animation Pipeline
+
+---
+
+# Free/Open Source Only
+
+No paid APIs.
+
+No paid AI.
+
+Use only open-source or free public sources.
+
+Examples:
+
+Google Trends
+
+RSS feeds
+
+Wikipedia
+
+Wikidata
+
+Common Crawl (where appropriate)
+
+Open government datasets
+
+Public news RSS feeds
+
+YouTube RSS feeds
+
+Open educational resources
+
+Internet Archive
+
+Other publicly accessible sources that allow their use.
+
+---
+
+# Database
+
+Create Research tables.
+
+Prefix:
+
+rs_
+
+Examples:
+
+ResearchSource
+
+ResearchTopic
+
+ResearchArticle
+
+ResearchFact
+
+ResearchEntity
+
+ResearchTrend
+
+ResearchCluster
+
+ResearchScore
+
+ResearchJob
+
+ResearchHistory
+
+ResearchMemory
+
+ResearchQueue
+
+ResearchVersion
+
+ResearchAnalytics
+
+Create Alembic migrations.
+
+---
+
+# Providers
+
+Create provider abstractions.
+
+TrendProvider
+
+ResearchProvider
+
+SearchProvider
+
+CrawlerProvider
+
+FactVerificationProvider
+
+Mock implementations first.
+
+Future providers should be pluggable.
+
+Configuration driven.
+
+---
+
+# Trend Discovery
+
+Automatically discover trends from multiple free sources.
+
+Normalize data.
+
+Merge duplicates.
+
+Store history.
+
+Calculate trend velocity.
+
+Calculate growth.
+
+Calculate popularity.
+
+Detect emerging topics.
+
+Detect declining topics.
+
+---
+
+# Topic Clustering
+
+Cluster related topics.
+
+Merge similar ideas.
+
+Generate canonical topic names.
+
+Generate keywords.
+
+Generate categories.
+
+Assign confidence.
+
+---
+
+# Research Engine
+
+Collect research from multiple sources.
+
+Extract:
+
+Facts
+
+People
+
+Places
+
+Dates
+
+Events
+
+Statistics
+
+Quotes
+
+References
+
+Store structured information.
+
+---
+
+# Fact Verification
+
+Cross-check facts across multiple sources.
+
+Assign confidence score.
+
+Reject conflicting information.
+
+Maintain citations.
+
+---
+
+# Knowledge Integration
+
+Automatically feed verified information into Phase 4.
+
+Generate:
+
+Knowledge documents
+
+Knowledge chunks
+
+Embeddings
+
+Collections
+
+Metadata
+
+Everything should become searchable through the RAG engine.
+
+---
+
+# Story Integration
+
+When Story Intelligence starts,
+
+it should automatically receive:
+
+Trending topics
+
+Verified facts
+
+Research summary
+
+Knowledge chunks
+
+Entities
+
+Context
+
+without requiring manual input.
+
+---
+
+# Opportunity Scoring
+
+Score each potential video.
+
+Dimensions:
+
+Trend Score
+
+Research Quality
+
+Fact Confidence
+
+Competition
+
+Novelty
+
+Audience Fit
+
+Seasonality
+
+Educational Value
+
+Entertainment Value
+
+Overall Score
+
+Only high-quality topics should enter the Story Queue.
+
+---
+
+# Scheduler
+
+Run continuously.
+
+Example:
+
+Every hour
+
+Collect trends.
+
+Every six hours
+
+Refresh research.
+
+Every day
+
+Generate opportunity report.
+
+Automatically retry failures.
+
+---
+
+# Backend
+
+Implement:
+
+Models
+
+Repositories
+
+Services
+
+Celery tasks
+
+Dispatcher integration
+
+Schemas
+
+Routers
+
+Validation
+
+Authentication
+
+Authorization
+
+Pagination
+
+Filtering
+
+Sorting
+
+Metrics
+
+Analytics
+
+Production logging
+
+Retry logic
+
+---
+
+# REST API
+
+Implement endpoints for:
+
+Research Dashboard
+
+Sources
+
+Topics
+
+Trends
+
+Clusters
+
+Research Jobs
+
+Research Queue
+
+Research History
+
+Research Analytics
+
+Fact Verification
+
+Opportunity Queue
+
+Scheduler Status
+
+Search
+
+Filters
+
+Manual Refresh
+
+Retry
+
+---
+
+# Frontend
+
+Create pages:
+
+Research Dashboard
+
+Trend Explorer
+
+Topic Explorer
+
+Research Library
+
+Research Queue
+
+Research Jobs
+
+Trend Analytics
+
+Fact Verification
+
+Opportunity Board
+
+Research History
+
+Scheduler Status
+
+Use existing UI components.
+
+Responsive.
+
+---
+
+# Dashboard
+
+Display:
+
+Active Trends
+
+Trending Keywords
+
+Growth
+
+Velocity
+
+Research Jobs
+
+Verified Facts
+
+Knowledge Documents Created
+
+Research Queue
+
+Story Queue
+
+Scheduler Status
+
+---
+
+# Testing
+
+Mock providers only.
+
+No internet required for deterministic tests.
+
+Create comprehensive tests for:
+
+Trend discovery
+
+Topic clustering
+
+Duplicate detection
+
+Research pipeline
+
+Fact verification
+
+Knowledge integration
+
+Scheduler
+
+Queue
+
+Dispatcher
+
+Authorization
+
+Validation
+
+Error handling
+
+Retry logic
+
+Run the complete backend suite.
+
+Run frontend build.
+
+Fix all regressions.
+
+---
+
+# Documentation
+
+Update:
+
+README
+
+Architecture
+
+API Documentation
+
+TEST_REPORT.md
+
+BUG_REPORT.md
+
+PRODUCTION_READINESS.md
+
+Create:
+
+PHASE5_COMPLETION_REPORT.md
+
+Document:
+
+Research architecture
+
+Trend pipeline
+
+Provider architecture
+
+Knowledge integration
+
+Scheduler flow
+
+Testing summary
+
+Production readiness
+
+---
+
+# Development Rules
+
+Reuse previous architecture.
+
+Keep providers configurable.
+
+Mock-first testing.
+
+Dependency injection.
+
+Production quality.
+
+No placeholders.
+
+No TODOs.
+
+No paid APIs.
+
+No breaking changes.
+
+---
+
+# Definition of Done
+
+Phase 5 is complete only when:
+
+* Trend discovery works.
+* Research pipeline works.
+* Topic clustering works.
+* Fact verification works.
+* Opportunity scoring works.
+* Verified knowledge is automatically stored in Phase 4.
+* Story Intelligence automatically consumes researched context.
+* Scheduler works.
+* APIs complete.
+* Frontend complete.
+* Tests passing.
+* Frontend builds.
+* Documentation updated.
+* PHASE5_COMPLETION_REPORT.md created.
+* Production ready.
+
+Verify every milestone before proceeding to the next one.
+
+Continue until Phase 5 is fully complete.

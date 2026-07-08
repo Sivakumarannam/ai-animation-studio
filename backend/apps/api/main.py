@@ -32,6 +32,7 @@ from apps.api.routers import (
     asset_manager,
     story_intelligence,
     knowledge,
+    research,
 )
 from database.connection import close_db, init_db
 from packages.core.exceptions import AppError
@@ -196,5 +197,8 @@ v1.include_router(story_intelligence.router)
 
 # Phase 4 — RAG & Knowledge Intelligence Engine
 v1.include_router(knowledge.router)
+
+# Phase 5 — Research & Trend Intelligence Engine
+v1.include_router(research.router)
 
 app.mount(API_V1_PREFIX, v1)

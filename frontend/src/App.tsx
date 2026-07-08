@@ -31,6 +31,18 @@ import { CollectionsPage } from '@/pages/knowledge/CollectionsPage'
 import { CollectionDetailPage } from '@/pages/knowledge/CollectionDetailPage'
 import { KnowledgeMemoryPage } from '@/pages/knowledge/KnowledgeMemoryPage'
 import { EmbeddingJobsPage } from '@/pages/knowledge/EmbeddingJobsPage'
+// Phase 5 — Research & Trend Intelligence
+import { ResearchDashboardPage } from '@/pages/research/ResearchDashboardPage'
+import { TrendExplorerPage } from '@/pages/research/TrendExplorerPage'
+import { TopicExplorerPage } from '@/pages/research/TopicExplorerPage'
+import { ResearchLibraryPage } from '@/pages/research/ResearchLibraryPage'
+import { ResearchQueuePage } from '@/pages/research/ResearchQueuePage'
+import { ResearchJobsPage } from '@/pages/research/ResearchJobsPage'
+import { TrendAnalyticsPage } from '@/pages/research/TrendAnalyticsPage'
+import { FactVerificationPage } from '@/pages/research/FactVerificationPage'
+import { OpportunityBoardPage } from '@/pages/research/OpportunityBoardPage'
+import { ResearchHistoryPage } from '@/pages/research/ResearchHistoryPage'
+import { SchedulerStatusPage } from '@/pages/research/SchedulerStatusPage'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -72,6 +84,19 @@ export default function App() {
         <Route path="/projects/:projectId/knowledge/collections/:collectionId" element={<CollectionDetailPage />} />
         <Route path="/projects/:projectId/knowledge/memory" element={<KnowledgeMemoryPage />} />
         <Route path="/projects/:projectId/knowledge/jobs" element={<EmbeddingJobsPage />} />
+
+        {/* Phase 5 — Research & Trend Intelligence */}
+        <Route path="/research" element={<ResearchDashboardPage />} />
+        <Route path="/research/trends" element={<TrendExplorerPage />} />
+        <Route path="/research/topics" element={<TopicExplorerPage />} />
+        <Route path="/research/library" element={<ResearchLibraryPage />} />
+        <Route path="/research/queue" element={<ResearchQueuePage />} />
+        <Route path="/research/jobs" element={<ResearchJobsPage />} />
+        <Route path="/research/analytics" element={<TrendAnalyticsPage />} />
+        <Route path="/research/facts" element={<FactVerificationPage />} />
+        <Route path="/research/opportunities" element={<OpportunityBoardPage />} />
+        <Route path="/research/history" element={<ResearchHistoryPage />} />
+        <Route path="/research/scheduler" element={<SchedulerStatusPage />} />
 
         {/* Module 2 — Libraries */}
         <Route path="/library/characters" element={<CharacterLibraryPage />} />

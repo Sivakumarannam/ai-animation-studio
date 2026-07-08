@@ -43,7 +43,7 @@ class KnowledgeDocumentService:
     async def create_document(
         self,
         collection_id: UUID,
-        project_id: UUID,
+        project_id: UUID | None,
         title: str,
         source_type: str = "text",
         raw_text: str | None = None,

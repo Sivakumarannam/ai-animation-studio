@@ -53,10 +53,12 @@ class KnowledgeCollection(UUIDMixin, TimestampMixin, Base):
     """
     __tablename__ = "kn_collections"
 
-    project_id: Mapped[uuid.UUID] = mapped_column(
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"),
-        nullable=False, index=True
+        nullable=True, index=True
     )
+    # NULL project_id = a global collection not scoped to any single project
+    # (e.g. Phase 5 research-intelligence collections shared across projects).
     world_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("si_worlds.id", ondelete="SET NULL"),
         nullable=True, index=True
@@ -96,9 +98,9 @@ class KnowledgeDocument(UUIDMixin, TimestampMixin, Base):
         UUID(as_uuid=True), ForeignKey("kn_collections.id", ondelete="CASCADE"),
         nullable=False, index=True
     )
-    project_id: Mapped[uuid.UUID] = mapped_column(
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"),
-        nullable=False, index=True
+        nullable=True, index=True
     )
     title: Mapped[str] = mapped_column(String(500), nullable=False)
     source_type: Mapped[str] = mapped_column(String(50), nullable=False, default="text")

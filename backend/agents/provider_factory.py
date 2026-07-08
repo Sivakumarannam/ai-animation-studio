@@ -32,6 +32,12 @@ def setup_providers(settings: object, registry: ProviderRegistry) -> None:
     _register_seo(settings, registry)
     _register_embedding(settings, registry)
     _register_vector_store(settings, registry)
+    # Phase 5 — Research providers
+    _register_trend(settings, registry)
+    _register_research(settings, registry)
+    _register_fact_verification(settings, registry)
+    _register_search(settings, registry)
+    _register_crawler(settings, registry)
 
     registered = registry.list_registered()
     logger.info("providers_registered", providers=registered)
@@ -169,3 +175,37 @@ def _register_vector_store(settings: object, registry: ProviderRegistry) -> None
     from agents.implementations.memory_vector_store import InMemoryVectorStore
 
     registry.register(VectorStoreProvider, InMemoryVectorStore())
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 — Research providers
+# ---------------------------------------------------------------------------
+
+def _register_trend(settings: object, registry: ProviderRegistry) -> None:
+    from agents.interfaces.trend_provider import TrendProvider
+    from agents.implementations.mock_trend_provider import MockTrendProvider
+    registry.register(TrendProvider, MockTrendProvider())
+
+
+def _register_research(settings: object, registry: ProviderRegistry) -> None:
+    from agents.interfaces.research_provider import ResearchProvider
+    from agents.implementations.mock_research_provider import MockResearchProvider
+    registry.register(ResearchProvider, MockResearchProvider())
+
+
+def _register_fact_verification(settings: object, registry: ProviderRegistry) -> None:
+    from agents.interfaces.fact_verification_provider import FactVerificationProvider
+    from agents.implementations.mock_fact_verification_provider import MockFactVerificationProvider
+    registry.register(FactVerificationProvider, MockFactVerificationProvider())
+
+
+def _register_search(settings: object, registry: ProviderRegistry) -> None:
+    from agents.interfaces.search_provider import SearchProvider
+    from agents.implementations.mock_search_provider import MockSearchProvider
+    registry.register(SearchProvider, MockSearchProvider())
+
+
+def _register_crawler(settings: object, registry: ProviderRegistry) -> None:
+    from agents.interfaces.crawler_provider import CrawlerProvider
+    from agents.implementations.mock_crawler_provider import MockCrawlerProvider
+    registry.register(CrawlerProvider, MockCrawlerProvider())

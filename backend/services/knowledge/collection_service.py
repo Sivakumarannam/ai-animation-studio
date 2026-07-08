@@ -17,7 +17,7 @@ class KnowledgeCollectionService:
 
     async def create(
         self,
-        project_id: UUID,
+        project_id: UUID | None,
         name: str,
         description: str = "",
         collection_type: str = "general",
