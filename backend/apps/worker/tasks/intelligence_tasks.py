@@ -54,7 +54,7 @@ async def _run_full_pipeline_core(
     world_data: dict[str, Any] | None = None,
     knowledge_collection_id: str | None = None,
 ) -> dict[str, Any]:
-    from database.connection import get_session
+    from database.connection import session_scope
     from agents.registry import get_provider_registry
     from agents.interfaces.llm_provider import LLMProvider
     from repositories.intelligence_repository import (
@@ -77,7 +77,7 @@ async def _run_full_pipeline_core(
 
     llm = get_provider_registry().resolve(LLMProvider)
 
-    async for session in get_session():
+    async with session_scope() as session:
         version_repo = StoryVersionRepository(session)
         orchestrator = StoryIntelligenceOrchestrator(
             world_svc=WorldService(WorldRepository(session), version_repo),
@@ -110,7 +110,6 @@ async def _run_full_pipeline_core(
             world_data=world_data or {},
             knowledge_collection_id=UUID(knowledge_collection_id) if knowledge_collection_id else None,
         )
-    return {}
 
 
 async def _generate_episode_core(
@@ -120,7 +119,7 @@ async def _generate_episode_core(
     world_id: str,
     knowledge_collection_id: str | None = None,
 ) -> dict[str, Any]:
-    from database.connection import get_session
+    from database.connection import session_scope
     from agents.registry import get_provider_registry
     from agents.interfaces.llm_provider import LLMProvider
     from repositories.intelligence_repository import (
@@ -143,7 +142,7 @@ async def _generate_episode_core(
 
     llm = get_provider_registry().resolve(LLMProvider)
 
-    async for session in get_session():
+    async with session_scope() as session:
         version_repo = StoryVersionRepository(session)
         orchestrator = StoryIntelligenceOrchestrator(
             world_svc=WorldService(WorldRepository(session), version_repo),
@@ -173,7 +172,6 @@ async def _generate_episode_core(
             world_id=UUID(world_id),
             knowledge_collection_id=UUID(knowledge_collection_id) if knowledge_collection_id else None,
         )
-    return {}
 
 
 # ---------------------------------------------------------------------------

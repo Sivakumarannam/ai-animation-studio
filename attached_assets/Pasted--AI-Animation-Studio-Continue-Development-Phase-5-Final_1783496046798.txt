@@ -1,0 +1,394 @@
+# AI Animation Studio — Continue Development (Phase 5 Finalization)
+
+We are continuing development of my **AI Animation Studio** project.
+
+GitHub Repository:
+https://github.com/Sivakumarannam/ai-animation-studio
+
+## IMPORTANT
+
+This project already contains a large production codebase.
+
+**Do NOT regenerate the architecture.**
+
+**Do NOT recreate existing files.**
+
+**Do NOT redesign previous phases.**
+
+Your first task is to inspect the current repository and understand the existing implementation before making any changes.
+
+Reuse existing patterns, services, repositories, providers, routers, schemas, tests, and frontend components.
+
+Only implement missing work or fix real issues.
+
+---
+
+# Project Vision
+
+This is **NOT** a manual animation editor.
+
+The goal is to build a **fully autonomous AI YouTube Automation Platform** using only **free and open-source technologies**.
+
+The user should only have three manual actions:
+
+* Start
+* Pause
+* Delete
+
+After pressing **Start** once, the platform should continue automatically every day until paused or deleted.
+
+The platform will eventually:
+
+* Discover trending topics
+* Research topics
+* Perform fact verification
+* Build a long-term knowledge base (RAG)
+* Generate stories
+* Maintain world and character consistency
+* Generate scripts
+* Generate images
+* Generate backgrounds
+* Generate props
+* Generate animations
+* Generate voices
+* Generate subtitles
+* Generate music
+* Render videos
+* Generate thumbnails
+* Generate YouTube SEO
+* Publish automatically
+* Learn continuously from performance
+
+Only free/open-source tools are allowed.
+
+---
+
+# Technology Stack
+
+Backend
+
+* FastAPI
+* PostgreSQL
+* Redis
+* Celery
+* SQLAlchemy
+* Alembic
+
+Frontend
+
+* React
+* TypeScript
+* Vite
+
+Storage
+
+* MinIO
+
+AI
+
+* Ollama
+* ComfyUI
+* Piper TTS
+* Whisper
+* ChromaDB or Qdrant
+
+Infrastructure
+
+* Docker
+* Docker Compose
+
+No paid APIs.
+
+---
+
+# Completed Phases
+
+## Phase 1
+
+Foundation Platform
+
+Completed.
+
+## Phase 2
+
+Character Studio
+
+Completed.
+
+## Phase 3
+
+Story Intelligence Engine
+
+Completed.
+
+Verified.
+
+Production ready.
+
+## Phase 4
+
+Knowledge Intelligence / RAG Engine
+
+Completed.
+
+Verified.
+
+Production ready.
+
+---
+
+# Current Phase
+
+## Phase 5 — Research & Trend Intelligence
+
+Phase 5 is almost complete.
+
+The repository already contains:
+
+* database models
+* alembic migrations
+* repositories
+* services
+* provider interfaces
+* mock providers
+* provider factory
+* scheduler
+* Celery tasks
+* REST APIs
+* frontend pages
+* routing
+* dashboard integration
+* automatic knowledge integration
+* tests
+* documentation
+
+Do not rebuild these.
+
+Continue from the current implementation.
+
+---
+
+# Latest Verified Progress
+
+Verified working:
+
+* backend starts successfully
+* frontend builds
+* migrations applied
+* Celery worker configured
+* research tasks registered
+* providers registered
+* automatic Phase 5 → Phase 4 integration
+* trend discovery
+* topic research
+* fact verification
+* opportunity scoring
+* automatic knowledge integration
+
+The end-to-end research pipeline successfully processed multiple topics.
+
+---
+
+# Remaining Issue
+
+The final known issue is:
+
+The Job Status endpoint still reports completed jobs as **pending**.
+
+Investigate the actual root cause.
+
+Possible areas:
+
+* database commit
+* SQLAlchemy session lifecycle
+* transaction handling
+* refresh()
+* Celery callback
+* dispatcher update
+* async race condition
+* repository update logic
+* cached state
+
+Do not implement workarounds.
+
+Fix the root cause.
+
+---
+
+# Verify Job Lifecycle
+
+Every research job must transition correctly.
+
+Expected flow:
+
+Queued
+
+↓
+
+Pending
+
+↓
+
+Running
+
+↓
+
+Research
+
+↓
+
+Fact Verification
+
+↓
+
+Opportunity Scoring
+
+↓
+
+Knowledge Integration
+
+↓
+
+Completed
+
+or
+
+Failed
+
+Persist every transition to PostgreSQL.
+
+Expose the correct status immediately through the REST API.
+
+---
+
+# Verify End-to-End Pipeline
+
+Run and verify:
+
+Trend Discovery
+
+↓
+
+Topic Clustering
+
+↓
+
+Duplicate Detection
+
+↓
+
+Research
+
+↓
+
+Fact Verification
+
+↓
+
+Opportunity Scoring
+
+↓
+
+Knowledge Integration (Phase 4)
+
+↓
+
+Story Intelligence (Phase 3)
+
+↓
+
+Generation Queue
+
+Ensure every stage works automatically.
+
+---
+
+# Regression Testing
+
+Run the complete test suite.
+
+Verify there are no regressions in:
+
+* Phase 5
+* Phase 4
+* Phase 3
+* Authentication
+* Projects
+
+Fix any failures.
+
+---
+
+# Frontend Verification
+
+Verify:
+
+* Dashboard
+* Research Queue
+* Opportunity Board
+* Analytics
+* Scheduler
+* Collections
+* Job Status
+* Knowledge Integration
+
+Run the production build.
+
+Resolve all TypeScript errors.
+
+---
+
+# Documentation
+
+Update if necessary:
+
+* README
+* replit.md
+* TEST_REPORT.md
+* BUG_REPORT.md
+* PRODUCTION_READINESS.md
+
+Finalize:
+
+PHASE5_COMPLETION_REPORT.md
+
+Include:
+
+* architecture
+* provider system
+* scheduler
+* research pipeline
+* knowledge integration
+* job lifecycle
+* test results
+* production readiness
+* lessons learned
+
+---
+
+# Definition of Done
+
+Do NOT mark Phase 5 complete until:
+
+* Job Status endpoint is fixed
+* Job lifecycle is correct
+* Celery integration verified
+* Sync fallback verified
+* Automatic knowledge integration verified
+* End-to-end pipeline verified
+* Backend starts cleanly
+* Frontend builds cleanly
+* All tests pass
+* No TODOs
+* No placeholder implementations
+* No regressions
+* Documentation updated
+* PHASE5_COMPLETION_REPORT.md finalized
+
+Before writing any code:
+
+1. Inspect the repository.
+2. Understand the existing implementation.
+3. Identify exactly what is already complete.
+4. Continue only from the remaining work.
+5. Keep the architecture consistent with Phases 1–4.

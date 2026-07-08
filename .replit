@@ -120,6 +120,14 @@ MINIO_ENDPOINT = "localhost:9000"
 MINIO_ACCESS_KEY = "minioadmin"
 MINIO_SECRET_KEY = "minioadmin123"
 MINIO_SECURE = "false"
+CORS_ORIGINS = "[\"http://localhost:5000\",\"http://localhost:5173\"]"
+ENABLED_PLUGINS = "[\"telugu_family_comedy\"]"
+KN_CHUNK_OVERLAP_TOKENS = "50"
+KN_CHUNK_SIZE_TOKENS = "512"
+KN_DEFAULT_TOP_K = "5"
+KN_EMBEDDING_PROVIDER = "mock"
+KN_VECTOR_STORE = "memory"
+LOG_LEVEL = "INFO"
 
 [[ports]]
 localPort = 5000

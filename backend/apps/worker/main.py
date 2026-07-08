@@ -90,10 +90,13 @@ def _init_worker_db(**kwargs):
     from apps.api.config import get_settings
 
     settings = get_settings()
+    # use_null_pool=True: each task's asyncio.run() creates a fresh event loop,
+    # so pooled asyncpg connections from the parent process would fail with
+    # "Future attached to a different loop".  NullPool opens/closes a fresh
+    # connection per session_scope() call, eliminating the cross-loop hazard.
     init_db(
         settings.DATABASE_URL,
-        pool_size=settings.DATABASE_POOL_SIZE,
-        max_overflow=settings.DATABASE_MAX_OVERFLOW,
+        use_null_pool=True,
     )
 
     from agents.registry import get_provider_registry

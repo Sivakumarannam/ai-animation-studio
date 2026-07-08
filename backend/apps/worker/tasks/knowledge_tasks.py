@@ -77,14 +77,14 @@ async def _process_document_core(
     job_id: str,
     raw_bytes_b64: str | None = None,
 ) -> dict[str, Any]:
-    from database.connection import get_session
+    from database.connection import session_scope
     from repositories.knowledge_repository import EmbeddingJobRepository
     from services.knowledge.job_service import EmbeddingJobService
     from uuid import UUID
 
     raw_bytes = base64.b64decode(raw_bytes_b64) if raw_bytes_b64 else None
 
-    async for session in get_session():
+    async with session_scope() as session:
         doc_svc = _make_document_service(session)
         job_svc = EmbeddingJobService(EmbeddingJobRepository(session))
 
@@ -109,14 +109,13 @@ async def _process_document_core(
             if job:
                 await job_svc.fail_job(job.id, str(exc))
             raise
-    return {}
 
 
 async def _reembed_collection_core(
     collection_id: str,
     job_id: str,
 ) -> dict[str, Any]:
-    from database.connection import get_session
+    from database.connection import session_scope
     from repositories.knowledge_repository import (
         EmbeddingJobRepository,
         KnowledgeDocumentRepository,
@@ -125,7 +124,7 @@ async def _reembed_collection_core(
     from packages.utils.pagination import PaginationParams
     from uuid import UUID
 
-    async for session in get_session():
+    async with session_scope() as session:
         doc_svc = _make_document_service(session)
         job_svc = EmbeddingJobService(EmbeddingJobRepository(session))
         doc_repo = KnowledgeDocumentRepository(session)
@@ -161,7 +160,6 @@ async def _reembed_collection_core(
             if job:
                 await job_svc.fail_job(job.id, str(exc))
             raise
-    return {}
 
 
 # ---------------------------------------------------------------------------

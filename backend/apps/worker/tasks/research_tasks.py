@@ -59,12 +59,12 @@ def _make_scheduler(session):
 # ---------------------------------------------------------------------------
 
 async def _discover_trends_core(job_id: str) -> dict[str, Any]:
-    from database.connection import get_session
+    from database.connection import session_scope
     from repositories.research_repository import ResearchJobRepository
     from services.research.job_service import ResearchJobService
     from uuid import UUID
 
-    async for session in get_session():
+    async with session_scope() as session:
         job_svc = ResearchJobService(ResearchJobRepository(session))
         scheduler = _make_scheduler(session)
 
@@ -84,11 +84,10 @@ async def _discover_trends_core(job_id: str) -> dict[str, Any]:
             if job:
                 await job_svc.fail_job(job.id, str(exc))
             raise
-    return {}
 
 
 async def _research_topic_core(job_id: str, topic_id: str) -> dict[str, Any]:
-    from database.connection import get_session
+    from database.connection import session_scope
     from repositories.research_repository import (
         ResearchJobRepository,
         ResearchTopicRepository,
@@ -102,7 +101,7 @@ async def _research_topic_core(job_id: str, topic_id: str) -> dict[str, Any]:
     from agents.registry import get_research_provider
     from uuid import UUID
 
-    async for session in get_session():
+    async with session_scope() as session:
         job_svc = ResearchJobService(ResearchJobRepository(session))
         topic_repo = ResearchTopicRepository(session)
         engine = ResearchEngineService(
@@ -133,11 +132,10 @@ async def _research_topic_core(job_id: str, topic_id: str) -> dict[str, Any]:
             if job:
                 await job_svc.fail_job(job.id, str(exc))
             raise
-    return {}
 
 
 async def _verify_facts_core(job_id: str) -> dict[str, Any]:
-    from database.connection import get_session
+    from database.connection import session_scope
     from repositories.research_repository import (
         ResearchJobRepository,
         ResearchFactRepository,
@@ -148,7 +146,7 @@ async def _verify_facts_core(job_id: str) -> dict[str, Any]:
     from agents.registry import get_fact_verification_provider
     from uuid import UUID
 
-    async for session in get_session():
+    async with session_scope() as session:
         job_svc = ResearchJobService(ResearchJobRepository(session))
         verification_svc = FactVerificationService(
             fact_repo=ResearchFactRepository(session),
@@ -172,17 +170,16 @@ async def _verify_facts_core(job_id: str) -> dict[str, Any]:
             if job:
                 await job_svc.fail_job(job.id, str(exc))
             raise
-    return {}
 
 
 async def _research_refresh_core(job_id: str) -> dict[str, Any]:
     """Full research-refresh phase: research pending topics AND verify facts."""
-    from database.connection import get_session
+    from database.connection import session_scope
     from repositories.research_repository import ResearchJobRepository
     from services.research.job_service import ResearchJobService
     from uuid import UUID
 
-    async for session in get_session():
+    async with session_scope() as session:
         job_svc = ResearchJobService(ResearchJobRepository(session))
         scheduler = _make_scheduler(session)
 
@@ -202,11 +199,10 @@ async def _research_refresh_core(job_id: str) -> dict[str, Any]:
             if job:
                 await job_svc.fail_job(job.id, str(exc))
             raise
-    return {}
 
 
 async def _score_opportunities_core(job_id: str) -> dict[str, Any]:
-    from database.connection import get_session
+    from database.connection import session_scope
     from repositories.research_repository import (
         ResearchJobRepository,
         ResearchTopicRepository,
@@ -219,7 +215,7 @@ async def _score_opportunities_core(job_id: str) -> dict[str, Any]:
     from services.research.opportunity_scoring_service import OpportunityScoringService
     from uuid import UUID
 
-    async for session in get_session():
+    async with session_scope() as session:
         job_svc = ResearchJobService(ResearchJobRepository(session))
         scoring_svc = OpportunityScoringService(
             topic_repo=ResearchTopicRepository(session),
@@ -245,17 +241,16 @@ async def _score_opportunities_core(job_id: str) -> dict[str, Any]:
             if job:
                 await job_svc.fail_job(job.id, str(exc))
             raise
-    return {}
 
 
 async def _scheduler_tick_core(job_id: str) -> dict[str, Any]:
     """Run the full pipeline in sequence."""
-    from database.connection import get_session
+    from database.connection import session_scope
     from repositories.research_repository import ResearchJobRepository
     from services.research.job_service import ResearchJobService
     from uuid import UUID
 
-    async for session in get_session():
+    async with session_scope() as session:
         job_svc = ResearchJobService(ResearchJobRepository(session))
         scheduler = _make_scheduler(session)
 
@@ -288,7 +283,6 @@ async def _scheduler_tick_core(job_id: str) -> dict[str, Any]:
             except Exception:
                 pass
         return results
-    return {}
 
 
 # ---------------------------------------------------------------------------
