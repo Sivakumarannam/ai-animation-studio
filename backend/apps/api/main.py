@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from apps.api.config import get_settings
-from apps.api.routers import assets, auth, characters, health, plugins, projects, scenes, stories
+from apps.api.routers import auth, characters, health, plugins, projects, scenes, stories
 from apps.api.routers import generation, ws as ws_router
 from apps.api.routers import (
     expressions,
@@ -178,7 +178,6 @@ v1.include_router(projects.router)
 v1.include_router(stories.router)
 v1.include_router(scenes.router)
 v1.include_router(characters.router)
-v1.include_router(assets.router)
 v1.include_router(plugins.router)
 
 # Module 1 — AI generation + WebSocket progress

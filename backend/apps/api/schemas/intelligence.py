@@ -251,6 +251,11 @@ class StoryIdeaUpdate(BaseModel):
     status: str | None = None
     title: str | None = None
     premise: str | None = None
+    genre: str | None = None
+    tone: str | None = None
+    story_type: str | None = None
+    target_audience: str | None = None
+    estimated_episodes: int | None = None
 
 
 class StoryIdeaResponse(BaseModel):

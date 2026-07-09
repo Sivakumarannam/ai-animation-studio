@@ -428,8 +428,7 @@ async def update_idea(
 ) -> StoryIdeaResponse:
     svc = _make_services(session)
     return StoryIdeaResponse.model_validate(
-        await svc["idea"].update_status(idea_id, body.status or "idea") if body.status else
-        await svc["idea"].get_by_id(idea_id)
+        await svc["idea"].update(idea_id, body.model_dump(exclude_none=True))
     )
 
 

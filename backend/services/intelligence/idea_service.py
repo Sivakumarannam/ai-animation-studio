@@ -84,6 +84,15 @@ class StoryIdeaService:
     ) -> PaginatedResult[StoryIdea]:
         return await self._repo.get_by_project(project_id, pagination, status=status)
 
+    async def update(self, idea_id: UUID, data: dict[str, Any]) -> StoryIdea:
+        """Full update — accepts any combination of valid fields."""
+        idea = await self.get_by_id(idea_id)
+        allowed = {"title", "premise", "genre", "tone", "story_type", "target_audience", "estimated_episodes", "status"}
+        updates = {k: v for k, v in data.items() if k in allowed and v is not None}
+        if not updates:
+            return idea
+        return await self._repo.update(idea, updates)
+
     async def update_status(self, idea_id: UUID, status: str) -> StoryIdea:
         idea = await self.get_by_id(idea_id)
         return await self._repo.update(idea, {"status": status})
