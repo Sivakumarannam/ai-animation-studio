@@ -1,0 +1,640 @@
+We have completed Phases 1–5 of the AI Animation Studio.
+
+Phase 1 is already manually tested and working.
+
+Now perform a COMPLETE audit of Phases 2, 3, 4, and 5.
+
+DO NOT assume anything works because tests pass.
+
+This is a production readiness audit.
+
+Your job is to inspect the ENTIRE codebase.
+
+========================================================
+GOAL
+========================================================
+
+Compare:
+
+Frontend
+↓
+
+API Client
+↓
+
+FastAPI Routers
+↓
+
+Services
+
+↓
+
+Repositories
+
+↓
+
+Database Models
+
+↓
+
+Celery Tasks
+
+↓
+
+Background Workers
+
+↓
+
+Provider Factory
+
+↓
+
+Storage
+
+↓
+
+LLM Providers
+
+↓
+
+Task Dispatcher
+
+↓
+
+Routes
+
+↓
+
+Navigation
+
+↓
+
+React Pages
+
+↓
+
+Dialogs
+
+↓
+
+Forms
+
+↓
+
+Buttons
+
+↓
+
+Tables
+
+↓
+
+Delete Confirmation
+
+↓
+
+Pagination
+
+↓
+
+Search
+
+↓
+
+Filters
+
+↓
+
+Sorting
+
+↓
+
+Validation
+
+↓
+
+Permissions
+
+↓
+
+Error Handling
+
+↓
+
+Loading States
+
+↓
+
+Retry
+
+↓
+
+Notifications
+
+↓
+
+Documentation
+
+Everything must be connected.
+
+========================================================
+
+CHECK EVERY CRUD
+
+========================================================
+
+For EVERY entity verify
+
+CREATE
+
+READ
+
+UPDATE
+
+DELETE
+
+LIST
+
+DETAIL PAGE
+
+SEARCH
+
+FILTER
+
+PAGINATION
+
+STATUS
+
+JOB HISTORY
+
+========================================================
+
+PHASE 2
+
+========================================================
+
+Character Library
+
+Character Templates
+
+Characters
+
+Backgrounds
+
+Props
+
+Plugins
+
+Asset Manager
+
+Verify:
+
+Character Create
+
+Character Edit
+
+Character Delete
+
+Character Image Upload
+
+Character Image Replace
+
+Character Image Delete
+
+Background CRUD
+
+Prop CRUD
+
+Plugin integration
+
+Asset Manager
+
+Search
+
+Restore
+
+Soft Delete
+
+Pagination
+
+Filtering
+
+Sorting
+
+Missing buttons
+
+Missing forms
+
+Broken API calls
+
+404
+
+422
+
+500
+
+Unused backend endpoints
+
+Frontend pages not connected
+
+Backend endpoints not used
+
+========================================================
+
+PHASE 3
+
+========================================================
+
+Story Intelligence
+
+Projects
+
+Ideas
+
+World Builder
+
+World CRUD
+
+Season CRUD
+
+Episode CRUD
+
+Scene CRUD
+
+Memory
+
+Retry Queue
+
+Jobs
+
+History
+
+Analytics
+
+Story Generation
+
+Prompt Builder
+
+Pipeline
+
+Celery
+
+Verify
+
+Create
+
+Edit
+
+Delete
+
+Retry
+
+Job Status
+
+Pipeline
+
+Navigation
+
+Dialogs
+
+Frontend integration
+
+Backend integration
+
+========================================================
+
+PHASE 4
+
+========================================================
+
+Knowledge Intelligence
+
+Collections
+
+Documents
+
+Chunks
+
+Embeddings
+
+Semantic Search
+
+Memory
+
+History
+
+Jobs
+
+Upload
+
+Delete
+
+Search
+
+Retriever
+
+RAG Integration
+
+Chunk Viewer
+
+Embedding Jobs
+
+Verify
+
+Upload works
+
+Delete works
+
+Edit works
+
+Semantic Search
+
+Embedding Generation
+
+Retriever
+
+History
+
+Job Queue
+
+Knowledge Integration
+
+Context Builder
+
+Everything connected
+
+========================================================
+
+PHASE 5
+
+========================================================
+
+Research Intelligence
+
+Dashboard
+
+Trend Discovery
+
+Topic Research
+
+Fact Verification
+
+Opportunities
+
+Knowledge Integration
+
+Scheduler
+
+Analytics
+
+History
+
+Jobs
+
+Queue
+
+Verify
+
+Discover Trends
+
+Research Topic
+
+Verify Facts
+
+Opportunity Score
+
+Knowledge Integration
+
+Scheduler
+
+Retry
+
+Background Jobs
+
+Job Status
+
+Auto Refresh
+
+Navigation
+
+Frontend
+
+Backend
+
+========================================================
+
+CHECK FRONTEND
+
+========================================================
+
+Find
+
+Missing pages
+
+Missing dialogs
+
+Missing forms
+
+Missing edit pages
+
+Missing delete buttons
+
+Broken buttons
+
+Disabled buttons
+
+API mismatch
+
+TypeScript errors
+
+React Query issues
+
+State issues
+
+Missing loading
+
+Missing empty state
+
+Missing error state
+
+Broken navigation
+
+========================================================
+
+CHECK BACKEND
+
+========================================================
+
+Find
+
+Missing routers
+
+Missing endpoints
+
+Unused endpoints
+
+Repository methods never used
+
+Services never called
+
+Celery tasks never registered
+
+Background workers
+
+Task Dispatcher
+
+Provider registration
+
+Database migration mismatch
+
+Foreign keys
+
+Cascade delete
+
+Validation
+
+Transaction issues
+
+========================================================
+
+CHECK API
+
+========================================================
+
+Compare
+
+Frontend API
+
+vs
+
+FastAPI Router
+
+Find
+
+Wrong URL
+
+Wrong HTTP Method
+
+Wrong payload
+
+Wrong response model
+
+Wrong UUID
+
+Wrong pagination
+
+========================================================
+
+CHECK TEST COVERAGE
+
+========================================================
+
+Find
+
+Endpoints without tests
+
+CRUD not tested
+
+Background jobs not tested
+
+Frontend pages not tested
+
+========================================================
+
+OUTPUT
+
+========================================================
+
+DO NOT FIX ANYTHING YET.
+
+Generate these files.
+
+PHASE2_BUG_REPORT.md
+
+PHASE3_BUG_REPORT.md
+
+PHASE4_BUG_REPORT.md
+
+PHASE5_BUG_REPORT.md
+
+MASTER_BUG_REPORT.md
+
+Each report must contain
+
+Critical Bugs
+
+High Priority
+
+Medium
+
+Low
+
+UI Bugs
+
+Backend Bugs
+
+API Bugs
+
+Missing CRUD
+
+Missing Pages
+
+Missing Buttons
+
+Missing Forms
+
+Missing Routes
+
+Missing Dialogs
+
+Missing Navigation
+
+Missing Validation
+
+Missing Tests
+
+For every issue include
+
+Problem
+
+Root Cause
+
+Files
+
+Severity
+
+Estimated Fix Time
+
+Priority
+
+========================================================
+
+AFTER THE AUDIT
+
+STOP.
+
+DO NOT MODIFY CODE.
+
+Wait for my approval.
+
+
+
+
+Now fix EVERYTHING from MASTER_BUG_REPORT.md.
+
+Rules:
+
+- Fix Phase 2 completely before moving to Phase 3.
+- Finish one phase at a time.
+- Do not skip any bug.
+- Do not introduce regressions.
+- Keep existing architecture.
+- Follow repository/service/router patterns.
+- Update backend, frontend, Celery, tests, and documentation together.
+- After each phase, run tests and verify the frontend builds successfully.
+- Produce:
+  - PHASE2_COMPLETION_REPORT.md
+  - PHASE3_COMPLETION_REPORT.md
+  - PHASE4_COMPLETION_REPORT.md
+  - PHASE5_COMPLETION_REPORT.md
+- When every reported issue is fixed, generate FINAL_PRODUCTION_READINESS_REPORT.md summarizing all fixes and confirming that Phases 2–5 are production-ready.

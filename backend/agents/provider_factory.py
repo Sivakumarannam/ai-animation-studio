@@ -38,6 +38,8 @@ def setup_providers(settings: object, registry: ProviderRegistry) -> None:
     _register_fact_verification(settings, registry)
     _register_search(settings, registry)
     _register_crawler(settings, registry)
+    # Phase 6 — Asset Generation providers
+    _register_asset_evaluation(settings, registry)
 
     registered = registry.list_registered()
     logger.info("providers_registered", providers=registered)
@@ -209,3 +211,13 @@ def _register_crawler(settings: object, registry: ProviderRegistry) -> None:
     from agents.interfaces.crawler_provider import CrawlerProvider
     from agents.implementations.mock_crawler_provider import MockCrawlerProvider
     registry.register(CrawlerProvider, MockCrawlerProvider())
+
+
+# ---------------------------------------------------------------------------
+# Phase 6 — Asset Generation providers
+# ---------------------------------------------------------------------------
+
+def _register_asset_evaluation(settings: object, registry: ProviderRegistry) -> None:
+    from agents.interfaces.asset_evaluation_provider import AssetEvaluationProvider
+    from agents.implementations.mock_asset_evaluation_provider import MockAssetEvaluationProvider
+    registry.register(AssetEvaluationProvider, MockAssetEvaluationProvider())

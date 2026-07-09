@@ -1,0 +1,967 @@
+# AI Animation Studio — Phase 6
+
+# AI Asset Generation Engine
+
+## Continue Development
+
+We are continuing development of the AI Animation Studio project.
+
+GitHub Repository:
+
+https://github.com/Sivakumarannam/ai-animation-studio
+
+---
+
+# IMPORTANT
+
+Before writing any code:
+
+* Inspect the current repository.
+* Understand the existing architecture.
+* Reuse existing patterns.
+* Do NOT redesign previous phases.
+* Do NOT recreate existing files.
+* Continue from the current implementation.
+
+The project already contains production-ready implementations for:
+
+* Phase 1 – Foundation Platform
+* Phase 2 – Character Studio
+* Phase 3 – Story Intelligence
+* Phase 4 – Knowledge Intelligence (RAG)
+* Phase 5 – Research & Trend Intelligence
+
+Phase 6 must integrate seamlessly with them.
+
+---
+
+# Overall Goal
+
+Phase 6 transforms Story Intelligence into visual assets.
+
+Current pipeline:
+
+Research
+
+↓
+
+Knowledge
+
+↓
+
+Story
+
+↓
+
+Character
+
+↓
+
+Scene
+
+↓
+
+Dialogue
+
+↓
+
+Narration
+
+Phase 6 extends it to:
+
+Story
+
+↓
+
+Shot Planning
+
+↓
+
+Scene Composition
+
+↓
+
+Character Images
+
+↓
+
+Background Images
+
+↓
+
+Props
+
+↓
+
+Expressions
+
+↓
+
+Camera Prompts
+
+↓
+
+Image Generation
+
+↓
+
+Quality Evaluation
+
+↓
+
+Versioning
+
+↓
+
+Asset Library
+
+↓
+
+Animation Ready Assets
+
+Everything must be generated automatically.
+
+No manual editing.
+
+---
+
+# User Experience
+
+The user still has only three actions:
+
+* Start
+* Pause
+* Delete
+
+After pressing Start once, the platform continues automatically.
+
+No manual image creation.
+
+No manual prompt writing.
+
+No manual asset management.
+
+---
+
+# Technology Stack (Free/Open Source Only)
+
+Backend
+
+* FastAPI
+* PostgreSQL
+* SQLAlchemy
+* Alembic
+* Celery
+* Redis
+
+Frontend
+
+* React
+* TypeScript
+* Vite
+
+Storage
+
+* MinIO
+
+AI
+
+* Ollama
+* ComfyUI
+* Stable Diffusion XL
+* Flux (open-source if available locally)
+* ControlNet
+* IP-Adapter
+* OpenPose
+* Segment Anything (SAM)
+* CLIP
+* InsightFace (for character consistency)
+
+Image Processing
+
+* Pillow
+* OpenCV
+
+Infrastructure
+
+* Docker
+* Docker Compose
+
+No paid APIs.
+
+No cloud image generation services.
+
+Everything must run locally.
+
+---
+
+# Phase 6 Objectives
+
+Build a complete AI Asset Generation Engine.
+
+This engine converts every story into reusable production assets.
+
+---
+
+# Asset Types
+
+Generate:
+
+Characters
+
+Character Variants
+
+Character Expressions
+
+Character Poses
+
+Character Turnarounds
+
+Backgrounds
+
+Environment Variants
+
+Props
+
+Vehicles
+
+Weapons
+
+Buildings
+
+Nature Assets
+
+Icons
+
+Logos (if required)
+
+Scene Layouts
+
+Camera Angles
+
+Lighting Variations
+
+Weather Variations
+
+Day/Night Versions
+
+Reference Images
+
+Thumbnail Assets
+
+---
+
+# Automatic Pipeline
+
+For every generated story:
+
+Story
+
+↓
+
+Episode
+
+↓
+
+Scene
+
+↓
+
+Shot Planner
+
+↓
+
+Asset Planner
+
+↓
+
+Prompt Generator
+
+↓
+
+ComfyUI
+
+↓
+
+Generated Images
+
+↓
+
+Quality Evaluation
+
+↓
+
+Consistency Validation
+
+↓
+
+Retry (if required)
+
+↓
+
+Store Assets
+
+↓
+
+Ready For Animation
+
+---
+
+# Database
+
+Create production-ready database models.
+
+Suggested prefix:
+
+ag_
+
+Examples:
+
+AssetProject
+
+Asset
+
+AssetVersion
+
+AssetCollection
+
+AssetPrompt
+
+PromptTemplate
+
+PromptHistory
+
+NegativePrompt
+
+GeneratedImage
+
+AssetEvaluation
+
+AssetStyle
+
+AssetTag
+
+AssetEmbedding
+
+AssetMemory
+
+SceneComposition
+
+CameraShot
+
+LightingPreset
+
+PosePreset
+
+ExpressionPreset
+
+RetryQueue
+
+GenerationJob
+
+GenerationHistory
+
+AssetCache
+
+AssetRelationship
+
+Every asset must support:
+
+UUID
+
+timestamps
+
+soft delete
+
+version history
+
+quality score
+
+metadata
+
+relationships
+
+---
+
+# Prompt Generation Engine
+
+Automatically generate:
+
+Positive Prompt
+
+Negative Prompt
+
+Style Prompt
+
+Camera Prompt
+
+Composition Prompt
+
+Lighting Prompt
+
+Color Prompt
+
+Reference Prompt
+
+Consistency Prompt
+
+Prompt Variants
+
+Prompt Versions
+
+No manual prompting.
+
+---
+
+# Character Consistency
+
+Maintain:
+
+Face
+
+Hair
+
+Eyes
+
+Clothes
+
+Body
+
+Accessories
+
+Height
+
+Color Palette
+
+Art Style
+
+Age
+
+Gender
+
+Expression
+
+Pose
+
+Across:
+
+Episodes
+
+Seasons
+
+Entire Series
+
+---
+
+# Background Consistency
+
+Maintain:
+
+Location
+
+Lighting
+
+Perspective
+
+Weather
+
+Time
+
+Architecture
+
+Objects
+
+Scene Style
+
+---
+
+# Prop Consistency
+
+Reuse previously generated props whenever possible.
+
+Avoid regenerating identical assets.
+
+---
+
+# Shot Planner
+
+Automatically generate:
+
+Wide Shot
+
+Medium Shot
+
+Close Up
+
+Extreme Close Up
+
+Over Shoulder
+
+Tracking Shot
+
+Top View
+
+Side View
+
+Low Angle
+
+High Angle
+
+Cinematic Camera Movement
+
+---
+
+# Composition Engine
+
+Generate:
+
+Rule of Thirds
+
+Leading Lines
+
+Depth
+
+Foreground
+
+Background
+
+Focus Point
+
+Lighting Direction
+
+Color Harmony
+
+Negative Space
+
+---
+
+# Quality Evaluation
+
+Evaluate:
+
+Prompt Quality
+
+Image Quality
+
+Character Consistency
+
+Background Consistency
+
+Composition
+
+Lighting
+
+Style Match
+
+Scene Match
+
+Resolution
+
+Artifacts
+
+Hands
+
+Faces
+
+Text Errors
+
+Score:
+
+0–100
+
+Minimum acceptable:
+
+90
+
+Below threshold:
+
+Automatically retry.
+
+---
+
+# Automatic Retry Engine
+
+Retry when:
+
+Low quality
+
+Wrong character
+
+Wrong background
+
+Artifacts
+
+Wrong pose
+
+Wrong style
+
+Wrong camera
+
+Retry limit configurable.
+
+---
+
+# Asset Versioning
+
+Maintain:
+
+Original
+
+Revision 1
+
+Revision 2
+
+Latest
+
+Best Version
+
+Rollback support.
+
+---
+
+# Asset Library
+
+Store reusable assets.
+
+Search by:
+
+Character
+
+Scene
+
+Tag
+
+Episode
+
+Season
+
+Story
+
+Project
+
+Style
+
+Embedding
+
+Semantic similarity
+
+---
+
+# Asset Memory
+
+Remember:
+
+Best prompts
+
+Successful styles
+
+Rejected prompts
+
+Common failures
+
+Preferred lighting
+
+Preferred compositions
+
+Successful camera angles
+
+---
+
+# Embeddings
+
+Generate embeddings for:
+
+Characters
+
+Scenes
+
+Props
+
+Backgrounds
+
+Prompts
+
+Styles
+
+Support semantic similarity search.
+
+---
+
+# API
+
+Create production REST APIs.
+
+Examples:
+
+Projects
+
+Assets
+
+Generate
+
+Retry
+
+Versions
+
+Prompts
+
+Styles
+
+Collections
+
+Search
+
+Evaluation
+
+Jobs
+
+Statistics
+
+Analytics
+
+Library
+
+Everything paginated.
+
+Everything authenticated.
+
+Everything documented.
+
+---
+
+# Celery
+
+Background jobs:
+
+Prompt Generation
+
+Asset Planning
+
+Image Generation
+
+Evaluation
+
+Retry
+
+Version Creation
+
+Embedding
+
+Cleanup
+
+Statistics
+
+Dispatcher must support:
+
+Celery
+
+or
+
+Sync fallback
+
+---
+
+# Frontend
+
+Build complete UI.
+
+Pages:
+
+Asset Dashboard
+
+Asset Library
+
+Generation Queue
+
+Asset Viewer
+
+Prompt Editor
+
+Version History
+
+Collections
+
+Styles
+
+Evaluation
+
+Retry Queue
+
+Analytics
+
+Settings
+
+Everything responsive.
+
+---
+
+# Dashboard
+
+Show:
+
+Generation Progress
+
+Assets Generated
+
+Failures
+
+Retries
+
+Average Quality
+
+Best Prompts
+
+Character Library
+
+Background Library
+
+Recent Jobs
+
+Worker Status
+
+Storage Usage
+
+---
+
+# Integration
+
+Integrate automatically with:
+
+Phase 3
+
+Story Intelligence
+
+↓
+
+Phase 4
+
+Knowledge
+
+↓
+
+Phase 5
+
+Research
+
+↓
+
+Phase 6
+
+Asset Generation
+
+No manual input.
+
+---
+
+# Testing
+
+Write comprehensive tests.
+
+Backend
+
+Frontend
+
+Integration
+
+API
+
+Provider
+
+Database
+
+Celery
+
+Dispatcher
+
+Retry
+
+Versioning
+
+Quality
+
+Target:
+
+100% deterministic.
+
+---
+
+# Documentation
+
+Update:
+
+README
+
+Architecture
+
+API Docs
+
+TEST_REPORT.md
+
+BUG_REPORT.md
+
+PRODUCTION_READINESS.md
+
+Create:
+
+PHASE6_COMPLETION_REPORT.md
+
+Include:
+
+Architecture
+
+Database
+
+Services
+
+Workflow
+
+Providers
+
+Testing
+
+Known Issues
+
+Production Readiness
+
+Lessons Learned
+
+---
+
+# Definition of Done
+
+Do NOT mark Phase 6 complete until:
+
+* Backend starts cleanly
+* Frontend builds successfully
+* Migrations succeed
+* Providers register correctly
+* Celery worker runs
+* Sync fallback works
+* Assets generate successfully
+* Prompt generation works
+* Character consistency works
+* Background consistency works
+* Asset versioning works
+* Quality evaluation works
+* Retry engine works
+* Asset library works
+* Search works
+* Embeddings work
+* API verified
+* Frontend verified
+* All tests pass
+* No TODOs
+* No placeholders
+* No regressions in Phases 1–5
+* Documentation updated
+* PHASE6_COMPLETION_REPORT.md completed
+
+Work incrementally.
+
+Verify every milestone.
+
+Fix real issues instead of hiding them.
+
+Maintain the architecture established in Phases 1–5.
+
+Only declare Phase 6 complete when every acceptance criterion has been verified.

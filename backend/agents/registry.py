@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from agents.interfaces.fact_verification_provider import FactVerificationProvider
     from agents.interfaces.search_provider import SearchProvider
     from agents.interfaces.crawler_provider import CrawlerProvider
+    from agents.interfaces.asset_evaluation_provider import AssetEvaluationProvider  # Phase 6
 
 T = TypeVar("T")
 
@@ -198,3 +199,12 @@ def get_search_provider() -> "SearchProvider":
 def get_crawler_provider() -> "CrawlerProvider":
     from agents.interfaces.crawler_provider import CrawlerProvider
     return get_provider_registry().resolve(CrawlerProvider)
+
+
+# ---------------------------------------------------------------------------
+# Phase 6 — Asset Generation providers
+# ---------------------------------------------------------------------------
+
+def get_asset_evaluation_provider() -> "AssetEvaluationProvider":
+    from agents.interfaces.asset_evaluation_provider import AssetEvaluationProvider
+    return get_provider_registry().resolve(AssetEvaluationProvider)

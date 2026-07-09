@@ -142,6 +142,30 @@ class Settings(BaseSettings):
     # Opportunity queue threshold
     RS_MIN_OPPORTUNITY_SCORE: float = 60.0
 
+    # ── Phase 6 — AI Asset Generation Engine ─────────────────────────────────
+    # Asset evaluation provider: "mock"
+    AG_EVALUATION_PROVIDER: str = "mock"
+
+    # Quality threshold (0–100) — images below this score are retried
+    AG_QUALITY_THRESHOLD: float = 90.0
+
+    # Maximum retry attempts per asset
+    AG_MAX_RETRIES: int = 3
+
+    # Default image resolution
+    AG_TARGET_RESOLUTION: str = "1024x1024"
+
+    # Generation parameters defaults
+    AG_DEFAULT_STEPS: int = 20
+    AG_DEFAULT_CFG_SCALE: float = 7.0
+    AG_DEFAULT_SAMPLER: str = "euler_a"
+
+    # MinIO bucket for generated assets
+    AG_ASSET_BUCKET: str = "assets"
+
+    # Embedding batch size
+    AG_EMBEDDING_BATCH_SIZE: int = 50
+
 
 @lru_cache
 def get_settings() -> Settings:
