@@ -28,7 +28,7 @@ from database.models.research import (  # noqa: F401
     ResearchVersion, ResearchAnalytics,
 )
 from database.models.asset_generation import (  # noqa: F401
-    AssetProject, AssetStyle, AssetCollection, Asset, AssetVersion as AgAssetVersion,
+    AssetProject, AssetStyle, AssetCollection, GeneratedAsset as AgAsset, GeneratedAssetVersion as AgAssetVersion,
     AssetPrompt, PromptTemplate, PromptHistory, NegativePrompt, GeneratedImage,
     AssetEvaluation, AssetTag, AssetEmbedding, AssetMemory, SceneComposition as AgSceneComposition,
     CameraShot, LightingPreset, PosePreset, ExpressionPreset,

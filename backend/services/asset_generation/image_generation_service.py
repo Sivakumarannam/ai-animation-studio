@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
-from database.models.asset_generation import Asset, AssetPrompt, AssetVersion, GeneratedImage
+from database.models.asset_generation import GeneratedAsset as Asset, AssetPrompt, GeneratedAssetVersion as AssetVersion, GeneratedImage
 from repositories.asset_generation_repository import (
     AssetRepository,
     AssetVersionRepository,

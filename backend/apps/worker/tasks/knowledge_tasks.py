@@ -12,30 +12,20 @@ or calls the underlying async core function directly in sync fallback mode.
 """
 from __future__ import annotations
 
-import asyncio
+
 import base64
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from celery import Task
 from celery.utils.log import get_task_logger
-
+from apps.worker.async_utils import run_async as _run_async
 from apps.worker.main import celery_app
 from apps.worker.tasks.dead_letter import dead_letter_task
+
 
 logger = get_task_logger(__name__)
 
 
-def _run_async(coro) -> Any:
-    """Run coroutine synchronously — safe inside and outside an event loop."""
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            with ThreadPoolExecutor(max_workers=1) as pool:
-                return pool.submit(asyncio.run, coro).result()
-    except RuntimeError:
-        pass
-    return asyncio.run(coro)
 
 
 def _make_document_service(session):
@@ -77,14 +67,14 @@ async def _process_document_core(
     job_id: str,
     raw_bytes_b64: str | None = None,
 ) -> dict[str, Any]:
-    from database.connection import session_scope
+    from database.connection import get_session
     from repositories.knowledge_repository import EmbeddingJobRepository
     from services.knowledge.job_service import EmbeddingJobService
     from uuid import UUID
 
     raw_bytes = base64.b64decode(raw_bytes_b64) if raw_bytes_b64 else None
 
-    async with session_scope() as session:
+    async for session in get_session():
         doc_svc = _make_document_service(session)
         job_svc = EmbeddingJobService(EmbeddingJobRepository(session))
 
@@ -109,13 +99,14 @@ async def _process_document_core(
             if job:
                 await job_svc.fail_job(job.id, str(exc))
             raise
+    return {}
 
 
 async def _reembed_collection_core(
     collection_id: str,
     job_id: str,
 ) -> dict[str, Any]:
-    from database.connection import session_scope
+    from database.connection import get_session
     from repositories.knowledge_repository import (
         EmbeddingJobRepository,
         KnowledgeDocumentRepository,
@@ -124,7 +115,7 @@ async def _reembed_collection_core(
     from packages.utils.pagination import PaginationParams
     from uuid import UUID
 
-    async with session_scope() as session:
+    async for session in get_session():
         doc_svc = _make_document_service(session)
         job_svc = EmbeddingJobService(EmbeddingJobRepository(session))
         doc_repo = KnowledgeDocumentRepository(session)
@@ -160,6 +151,7 @@ async def _reembed_collection_core(
             if job:
                 await job_svc.fail_job(job.id, str(exc))
             raise
+    return {}
 
 
 # ---------------------------------------------------------------------------

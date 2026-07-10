@@ -22,9 +22,13 @@ class Project(UUIDMixin, TimestampMixin, Base):
     metadata_: Mapped[dict[str, Any]] = mapped_column("metadata", JSON, nullable=False, default=dict)
 
     user: Mapped["User"] = relationship("User", back_populates="projects")  # type: ignore[name-defined]  # noqa: F821
-    stories: Mapped[list["Story"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
-        "Story", back_populates="project", lazy="select"
+    stories: Mapped[list["Story"]] = relationship(
+        "Story", back_populates="project", lazy="select", passive_deletes=True
     )
-    characters: Mapped[list["Character"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
-        "Character", back_populates="project", lazy="select"
+    characters: Mapped[list["Character"]] = relationship(
+        "Character", back_populates="project", lazy="select", passive_deletes=True
     )
+
+
+
+

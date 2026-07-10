@@ -335,7 +335,7 @@ async def list_collections(
 
 @router.post("/assets", response_model=AssetResponse, status_code=status.HTTP_201_CREATED)
 async def create_asset(body: AssetCreate, session: SessionDep, _: CurrentUser):
-    from database.models.asset_generation import Asset
+    from database.models.asset_generation import GeneratedAsset as Asset
     repos = _make_repos(session)
     asset = Asset(**body.model_dump())
     saved = await repos["asset"].create(asset)

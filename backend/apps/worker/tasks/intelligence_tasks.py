@@ -12,31 +12,18 @@ or calls the underlying async core function directly in sync fallback mode.
 """
 from __future__ import annotations
 
-import asyncio
 import os
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from uuid import UUID
 
 from celery import Task
 from celery.utils.log import get_task_logger
-
+from apps.worker.async_utils import run_async as _run_async
 from apps.worker.main import celery_app
 from apps.worker.tasks.dead_letter import dead_letter_task
 
 logger = get_task_logger(__name__)
 
-
-def _run_async(coro) -> Any:
-    """Run coroutine synchronously — safe inside and outside an event loop."""
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            with ThreadPoolExecutor(max_workers=1) as pool:
-                return pool.submit(asyncio.run, coro).result()
-    except RuntimeError:
-        pass
-    return asyncio.run(coro)
 
 
 # ---------------------------------------------------------------------------
@@ -54,7 +41,7 @@ async def _run_full_pipeline_core(
     world_data: dict[str, Any] | None = None,
     knowledge_collection_id: str | None = None,
 ) -> dict[str, Any]:
-    from database.connection import session_scope
+    from database.connection import get_session
     from agents.registry import get_provider_registry
     from agents.interfaces.llm_provider import LLMProvider
     from repositories.intelligence_repository import (
@@ -77,7 +64,7 @@ async def _run_full_pipeline_core(
 
     llm = get_provider_registry().resolve(LLMProvider)
 
-    async with session_scope() as session:
+    async for session in get_session():
         version_repo = StoryVersionRepository(session)
         orchestrator = StoryIntelligenceOrchestrator(
             world_svc=WorldService(WorldRepository(session), version_repo),
@@ -110,6 +97,7 @@ async def _run_full_pipeline_core(
             world_data=world_data or {},
             knowledge_collection_id=UUID(knowledge_collection_id) if knowledge_collection_id else None,
         )
+    return {}
 
 
 async def _generate_episode_core(
@@ -119,7 +107,7 @@ async def _generate_episode_core(
     world_id: str,
     knowledge_collection_id: str | None = None,
 ) -> dict[str, Any]:
-    from database.connection import session_scope
+    from database.connection import get_session
     from agents.registry import get_provider_registry
     from agents.interfaces.llm_provider import LLMProvider
     from repositories.intelligence_repository import (
@@ -142,7 +130,7 @@ async def _generate_episode_core(
 
     llm = get_provider_registry().resolve(LLMProvider)
 
-    async with session_scope() as session:
+    async for session in get_session():
         version_repo = StoryVersionRepository(session)
         orchestrator = StoryIntelligenceOrchestrator(
             world_svc=WorldService(WorldRepository(session), version_repo),
@@ -172,6 +160,7 @@ async def _generate_episode_core(
             world_id=UUID(world_id),
             knowledge_collection_id=UUID(knowledge_collection_id) if knowledge_collection_id else None,
         )
+    return {}
 
 
 # ---------------------------------------------------------------------------

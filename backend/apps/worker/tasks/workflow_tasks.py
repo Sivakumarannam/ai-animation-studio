@@ -10,12 +10,13 @@ run_single_step       → executes exactly one named step (for targeted retries)
 """
 from __future__ import annotations
 
-import asyncio
+
 import os
 from typing import Any
 
 from celery import Task
 from celery.utils.log import get_task_logger
+from apps.worker.async_utils import run_async as _run_async
 
 from apps.worker.main import celery_app
 
@@ -28,18 +29,6 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 # Helper — run async code from a sync Celery task
 # ---------------------------------------------------------------------------
 
-def _run_async(coro):
-    """Execute a coroutine synchronously inside a Celery task."""
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                future = pool.submit(asyncio.run, coro)
-                return future.result()
-    except RuntimeError:
-        pass
-    return asyncio.run(coro)
 
 
 def _build_executor():

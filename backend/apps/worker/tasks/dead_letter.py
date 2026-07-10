@@ -12,6 +12,7 @@ from typing import Any
 from celery.utils.log import get_task_logger
 
 from apps.worker.main import celery_app
+from apps.worker.async_utils import run_async as _run_async
 
 logger = get_task_logger(__name__)
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
@@ -45,8 +46,6 @@ def dead_letter_task(
     logger.error(f"DLQ entry: task={task_name} error={error} args={task_args}")
 
     # Store in Redis list (best-effort)
-    import asyncio
-
     async def _store():
         import redis.asyncio as aioredis
         r = aioredis.from_url(REDIS_URL, decode_responses=True)
@@ -57,7 +56,7 @@ def dead_letter_task(
             await r.aclose()
 
     try:
-        asyncio.run(_store())
+        _run_async(_store())
     except Exception as exc:
         logger.warning(f"DLQ Redis store failed: {exc}")
 
@@ -70,8 +69,6 @@ def dead_letter_task(
 )
 def list_failed_tasks(limit: int = 50) -> list[dict[str, Any]]:
     """Return the most recent failed task entries from the DLQ."""
-    import asyncio
-
     async def _fetch():
         import redis.asyncio as aioredis
         r = aioredis.from_url(REDIS_URL, decode_responses=True)
@@ -81,7 +78,7 @@ def list_failed_tasks(limit: int = 50) -> list[dict[str, Any]]:
         finally:
             await r.aclose()
 
-    return asyncio.run(_fetch())
+    return _run_async(_fetch())
 
 
 @celery_app.task(

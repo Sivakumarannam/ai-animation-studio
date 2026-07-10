@@ -1,3 +1,4 @@
+
 """
 FastAPI application entry point — Module 1 + Module 2 fully wired.
 
@@ -21,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from apps.api.config import get_settings
-from apps.api.routers import auth, characters, health, plugins, projects, scenes, stories
+from apps.api.routers import assets, auth, characters, health, plugins, projects, scenes, stories
 from apps.api.routers import generation, ws as ws_router
 from apps.api.routers import (
     expressions,
@@ -33,7 +34,6 @@ from apps.api.routers import (
     story_intelligence,
     knowledge,
     research,
-    asset_generation,
 )
 from database.connection import close_db, init_db
 from packages.core.exceptions import AppError
@@ -110,9 +110,6 @@ app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="Generic AI Animation Studio Platform — Plugin-based, provider-agnostic",
-    docs_url=f"{API_V1_PREFIX}/docs",
-    redoc_url=f"{API_V1_PREFIX}/redoc",
-    openapi_url=f"{API_V1_PREFIX}/openapi.json",
     lifespan=lifespan,
 )
 
@@ -158,7 +155,11 @@ async def unhandled_error_handler(request: Request, exc: Exception) -> JSONRespo
 # Routers — v1 sub-app
 # ---------------------------------------------------------------------------
 
-v1 = FastAPI(title=settings.APP_NAME)
+v1 = FastAPI(
+    title=settings.APP_NAME,
+    version=settings.APP_VERSION,
+    description="Generic AI Animation Studio Platform — Plugin-based, provider-agnostic",
+)
 
 
 @v1.exception_handler(AppError)
@@ -178,6 +179,7 @@ v1.include_router(projects.router)
 v1.include_router(stories.router)
 v1.include_router(scenes.router)
 v1.include_router(characters.router)
+v1.include_router(assets.router)
 v1.include_router(plugins.router)
 
 # Module 1 — AI generation + WebSocket progress
@@ -201,7 +203,5 @@ v1.include_router(knowledge.router)
 # Phase 5 — Research & Trend Intelligence Engine
 v1.include_router(research.router)
 
-# Phase 6 — AI Asset Generation Engine
-v1.include_router(asset_generation.router)
-
 app.mount(API_V1_PREFIX, v1)
+

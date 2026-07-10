@@ -12,7 +12,7 @@ from typing import Any
 from uuid import UUID
 
 from agents.interfaces.asset_evaluation_provider import EvaluationRequest
-from database.models.asset_generation import Asset, AssetEvaluation, AssetVersion
+from database.models.asset_generation import GeneratedAsset as Asset, AssetEvaluation, GeneratedAssetVersion as AssetVersion
 from repositories.asset_generation_repository import (
     AssetEvaluationRepository,
     AssetRepository,

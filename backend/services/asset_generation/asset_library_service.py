@@ -10,7 +10,7 @@ import math
 from typing import Any
 from uuid import UUID
 
-from database.models.asset_generation import Asset, AssetEmbedding
+from database.models.asset_generation import GeneratedAsset as Asset, AssetEmbedding
 from repositories.asset_generation_repository import (
     AssetCacheRepository,
     AssetEmbeddingRepository,

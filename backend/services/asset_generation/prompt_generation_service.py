@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
-from database.models.asset_generation import Asset, AssetPrompt
+from database.models.asset_generation import GeneratedAsset as Asset, AssetPrompt
 from repositories.asset_generation_repository import (
     AssetMemoryRepository,
     AssetPromptRepository,

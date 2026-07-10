@@ -11,7 +11,7 @@ from sqlalchemy import func, select, update, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.models.asset_generation import (
-    Asset,
+    GeneratedAsset as Asset,
     AssetCache,
     AssetCollection,
     AssetEmbedding,
@@ -22,7 +22,7 @@ from database.models.asset_generation import (
     AssetRelationship,
     AssetStyle,
     AssetTag,
-    AssetVersion,
+    GeneratedAssetVersion as AssetVersion,
     CameraShot,
     ExpressionPreset,
     GeneratedImage,

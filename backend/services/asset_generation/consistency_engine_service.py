@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from database.models.asset_generation import Asset
+from database.models.asset_generation import GeneratedAsset as Asset
 from repositories.asset_generation_repository import (
     AssetMemoryRepository,
     AssetRelationshipRepository,

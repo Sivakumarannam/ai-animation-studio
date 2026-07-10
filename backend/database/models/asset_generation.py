@@ -147,7 +147,7 @@ class AssetCollection(UUIDMixin, TimestampMixin, Base):
 # Asset
 # ---------------------------------------------------------------------------
 
-class Asset(UUIDMixin, TimestampMixin, Base):
+class GeneratedAsset(UUIDMixin, TimestampMixin, Base):
     """A single production asset (character, background, prop, icon, etc.)."""
     __tablename__ = "ag_assets"
 
@@ -222,7 +222,7 @@ class Asset(UUIDMixin, TimestampMixin, Base):
 # AssetVersion
 # ---------------------------------------------------------------------------
 
-class AssetVersion(UUIDMixin, TimestampMixin, Base):
+class GeneratedAssetVersion(UUIDMixin, TimestampMixin, Base):
     """A single rendered version of an asset (original, revision 1, 2, …)."""
     __tablename__ = "ag_versions"
 

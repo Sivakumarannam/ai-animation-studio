@@ -12,29 +12,18 @@ or calls the underlying async core function directly in sync fallback mode.
 """
 from __future__ import annotations
 
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
+
 from typing import Any
 
 from celery import Task
 from celery.utils.log import get_task_logger
-
+from apps.worker.async_utils import run_async as _run_async
 from apps.worker.main import celery_app
 from apps.worker.tasks.dead_letter import dead_letter_task
 
 logger = get_task_logger(__name__)
 
 
-def _run_async(coro) -> Any:
-    """Run coroutine synchronously — safe inside and outside an event loop."""
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            with ThreadPoolExecutor(max_workers=1) as pool:
-                return pool.submit(asyncio.run, coro).result()
-    except RuntimeError:
-        pass
-    return asyncio.run(coro)
 
 
 # ---------------------------------------------------------------------------
@@ -59,12 +48,12 @@ def _make_scheduler(session):
 # ---------------------------------------------------------------------------
 
 async def _discover_trends_core(job_id: str) -> dict[str, Any]:
-    from database.connection import session_scope
+    from database.connection import get_session
     from repositories.research_repository import ResearchJobRepository
     from services.research.job_service import ResearchJobService
     from uuid import UUID
 
-    async with session_scope() as session:
+    async for session in get_session():
         job_svc = ResearchJobService(ResearchJobRepository(session))
         scheduler = _make_scheduler(session)
 
@@ -84,10 +73,11 @@ async def _discover_trends_core(job_id: str) -> dict[str, Any]:
             if job:
                 await job_svc.fail_job(job.id, str(exc))
             raise
+    return {}
 
 
 async def _research_topic_core(job_id: str, topic_id: str) -> dict[str, Any]:
-    from database.connection import session_scope
+    from database.connection import get_session
     from repositories.research_repository import (
         ResearchJobRepository,
         ResearchTopicRepository,
@@ -101,7 +91,7 @@ async def _research_topic_core(job_id: str, topic_id: str) -> dict[str, Any]:
     from agents.registry import get_research_provider
     from uuid import UUID
 
-    async with session_scope() as session:
+    async for session in get_session():
         job_svc = ResearchJobService(ResearchJobRepository(session))
         topic_repo = ResearchTopicRepository(session)
         engine = ResearchEngineService(
@@ -132,10 +122,11 @@ async def _research_topic_core(job_id: str, topic_id: str) -> dict[str, Any]:
             if job:
                 await job_svc.fail_job(job.id, str(exc))
             raise
+    return {}
 
 
 async def _verify_facts_core(job_id: str) -> dict[str, Any]:
-    from database.connection import session_scope
+    from database.connection import get_session
     from repositories.research_repository import (
         ResearchJobRepository,
         ResearchFactRepository,
@@ -146,7 +137,7 @@ async def _verify_facts_core(job_id: str) -> dict[str, Any]:
     from agents.registry import get_fact_verification_provider
     from uuid import UUID
 
-    async with session_scope() as session:
+    async for session in get_session():
         job_svc = ResearchJobService(ResearchJobRepository(session))
         verification_svc = FactVerificationService(
             fact_repo=ResearchFactRepository(session),
@@ -170,16 +161,17 @@ async def _verify_facts_core(job_id: str) -> dict[str, Any]:
             if job:
                 await job_svc.fail_job(job.id, str(exc))
             raise
+    return {}
 
 
 async def _research_refresh_core(job_id: str) -> dict[str, Any]:
     """Full research-refresh phase: research pending topics AND verify facts."""
-    from database.connection import session_scope
+    from database.connection import get_session
     from repositories.research_repository import ResearchJobRepository
     from services.research.job_service import ResearchJobService
     from uuid import UUID
 
-    async with session_scope() as session:
+    async for session in get_session():
         job_svc = ResearchJobService(ResearchJobRepository(session))
         scheduler = _make_scheduler(session)
 
@@ -199,10 +191,11 @@ async def _research_refresh_core(job_id: str) -> dict[str, Any]:
             if job:
                 await job_svc.fail_job(job.id, str(exc))
             raise
+    return {}
 
 
 async def _score_opportunities_core(job_id: str) -> dict[str, Any]:
-    from database.connection import session_scope
+    from database.connection import get_session
     from repositories.research_repository import (
         ResearchJobRepository,
         ResearchTopicRepository,
@@ -215,7 +208,7 @@ async def _score_opportunities_core(job_id: str) -> dict[str, Any]:
     from services.research.opportunity_scoring_service import OpportunityScoringService
     from uuid import UUID
 
-    async with session_scope() as session:
+    async for session in get_session():
         job_svc = ResearchJobService(ResearchJobRepository(session))
         scoring_svc = OpportunityScoringService(
             topic_repo=ResearchTopicRepository(session),
@@ -241,16 +234,17 @@ async def _score_opportunities_core(job_id: str) -> dict[str, Any]:
             if job:
                 await job_svc.fail_job(job.id, str(exc))
             raise
+    return {}
 
 
 async def _scheduler_tick_core(job_id: str) -> dict[str, Any]:
     """Run the full pipeline in sequence."""
-    from database.connection import session_scope
+    from database.connection import get_session
     from repositories.research_repository import ResearchJobRepository
     from services.research.job_service import ResearchJobService
     from uuid import UUID
 
-    async with session_scope() as session:
+    async for session in get_session():
         job_svc = ResearchJobService(ResearchJobRepository(session))
         scheduler = _make_scheduler(session)
 
@@ -283,6 +277,7 @@ async def _scheduler_tick_core(job_id: str) -> dict[str, Any]:
             except Exception:
                 pass
         return results
+    return {}
 
 
 # ---------------------------------------------------------------------------
