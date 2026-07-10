@@ -2,7 +2,7 @@ import apiClient from './client'
 import type {
   World, Season, Episode, StoryScene, StoryIdea, StoryMemory,
   StoryEvaluation, GenerationJob, DispatchResult, StoryIntelligenceStats,
-  StoryVersion,
+  StoryVersion, GenerationLog,
 } from '@/types'
 
 interface ListResponse<T> {
@@ -113,7 +113,7 @@ export const storyIntelligenceApi = {
 
   getJob: (jobId: string) => apiClient.get<GenerationJob>(`/si/jobs/${jobId}`).then((r) => r.data),
 
-  getJobLogs: (jobId: string) => apiClient.get<{ logs: unknown[] }>(`/si/jobs/${jobId}/logs`).then((r) => r.data),
+  getJobLogs: (jobId: string) => apiClient.get<{ logs: GenerationLog[] }>(`/si/jobs/${jobId}/logs`).then((r) => r.data),
 
   // Pipeline / generation
   runFullPipeline: (

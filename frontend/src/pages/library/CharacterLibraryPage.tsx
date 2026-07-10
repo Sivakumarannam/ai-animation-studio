@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { Users, Search, RefreshCw, Sparkles, Mic, ChevronDown } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Users, Search, RefreshCw, Sparkles, Mic, ChevronDown, Plus, Pencil, Trash2 } from 'lucide-react'
 import { libraryApi, type CharacterTemplate } from '@/api/library'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { Modal } from '@/components/ui/Modal'
 
 const CATEGORY_COLORS: Record<string, string> = {
   grandfather: 'bg-amber-900/30 text-amber-300',
@@ -15,7 +16,15 @@ const CATEGORY_COLORS: Record<string, string> = {
   child: 'bg-yellow-900/30 text-yellow-300',
 }
 
-function CharacterCard({ template }: { template: CharacterTemplate }) {
+function CharacterCard({
+  template,
+  onEdit,
+  onDelete,
+}: {
+  template: CharacterTemplate
+  onEdit: (t: CharacterTemplate) => void
+  onDelete: (t: CharacterTemplate) => void
+}) {
   const [expanded, setExpanded] = useState(false)
   const colorClass = CATEGORY_COLORS[template.archetype] ?? 'bg-gray-800 text-gray-300'
 
@@ -76,7 +85,7 @@ function CharacterCard({ template }: { template: CharacterTemplate }) {
           {Object.keys(template.voice_profile).length > 0 && (
             <div className="flex items-center gap-2 text-xs text-gray-400">
               <Mic className="w-3 h-3" />
-              <span>Voice: {(template.voice_profile as any).style || 'default'}</span>
+              <span>Voice: {(template.voice_profile as Record<string, unknown>).style as string || 'default'}</span>
             </div>
           )}
           {template.clothing_variants.length > 0 && (
@@ -93,6 +102,15 @@ function CharacterCard({ template }: { template: CharacterTemplate }) {
           )}
         </div>
       )}
+
+      <div className="flex gap-2 pt-2 border-t border-gray-800">
+        <button onClick={() => onEdit(template)} className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-200 transition-colors">
+          <Pencil className="w-3 h-3" /> Edit
+        </button>
+        <button onClick={() => onDelete(template)} className="flex items-center gap-1 text-xs text-red-500 hover:text-red-400 transition-colors ml-auto">
+          <Trash2 className="w-3 h-3" /> Delete
+        </button>
+      </div>
     </div>
   )
 }
@@ -100,6 +118,28 @@ function CharacterCard({ template }: { template: CharacterTemplate }) {
 export function CharacterLibraryPage() {
   const [search, setSearch] = useState('')
   const [pluginFilter, setPluginFilter] = useState('')
+  const qc = useQueryClient()
+
+  // Create
+  const [showCreate, setShowCreate] = useState(false)
+  const [createName, setCreateName] = useState('')
+  const [createNameLocal, setCreateNameLocal] = useState('')
+  const [createArchetype, setCreateArchetype] = useState('father')
+  const [createGender, setCreateGender] = useState('male')
+  const [createPersonality, setCreatePersonality] = useState('')
+
+  // Edit
+  const [showEdit, setShowEdit] = useState(false)
+  const [editTemplate, setEditTemplate] = useState<CharacterTemplate | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editNameLocal, setEditNameLocal] = useState('')
+  const [editArchetype, setEditArchetype] = useState('')
+  const [editGender, setEditGender] = useState('')
+  const [editPersonality, setEditPersonality] = useState('')
+
+  // Delete
+  const [showDelete, setShowDelete] = useState(false)
+  const [templateToDelete, setTemplateToDelete] = useState<CharacterTemplate | null>(null)
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['character-templates', search, pluginFilter],
@@ -112,8 +152,55 @@ export function CharacterLibraryPage() {
 
   const seedMutation = useMutation({
     mutationFn: () => libraryApi.seedCharacterTemplates('telugu_family_comedy'),
-    onSuccess: () => refetch(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['character-templates'] }),
   })
+
+  const createMutation = useMutation({
+    mutationFn: () => libraryApi.createCharacterTemplate({
+      name: createName,
+      name_local: createNameLocal || undefined,
+      archetype: createArchetype,
+      gender: createGender,
+      personality: createPersonality,
+    } as Partial<CharacterTemplate>),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['character-templates'] })
+      setShowCreate(false)
+      setCreateName(''); setCreateNameLocal(''); setCreatePersonality('')
+    },
+  })
+
+  const editMutation = useMutation({
+    mutationFn: () => libraryApi.updateCharacterTemplate(editTemplate!.id, {
+      name: editName,
+      name_local: editNameLocal || undefined,
+      archetype: editArchetype,
+      gender: editGender,
+      personality: editPersonality,
+    } as Partial<CharacterTemplate>),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['character-templates'] })
+      setShowEdit(false); setEditTemplate(null)
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => libraryApi.deleteCharacterTemplate(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['character-templates'] })
+      setShowDelete(false); setTemplateToDelete(null)
+    },
+  })
+
+  function openEdit(t: CharacterTemplate) {
+    setEditTemplate(t)
+    setEditName(t.name)
+    setEditNameLocal(t.name_local ?? '')
+    setEditArchetype(t.archetype ?? '')
+    setEditGender(t.gender ?? '')
+    setEditPersonality(t.personality ?? '')
+    setShowEdit(true)
+  }
 
   const templates = data?.items ?? []
 
@@ -129,14 +216,19 @@ export function CharacterLibraryPage() {
             Reusable character templates with full rigs, voice profiles, and expression libraries
           </p>
         </div>
-        <button
-          onClick={() => seedMutation.mutate()}
-          disabled={seedMutation.isPending}
-          className="btn-secondary flex items-center gap-2"
-        >
-          {seedMutation.isPending ? <Spinner size="sm" /> : <Sparkles className="w-4 h-4" />}
-          Seed Telugu Characters
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => seedMutation.mutate()}
+            disabled={seedMutation.isPending}
+            className="btn-secondary flex items-center gap-2"
+          >
+            {seedMutation.isPending ? <Spinner size="sm" /> : <Sparkles className="w-4 h-4" />}
+            Seed Telugu Characters
+          </button>
+          <button onClick={() => setShowCreate(true)} className="btn-primary">
+            <Plus className="w-4 h-4" /> Add Template
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -163,7 +255,6 @@ export function CharacterLibraryPage() {
         </button>
       </div>
 
-      {/* Stats bar */}
       {data && (
         <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
           <span>{data.total} character{data.total !== 1 ? 's' : ''}</span>
@@ -176,20 +267,123 @@ export function CharacterLibraryPage() {
         <EmptyState
           icon={Users}
           title="No character templates"
-          description="Seed the Telugu Family Comedy plugin to add default characters."
+          description="Seed the Telugu Family Comedy plugin to add default characters, or create one manually."
           action={
-            <button onClick={() => seedMutation.mutate()} className="btn-primary">
-              <Sparkles className="w-4 h-4" /> Seed Characters
-            </button>
+            <div className="flex gap-2">
+              <button onClick={() => seedMutation.mutate()} className="btn-secondary">
+                <Sparkles className="w-4 h-4" /> Seed Characters
+              </button>
+              <button onClick={() => setShowCreate(true)} className="btn-primary">
+                <Plus className="w-4 h-4" /> Add Template
+              </button>
+            </div>
           }
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {templates.map((t) => (
-            <CharacterCard key={t.id} template={t} />
+            <CharacterCard
+              key={t.id}
+              template={t}
+              onEdit={openEdit}
+              onDelete={(tmpl) => { setTemplateToDelete(tmpl); setShowDelete(true) }}
+            />
           ))}
         </div>
       )}
+
+      {/* Create */}
+      <Modal title="Add Character Template" open={showCreate} onClose={() => setShowCreate(false)}>
+        <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate() }} className="space-y-4">
+          <div>
+            <label className="label">Name (English)</label>
+            <input className="input" value={createName} onChange={(e) => setCreateName(e.target.value)} required />
+          </div>
+          <div>
+            <label className="label">Name (Local)</label>
+            <input className="input" placeholder="e.g. Raju (Telugu)" value={createNameLocal} onChange={(e) => setCreateNameLocal(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Archetype</label>
+              <input className="input" value={createArchetype} onChange={(e) => setCreateArchetype(e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Gender</label>
+              <select className="input" value={createGender} onChange={(e) => setCreateGender(e.target.value)}>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="label">Personality</label>
+            <textarea className="input resize-none" rows={2} value={createPersonality} onChange={(e) => setCreatePersonality(e.target.value)} />
+          </div>
+          <div className="flex gap-3 justify-end pt-2">
+            <button type="button" className="btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={createMutation.isPending}>
+              {createMutation.isPending ? <Spinner size="sm" /> : 'Add Template'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit */}
+      <Modal title="Edit Character Template" open={showEdit} onClose={() => setShowEdit(false)}>
+        <form onSubmit={(e) => { e.preventDefault(); editMutation.mutate() }} className="space-y-4">
+          <div>
+            <label className="label">Name (English)</label>
+            <input className="input" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+          </div>
+          <div>
+            <label className="label">Name (Local)</label>
+            <input className="input" value={editNameLocal} onChange={(e) => setEditNameLocal(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Archetype</label>
+              <input className="input" value={editArchetype} onChange={(e) => setEditArchetype(e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Gender</label>
+              <select className="input" value={editGender} onChange={(e) => setEditGender(e.target.value)}>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="label">Personality</label>
+            <textarea className="input resize-none" rows={2} value={editPersonality} onChange={(e) => setEditPersonality(e.target.value)} />
+          </div>
+          {editMutation.isError && <p className="text-xs text-red-400">Failed to save changes.</p>}
+          <div className="flex gap-3 justify-end pt-2">
+            <button type="button" className="btn-secondary" onClick={() => setShowEdit(false)}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={editMutation.isPending}>
+              {editMutation.isPending ? <Spinner size="sm" /> : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete */}
+      <Modal title="Delete Template" open={showDelete} onClose={() => setShowDelete(false)}>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-300">
+            Delete <strong className="text-white">{templateToDelete?.name}</strong>? This cannot be undone.
+          </p>
+          {deleteMutation.isError && <p className="text-xs text-red-400">Failed to delete template.</p>}
+          <div className="flex gap-3 justify-end pt-2">
+            <button className="btn-secondary" onClick={() => setShowDelete(false)}>Cancel</button>
+            <button className="btn-danger" disabled={deleteMutation.isPending} onClick={() => templateToDelete && deleteMutation.mutate(templateToDelete.id)}>
+              {deleteMutation.isPending ? <Spinner size="sm" /> : 'Delete'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

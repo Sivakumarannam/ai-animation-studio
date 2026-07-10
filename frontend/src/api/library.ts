@@ -124,6 +124,15 @@ export const libraryApi = {
   getCharacterTemplatesByPlugin: (pluginId: string) =>
     apiClient.get<CharacterTemplate[]>(`/library/character-templates/by-plugin/${pluginId}`).then(r => r.data),
 
+  createCharacterTemplate: (data: Partial<CharacterTemplate>) =>
+    apiClient.post<CharacterTemplate>('/library/character-templates', data).then(r => r.data),
+
+  updateCharacterTemplate: (id: string, data: Partial<CharacterTemplate>) =>
+    apiClient.patch<CharacterTemplate>(`/library/character-templates/${id}`, data).then(r => r.data),
+
+  deleteCharacterTemplate: (id: string) =>
+    apiClient.delete(`/library/character-templates/${id}`),
+
   seedCharacterTemplates: (pluginId: string) =>
     apiClient.post(`/library/character-templates/seed/${pluginId}`).then(r => r.data),
 
@@ -134,6 +143,15 @@ export const libraryApi = {
   getBgCategories: () =>
     apiClient.get<string[]>('/library/backgrounds/categories').then(r => r.data),
 
+  createBackground: (data: Partial<Background>) =>
+    apiClient.post<Background>('/library/backgrounds', data).then(r => r.data),
+
+  updateBackground: (id: string, data: Partial<Background>) =>
+    apiClient.patch<Background>(`/library/backgrounds/${id}`, data).then(r => r.data),
+
+  deleteBackground: (id: string) =>
+    apiClient.delete(`/library/backgrounds/${id}`),
+
   seedBackgrounds: () =>
     apiClient.post('/library/backgrounds/seed').then(r => r.data),
 
@@ -143,6 +161,15 @@ export const libraryApi = {
 
   getPropCategories: () =>
     apiClient.get<string[]>('/library/props/categories').then(r => r.data),
+
+  createProp: (data: Partial<Prop>) =>
+    apiClient.post<Prop>('/library/props', data).then(r => r.data),
+
+  updateProp: (id: string, data: Partial<Prop>) =>
+    apiClient.patch<Prop>(`/library/props/${id}`, data).then(r => r.data),
+
+  deleteProp: (id: string) =>
+    apiClient.delete(`/library/props/${id}`),
 
   seedProps: () =>
     apiClient.post('/library/props/seed').then(r => r.data),

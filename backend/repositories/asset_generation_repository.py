@@ -27,14 +27,14 @@ from database.models.asset_generation import (
     ExpressionPreset,
     GeneratedImage,
     GenerationHistory,
-    GenerationJob,
+    AgGenerationJob as GenerationJob,
     LightingPreset,
     NegativePrompt,
     PosePreset,
     PromptHistory,
     PromptTemplate,
-    RetryQueue,
-    SceneComposition,
+    AgRetryQueue as RetryQueue,
+    AgSceneComposition as SceneComposition,
 )
 from packages.utils.pagination import PaginatedResult, PaginationParams
 from repositories.base import BaseRepository

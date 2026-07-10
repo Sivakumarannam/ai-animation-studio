@@ -1,20 +1,44 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Film, ChevronRight, CheckCircle2, History } from 'lucide-react'
+import { Plus, Film, ChevronRight, CheckCircle2, History, Pencil, Trash2 } from 'lucide-react'
 import { storyIntelligenceApi } from '@/api/storyIntelligence'
+import type { StoryScene } from '@/types'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
 
 export function EpisodeDetailPage() {
   const { projectId, episodeId } = useParams<{ projectId: string; episodeId: string }>()
+  const navigate = useNavigate()
   const qc = useQueryClient()
+
+  // Create scene
   const [showCreate, setShowCreate] = useState(false)
-  const [showVersions, setShowVersions] = useState(false)
   const [sceneGoal, setSceneGoal] = useState('')
   const [location, setLocation] = useState('')
   const [narration, setNarration] = useState('')
+
+  // Edit episode
+  const [showEditEp, setShowEditEp] = useState(false)
+  const [editEpTitle, setEditEpTitle] = useState('')
+  const [editEpSummary, setEditEpSummary] = useState('')
+
+  // Delete episode
+  const [showDeleteEp, setShowDeleteEp] = useState(false)
+
+  // Edit scene
+  const [showEditScene, setShowEditScene] = useState(false)
+  const [editScene, setEditScene] = useState<StoryScene | null>(null)
+  const [editSceneGoal, setEditSceneGoal] = useState('')
+  const [editLocation, setEditLocation] = useState('')
+  const [editNarration, setEditNarration] = useState('')
+
+  // Delete scene
+  const [showDeleteScene, setShowDeleteScene] = useState(false)
+  const [sceneToDelete, setSceneToDelete] = useState<StoryScene | null>(null)
+
+  const [showVersions, setShowVersions] = useState(false)
 
   const { data: episode, isLoading: episodeLoading } = useQuery({
     queryKey: ['si-episode', episodeId],
@@ -50,11 +74,61 @@ export function EpisodeDetailPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['si-scenes', episodeId] })
       setShowCreate(false)
-      setSceneGoal('')
-      setLocation('')
-      setNarration('')
+      setSceneGoal(''); setLocation(''); setNarration('')
     },
   })
+
+  const editEpisodeMutation = useMutation({
+    mutationFn: () => storyIntelligenceApi.updateEpisode(episodeId!, { title: editEpTitle, summary: editEpSummary }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['si-episode', episodeId] })
+      setShowEditEp(false)
+    },
+  })
+
+  const deleteEpisodeMutation = useMutation({
+    mutationFn: () => storyIntelligenceApi.deleteEpisode(episodeId!),
+    onSuccess: () => {
+      navigate(`/projects/${projectId}/intelligence/seasons/${episode?.season_id}`)
+    },
+  })
+
+  const editSceneMutation = useMutation({
+    mutationFn: () => storyIntelligenceApi.updateScene(editScene!.id, {
+      scene_goal: editSceneGoal,
+      location: editLocation,
+      narration: editNarration,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['si-scenes', episodeId] })
+      setShowEditScene(false)
+      setEditScene(null)
+    },
+  })
+
+  const deleteSceneMutation = useMutation({
+    mutationFn: (id: string) => storyIntelligenceApi.deleteScene(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['si-scenes', episodeId] })
+      setShowDeleteScene(false)
+      setSceneToDelete(null)
+    },
+  })
+
+  function openEditEpisode() {
+    if (!episode) return
+    setEditEpTitle(episode.title)
+    setEditEpSummary(episode.summary ?? '')
+    setShowEditEp(true)
+  }
+
+  function openEditScene(scene: StoryScene) {
+    setEditScene(scene)
+    setEditSceneGoal(scene.scene_goal ?? '')
+    setEditLocation(scene.location ?? '')
+    setEditNarration(scene.narration ?? '')
+    setShowEditScene(true)
+  }
 
   if (episodeLoading) {
     return <div className="flex justify-center py-20"><Spinner size="lg" /></div>
@@ -95,12 +169,18 @@ export function EpisodeDetailPage() {
         {episode.moral && (
           <p className="text-xs text-gray-500 mt-4 pt-4 border-t border-gray-800">Moral: {episode.moral}</p>
         )}
-        <div className="flex gap-2 mt-4 pt-4 border-t border-gray-800">
+        <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-800">
           <button onClick={() => evaluateMutation.mutate()} className="btn-secondary" disabled={evaluateMutation.isPending}>
             {evaluateMutation.isPending ? <Spinner size="sm" /> : <CheckCircle2 className="w-4 h-4" />} Evaluate
           </button>
           <button onClick={() => setShowVersions(true)} className="btn-secondary">
             <History className="w-4 h-4" /> Version History
+          </button>
+          <button onClick={openEditEpisode} className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-200 transition-colors ml-auto">
+            <Pencil className="w-3 h-3" /> Edit Episode
+          </button>
+          <button onClick={() => setShowDeleteEp(true)} className="flex items-center gap-1 text-xs text-red-500 hover:text-red-400 transition-colors">
+            <Trash2 className="w-3 h-3" /> Delete Episode
           </button>
         </div>
         {evaluateMutation.data && (
@@ -136,11 +216,23 @@ export function EpisodeDetailPage() {
                   {scene.character_names.map((c) => <span key={c} className="badge-gray text-xs">{c}</span>)}
                 </div>
               )}
+              <div className="flex gap-3 mt-3 pt-3 border-t border-gray-800">
+                <button onClick={() => openEditScene(scene)} className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-200 transition-colors">
+                  <Pencil className="w-3 h-3" /> Edit
+                </button>
+                <button
+                  onClick={() => { setSceneToDelete(scene); setShowDeleteScene(true) }}
+                  className="flex items-center gap-1 text-xs text-red-500 hover:text-red-400 transition-colors ml-auto"
+                >
+                  <Trash2 className="w-3 h-3" /> Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
 
+      {/* Create Scene */}
       <Modal title="New Scene" open={showCreate} onClose={() => setShowCreate(false)}>
         <form onSubmit={(e) => { e.preventDefault(); createSceneMutation.mutate() }} className="space-y-4">
           <div>
@@ -164,6 +256,85 @@ export function EpisodeDetailPage() {
         </form>
       </Modal>
 
+      {/* Edit Episode */}
+      <Modal title="Edit Episode" open={showEditEp} onClose={() => setShowEditEp(false)}>
+        <form onSubmit={(e) => { e.preventDefault(); editEpisodeMutation.mutate() }} className="space-y-4">
+          <div>
+            <label className="label">Title</label>
+            <input className="input" value={editEpTitle} onChange={(e) => setEditEpTitle(e.target.value)} required />
+          </div>
+          <div>
+            <label className="label">Summary</label>
+            <textarea className="input resize-none" rows={3} value={editEpSummary} onChange={(e) => setEditEpSummary(e.target.value)} />
+          </div>
+          {editEpisodeMutation.isError && <p className="text-xs text-red-400">Failed to save changes.</p>}
+          <div className="flex gap-3 justify-end pt-2">
+            <button type="button" className="btn-secondary" onClick={() => setShowEditEp(false)}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={editEpisodeMutation.isPending}>
+              {editEpisodeMutation.isPending ? <Spinner size="sm" /> : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Episode */}
+      <Modal title="Delete Episode" open={showDeleteEp} onClose={() => setShowDeleteEp(false)}>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-300">
+            Delete <strong className="text-white">Ep {episode.episode_number}: {episode.title}</strong>? All scenes will be removed. This cannot be undone.
+          </p>
+          {deleteEpisodeMutation.isError && <p className="text-xs text-red-400">Failed to delete episode.</p>}
+          <div className="flex gap-3 justify-end pt-2">
+            <button className="btn-secondary" onClick={() => setShowDeleteEp(false)}>Cancel</button>
+            <button className="btn-danger" disabled={deleteEpisodeMutation.isPending} onClick={() => deleteEpisodeMutation.mutate()}>
+              {deleteEpisodeMutation.isPending ? <Spinner size="sm" /> : 'Delete Episode'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Scene */}
+      <Modal title="Edit Scene" open={showEditScene} onClose={() => setShowEditScene(false)}>
+        <form onSubmit={(e) => { e.preventDefault(); editSceneMutation.mutate() }} className="space-y-4">
+          <div>
+            <label className="label">Scene Goal</label>
+            <input className="input" value={editSceneGoal} onChange={(e) => setEditSceneGoal(e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Location</label>
+            <input className="input" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Narration</label>
+            <textarea className="input resize-none" rows={3} value={editNarration} onChange={(e) => setEditNarration(e.target.value)} />
+          </div>
+          {editSceneMutation.isError && <p className="text-xs text-red-400">Failed to save changes.</p>}
+          <div className="flex gap-3 justify-end pt-2">
+            <button type="button" className="btn-secondary" onClick={() => setShowEditScene(false)}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={editSceneMutation.isPending}>
+              {editSceneMutation.isPending ? <Spinner size="sm" /> : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Scene */}
+      <Modal title="Delete Scene" open={showDeleteScene} onClose={() => setShowDeleteScene(false)}>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-300">
+            Delete <strong className="text-white">Scene {sceneToDelete?.scene_number}</strong>? This cannot be undone.
+          </p>
+          {deleteSceneMutation.isError && <p className="text-xs text-red-400">Failed to delete scene.</p>}
+          <div className="flex gap-3 justify-end pt-2">
+            <button className="btn-secondary" onClick={() => setShowDeleteScene(false)}>Cancel</button>
+            <button className="btn-danger" disabled={deleteSceneMutation.isPending} onClick={() => sceneToDelete && deleteSceneMutation.mutate(sceneToDelete.id)}>
+              {deleteSceneMutation.isPending ? <Spinner size="sm" /> : 'Delete Scene'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Version History */}
       <Modal title="Version History" open={showVersions} onClose={() => setShowVersions(false)}>
         {!versions ? (
           <div className="flex justify-center py-8"><Spinner /></div>

@@ -11,7 +11,7 @@ from typing import Any
 from uuid import UUID
 
 from repositories.asset_generation_repository import GenerationJobRepository
-from database.models.asset_generation import GenerationJob
+from database.models.asset_generation import AgGenerationJob as GenerationJob
 
 
 class GenerationJobService:

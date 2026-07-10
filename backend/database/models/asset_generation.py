@@ -515,7 +515,7 @@ class AssetMemory(UUIDMixin, TimestampMixin, Base):
 # SceneComposition
 # ---------------------------------------------------------------------------
 
-class SceneComposition(UUIDMixin, TimestampMixin, Base):
+class AgSceneComposition(UUIDMixin, TimestampMixin, Base):
     """Composition plan for a scene — guides asset placement and framing."""
     __tablename__ = "ag_compositions"
 
@@ -651,7 +651,7 @@ class ExpressionPreset(UUIDMixin, TimestampMixin, Base):
 # RetryQueue
 # ---------------------------------------------------------------------------
 
-class RetryQueue(UUIDMixin, TimestampMixin, Base):
+class AgRetryQueue(UUIDMixin, TimestampMixin, Base):
     """Assets queued for automatic retry due to low quality or failure."""
     __tablename__ = "ag_retry_queue"
 
@@ -686,7 +686,7 @@ class RetryQueue(UUIDMixin, TimestampMixin, Base):
 # GenerationJob
 # ---------------------------------------------------------------------------
 
-class GenerationJob(UUIDMixin, TimestampMixin, Base):
+class AgGenerationJob(UUIDMixin, TimestampMixin, Base):
     """Async job for asset generation pipeline stages."""
     __tablename__ = "ag_generation_jobs"
 

@@ -89,7 +89,15 @@ export function AssetManagerPage() {
         file_url: data.file_url,
         thumbnail_url: variables.type === 'background' || variables.type === 'prop' ? data.file_url : '',
         preview_url: variables.type === 'animation_preset' || variables.type.includes('audio') || variables.type === 'music' || variables.type === 'sound_effect' ? data.file_url : '',
-        duration_seconds: activeTab.includes('audio') || activeTab === 'music' || activeTab === 'sound_effect' ? 5.0 : 0.0,
+        duration_seconds: (activeTab.includes('audio') || activeTab === 'music' || activeTab === 'sound_effect')
+          ? await new Promise<number>((resolve) => {
+              const audio = new Audio()
+              const url = URL.createObjectURL(variables.file)
+              audio.addEventListener('loadedmetadata', () => { resolve(isFinite(audio.duration) ? audio.duration : 0); URL.revokeObjectURL(url) })
+              audio.addEventListener('error', () => { resolve(0); URL.revokeObjectURL(url) })
+              audio.src = url
+            })
+          : 0.0,
       })
       qc.invalidateQueries({ queryKey: ['assets'] })
       refetchStats()

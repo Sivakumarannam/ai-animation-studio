@@ -30,8 +30,8 @@ from database.models.research import (  # noqa: F401
 from database.models.asset_generation import (  # noqa: F401
     AssetProject, AssetStyle, AssetCollection, GeneratedAsset as AgAsset, GeneratedAssetVersion as AgAssetVersion,
     AssetPrompt, PromptTemplate, PromptHistory, NegativePrompt, GeneratedImage,
-    AssetEvaluation, AssetTag, AssetEmbedding, AssetMemory, SceneComposition as AgSceneComposition,
+    AssetEvaluation, AssetTag, AssetEmbedding, AssetMemory, AgSceneComposition,
     CameraShot, LightingPreset, PosePreset, ExpressionPreset,
-    RetryQueue as AgRetryQueue, GenerationJob as AgGenerationJob,
+    AgRetryQueue, AgGenerationJob,
     GenerationHistory, AssetCache, AssetRelationship,
 )

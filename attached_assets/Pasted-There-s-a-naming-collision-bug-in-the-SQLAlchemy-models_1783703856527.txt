@@ -1,0 +1,65 @@
+There's a naming collision bug in the SQLAlchemy models. In backend/database/models/asset_generation.py (Phase 6 — AI Asset Generation Engine), several model classes were given the same names as unrelated, pre-existing classes from earlier phases, even though the table names themselves were correctly prefixed with ag_ to avoid collisions. Since all models share the same SQLAlchemy declarative Base, having two Python classes with the same name breaks any relationship that references either one by string name, throwing sqlalchemy.exc.InvalidRequestError: Multiple classes found for path "X" in the registry of this declarative base.
+The duplicate class names are:
+
+Asset — exists in both database/models/asset.py and database/models/asset_generation.py
+AssetVersion — exists in both database/models/animation.py and database/models/asset_generation.py
+SceneComposition — exists in both database/models/animation.py and database/models/asset_generation.py
+RetryQueue — exists in both database/models/intelligence.py and database/models/asset_generation.py
+GenerationJob — exists in both database/models/intelligence.py and database/models/asset_generation.py
+
+Please rename all 5 of these classes only inside database/models/asset_generation.py (leave the original classes in asset.py, animation.py, and intelligence.py completely untouched, since more existing code depends on them) to:
+
+Asset → GeneratedAsset
+AssetVersion → GeneratedAssetVersion
+SceneComposition → AgSceneComposition
+RetryQueue → AgRetryQueue
+GenerationJob → AgGenerationJob
+
+Table names (__tablename__) must NOT change — only the Python class names.
+Then update every file across the codebase that imports these 5 names from database.models.asset_generation to use the new class names (or import with an alias like from database.models.asset_generation import GeneratedAsset as Asset if that's less invasive — your choice, whichever keeps the diff smallest and safest).
+Also check database/models/asset_generation.py itself for any internal SQLAlchemy relationship(...) calls that reference these 5 class names as string forward-references (e.g. relationship("Asset", ...) or relationship("SceneComposition", ...)) — those strings need to be updated to the new class names too, or they'll fail to resolve.
+After making all changes, run a search for any remaining bare references to the old names in that file's relationships, and confirm the app starts cleanly and pytest passes (or at minimum, confirm there are no more SQLAlchemy InvalidRequestError: Multiple classes found errors on startup or on hitting /api/v1/auth/login).
+
+
+
+Fix this issue then proceed with below phases
+Fix every Critical issue from MASTER_BUG_REPORT.md.
+
+Rules:
+
+- Do not touch High/Medium/Low bugs yet.
+- Fix only the 4 Critical issues.
+- Update backend, frontend, Celery, routing, and tests together.
+- Preserve architecture.
+- Run tests.
+- Verify frontend builds.
+- Produce CRITICAL_FIX_REPORT.md.
+
+
+Now completely fix Phase 2 using PHASE2_BUG_REPORT.md.
+
+Requirements:
+
+- Fix every bug.
+- Complete all missing CRUD.
+- Complete all missing dialogs.
+- Complete all Edit/Delete pages.
+- Connect every backend endpoint to the frontend.
+- Remove unused APIs.
+- Add tests.
+- Build frontend.
+- Run backend tests.
+
+Produce:
+
+PHASE2_COMPLETION_REPORT.md
+
+Now completely fix Phase 3 using PHASE3_BUG_REPORT.md.
+
+Finish every bug.
+
+Run all tests.
+
+Generate PHASE3_COMPLETION_REPORT.md.
+
+Stop after Phase 3.

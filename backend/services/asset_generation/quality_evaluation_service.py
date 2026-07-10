@@ -19,7 +19,7 @@ from repositories.asset_generation_repository import (
     AssetVersionRepository,
     RetryQueueRepository,
 )
-from database.models.asset_generation import RetryQueue
+from database.models.asset_generation import AgRetryQueue as RetryQueue
 
 
 class QualityEvaluationService:

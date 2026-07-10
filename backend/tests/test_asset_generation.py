@@ -435,11 +435,14 @@ class TestPhase6Migration:
 class TestPhase6Models:
     def test_all_models_importable(self):
         from database.models.asset_generation import (
-            AssetProject, AssetStyle, AssetCollection, Asset, AssetVersion,
+            AssetProject, AssetStyle, AssetCollection,
+            GeneratedAsset as Asset, GeneratedAssetVersion as AssetVersion,
             AssetPrompt, PromptTemplate, PromptHistory, NegativePrompt, GeneratedImage,
-            AssetEvaluation, AssetTag, AssetEmbedding, AssetMemory, SceneComposition,
+            AssetEvaluation, AssetTag, AssetEmbedding, AssetMemory,
+            AgSceneComposition as SceneComposition,
             CameraShot, LightingPreset, PosePreset, ExpressionPreset,
-            RetryQueue, GenerationJob, GenerationHistory, AssetCache, AssetRelationship,
+            AgRetryQueue as RetryQueue, AgGenerationJob as GenerationJob,
+            GenerationHistory, AssetCache, AssetRelationship,
         )
         models = [
             AssetProject, AssetStyle, AssetCollection, Asset, AssetVersion,
@@ -452,8 +455,10 @@ class TestPhase6Models:
 
     def test_model_table_names(self):
         from database.models.asset_generation import (
-            AssetProject, AssetStyle, Asset, AssetVersion, AssetEvaluation,
-            GenerationJob, RetryQueue,
+            AssetProject, AssetStyle,
+            GeneratedAsset as Asset, GeneratedAssetVersion as AssetVersion,
+            AssetEvaluation,
+            AgGenerationJob as GenerationJob, AgRetryQueue as RetryQueue,
         )
         assert AssetProject.__tablename__ == "ag_projects"
         assert AssetStyle.__tablename__ == "ag_styles"
@@ -464,7 +469,7 @@ class TestPhase6Models:
         assert RetryQueue.__tablename__ == "ag_retry_queue"
 
     def test_asset_has_soft_delete(self):
-        from database.models.asset_generation import Asset
+        from database.models.asset_generation import GeneratedAsset as Asset
         from sqlalchemy import inspect
         mapper = inspect(Asset)
         col_names = {c.key for c in mapper.columns}
@@ -472,7 +477,7 @@ class TestPhase6Models:
 
     def test_models_in_init(self):
         from database.models import (
-            AgAssetVersion, AssetProject, Asset, AssetEvaluation,
+            AgAssetVersion, AssetProject, AgAsset as Asset, AssetEvaluation,
             GenerationHistory, AssetCache, AssetRelationship,
         )
         assert AssetProject.__tablename__ == "ag_projects"

@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
-from database.models.asset_generation import RetryQueue
+from database.models.asset_generation import AgRetryQueue as RetryQueue
 from repositories.asset_generation_repository import (
     AssetRepository,
     RetryQueueRepository,

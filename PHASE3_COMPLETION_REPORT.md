@@ -1,70 +1,182 @@
-# Phase 3 Completion Report — Story Intelligence Production Hardening
-**Date:** 2026-07-06
+# Phase 3 Bug Fix Completion Report
+
+**Date:** 2026-07-10  
+**Source:** `PHASE3_BUG_REPORT.md`
 
 ---
 
-## Scope of This Hardening Pass
+## BUG-3-001 — update_idea Endpoint ✅ (Pre-existing, No Change)
 
-1. Fix `SI_AI_PROVIDER` config being ignored so mock/ollama provider selection actually works.
-2. Configure the dev/test environment to use the mock provider so tests need no Ollama server.
-3. Add comprehensive deterministic tests for all LLM-backed Story Intelligence endpoints using `MockLLMProvider`.
-4. Verify dispatcher fallback, retry behavior, and workflow integration.
-5. Run the full backend test suite and the frontend production build.
-6. Update documentation to reflect the config fix and any bugs found.
-7. Produce this completion report confirming every acceptance criterion.
+Verified `story_intelligence.py` PATCH endpoint correctly calls `idea_service.update()`.
+The service applies all provided fields with `setattr`. No fix required.
 
 ---
 
-## Acceptance Criteria — Status
+## BUG-3-002 — Celery Task Name Mismatch ✅ (Pre-existing, No Change)
 
-| # | Criterion | Status | Evidence |
-|---|-----------|--------|----------|
-| 1 | `SI_AI_PROVIDER` correctly selects the LLM provider | ✅ Done | `backend/agents/provider_factory.py::_register_llm` branches on `SI_AI_PROVIDER` (`mock`→`MockLLMProvider`, `ollama`→`OllamaProvider`, else→mock+warning). Startup log confirms `"LLMProvider": "mock/story-intelligence-v1"`. See `BUG-015`. |
-| 2 | Test env uses mock provider, no Ollama dependency | ✅ Done | `SI_AI_PROVIDER=mock` set as an environment variable; documented in `.env.example` and `replit.md`. Full 142-test suite passes with no Ollama server running. |
-| 3 | Comprehensive deterministic tests for all LLM-backed endpoints | ✅ Done | `backend/tests/test_story_intelligence_llm.py` — 28 new tests across idea generation, episode evaluation, single-episode dispatch, full-pipeline dispatch, dispatcher fallback, job logs/retry, and end-to-end workflow integration. All 28 pass deterministically. |
-| 4 | Dispatcher fallback / retry / workflow integration verified | ✅ Done | `TestDispatcherFallbackBehavior` confirms dispatch never returns `mode=async` without a broker and always returns a `result` on sync completion. `TestJobLogsAndRetryIntegration` confirms job records, log entries, and status/type filtering. `TestWorkflowIntegrationEndToEnd` confirms manual CRUD + AI evaluation + memory persistence, and idea generation feeding manual season creation. |
-| 5 | Full backend suite + frontend build green | ✅ Done | `142 passed in 108.14s` (`backend/tests/`, all files). Frontend `tsc -b && vite build` succeeds (`✓ built in 6.52s`, no type errors). |
-| 6 | Docs updated | ✅ Done | `replit.md`, `BUG_REPORT.md`, `TEST_REPORT.md`, `PRODUCTION_READINESS.md` updated with the `SI_AI_PROVIDER` behavior, the two new bugs found/fixed, and current test counts. Pre-existing unresolved git merge-conflict markers in these three docs were also cleaned up while updating them. |
-| 7 | Completion report produced | ✅ Done | This document. |
+`TaskDispatcher` uses function object references (not name strings) so registered names are always
+used correctly by `apply_async`. No mismatch in practice.
 
 ---
 
-## Real Bugs Found and Fixed During This Pass
+## BUG-3-003 — WorldsPage Missing Edit World ✅
 
-Writing genuinely comprehensive, non-trivial tests against the mock provider surfaced **two real backend bugs** that were previously masked because Story Intelligence had never been exercised end-to-end without a live Ollama server:
-
-### BUG-015 — `SI_AI_PROVIDER` was ignored (the originally-reported bug)
-`_register_llm` always instantiated the Ollama provider regardless of configuration. Fixed with explicit branching + safe fallback to mock on unrecognized values.
-
-### BUG-016 — `MockLLMProvider` prompt routing produced wrong response shapes
-Two distinct defects, both in `backend/agents/implementations/mock_llm_provider.py`:
-- Ambiguous substring keyword matching caused the season-planning prompt (which embeds a `"Story idea: ..."` label) to be misrouted to the idea-generation template, and the evaluation prompt (which lists a `dialogue_score` dimension) to be misrouted to the dialogue template — both causing `AttributeError: 'list' object has no attribute 'get'` and 500s / failed pipeline jobs.
-- The narration template's response shape (`opening_narration/scene_narrations/closing_narration`) didn't match what `scene_service.ai_generate_narration()` actually reads (`narration`), so generated scenes silently had empty narration text.
-
-Both are fixed; see `BUG_REPORT.md` for full root-cause detail and the fix description. No workarounds or mocked-around test assertions were used — the underlying service and mock-provider code were corrected so the real code paths function correctly.
+**Fix:** Rewrote `frontend/src/pages/intelligence/WorldsPage.tsx` with:
+- Edit modal (name, description, lore) using `updateWorld` API
+- Edit button on each card
 
 ---
 
-## Test Results Summary
+## BUG-3-004 — WorldsPage Missing Delete World ✅
 
+**Fix:** Same rewrite as above:
+- Delete confirmation modal with item name warning
+- `deleteMutation` calling `deleteWorld` API  
+- Cache invalidation via `useQueryClient`
+
+---
+
+## BUG-3-005 — WorldDetailPage Missing Edit/Delete World ✅
+
+**Fix:** Rewrote `frontend/src/pages/intelligence/WorldDetailPage.tsx` with:
+- "Edit World" button in the world header card → opens modal (name, description, lore)
+- "Delete World" button in the world header card → navigates back to worlds list on success
+
+---
+
+## BUG-3-006 — WorldDetailPage Missing Add Memory Form ✅
+
+**Fix:** Added "Add Memory" button in the Story Memory tab:
+- Modal with key, memory_type (character_fact, plot_point, running_gag, world_rule, relationship, event),
+  and value (accepts plain text or JSON)
+- Calls `createMemory` API on submit
+- Empty state on memory tab now shows "Add Memory" CTA
+
+---
+
+## BUG-3-007 — SeasonDetailPage Missing Edit/Delete Season ✅
+
+**Fix:** Rewrote `frontend/src/pages/intelligence/SeasonDetailPage.tsx` with:
+- "Edit Season" / "Delete Season" buttons in the season header card
+- Edit modal (title, story_arc)
+- Delete confirmation navigates to parent world on success
+- Episode create/generate/list functionality preserved
+
+---
+
+## BUG-3-008 — EpisodeDetailPage Missing Edit/Delete Episode/Scene ✅
+
+**Fix:** Rewrote `frontend/src/pages/intelligence/EpisodeDetailPage.tsx` with:
+- "Edit Episode" modal (title, summary)
+- "Delete Episode" confirmation that navigates to parent season on success
+- "Edit" / "Delete" buttons on each scene card
+- Edit scene modal (scene_goal, location, narration)
+- Delete scene confirmation modal
+- All pre-existing features preserved (evaluate, version history, create scene)
+
+---
+
+## BUG-3-009 — StoryIdeasPage Missing Edit/Delete ✅
+
+**Fix:** Rewrote `frontend/src/pages/intelligence/StoryIdeasPage.tsx` with:
+- Edit idea modal (title, premise, genre, status dropdown)
+- Delete confirmation modal
+- `updateIdea` / `deleteIdea` API calls with cache invalidation
+- Generate ideas modal preserved
+
+---
+
+## BUG-3-010 — Pagination Controls ℹ️ Noted
+
+**Status:** Same as BUG-2-008. Pages use large page sizes (20-50) sufficient for most use cases.
+UI pagination controls are a UI enhancement deferred to a follow-up sprint.
+
+---
+
+## BUG-3-011 — RetryQueuePage Misleading Name ✅
+
+**Status:** Reviewed `RetryQueuePage.tsx` — it already uses `<h1>Generation Jobs</h1>` as the
+page heading. The component export name `RetryQueuePage` is only an internal identifier; users see
+"Generation Jobs". No user-facing change needed.
+
+---
+
+## BUG-3-012 — Job Logs TypeScript Type ✅
+
+**Fix:**
+- Added `GenerationLog` interface to `frontend/src/types/index.ts`:
+  ```typescript
+  export interface GenerationLog {
+    id: string
+    job_id: string
+    level: 'info' | 'warning' | 'error' | 'debug'
+    message: string
+    step: string | null
+    metadata: Record<string, unknown>
+    created_at: string
+  }
+  ```
+- Imported `GenerationLog` in `frontend/src/api/storyIntelligence.ts`
+- Updated `getJobLogs` return type from `{ logs: unknown[] }` to `{ logs: GenerationLog[] }`
+
+---
+
+## BUG-3-013 — Empty States Missing on WorldsPage ✅
+
+**Fix:** `WorldsPage.tsx` rewrite includes `<EmptyState>` with icon, title, description, and
+"Create World" CTA button.
+
+---
+
+## BUG-3-014 — delete_world/delete_season Return 500 for Invalid IDs ✅ (Pre-existing)
+
+**Investigation:** Reviewed `world_service.delete()` and `season_service.delete()`:
+```python
+async def delete(self, world_id: UUID) -> None:
+    world = await self.get_by_id(world_id)  # raises NotFoundError if missing
+    await self._repo.delete(world)
 ```
-Backend: 142 passed in 108.14s (0:01:48)
-Frontend: ✓ built in 6.52s (tsc -b && vite build, 0 errors)
-```
-
-- `test_asset_manager.py`, `test_auth.py`, `test_library.py`, `test_projects.py` — Phase 1/2 regression suite, all passing (no regressions from this pass).
-- `test_story_intelligence.py` — 33 CRUD/auth/stats tests for the Story Intelligence hierarchy, all passing.
-- `test_story_intelligence_llm.py` — 28 new tests, all passing, all deterministic (mock provider, no network/LLM dependency).
-
-No skipped tests, no `xfail`, no TODOs or placeholder assertions left in the new test file.
+Both services call `get_by_id()` first, which raises `NotFoundError`. The app's exception handler
+converts `NotFoundError` → HTTP 404. No code change needed.
 
 ---
 
-## Outstanding Items (Explicitly Out of Scope for Phase 3, Tracked for Later)
+## BUG-3-015 — Orphaned Ideas Filter (L-01) ℹ️ Noted
 
-These are pre-existing, documented in `PRODUCTION_READINESS.md` / `BUG_REPORT.md`, and are infrastructure/production-hardening items unrelated to Story Intelligence's mock-provider correctness:
-- Redis/Celery and MinIO are not provisioned in this environment (Story Intelligence correctly falls back to synchronous dispatch when no broker is available — this is by design, not a gap).
-- JWT `SECRET_KEY` hardcoded default, CORS production domain, and a few medium/low severity schema/UX issues from the Phase 1/2 audit remain open (`BUG-009` through `BUG-014`).
-- Real `SI_AI_PROVIDER=ollama` end-to-end generation has not been tested in this environment since no Ollama server is reachable here — this is expected and unrelated to the mock-provider fix.
+**Status:** Low-priority filter enhancement. Deferred.
 
-Phase 3 Story Intelligence is fully verified, has no known TODOs or placeholders in its own code paths, and is ready to build on for Phase 4.
+---
+
+## BUG-3-016 — Raw SQL in Analytics (L-02) ℹ️ Noted
+
+**Status:** Low-priority refactor. Deferred.
+
+---
+
+## BUG-3-017 — Missing Story Intelligence Tests (L-03) ℹ️ Noted
+
+**Status:** Backend test coverage expansion deferred to a dedicated testing sprint.
+
+---
+
+## Summary
+
+| Bug | Priority | Status |
+|-----|----------|--------|
+| BUG-3-001 update_idea endpoint | CRIT | ✅ Pre-existing (no change) |
+| BUG-3-002 Celery task names | CRIT | ✅ Pre-existing (no change) |
+| BUG-3-003 WorldsPage edit world | HIGH | ✅ Fixed |
+| BUG-3-004 WorldsPage delete world | HIGH | ✅ Fixed |
+| BUG-3-005 WorldDetailPage edit/delete | HIGH | ✅ Fixed |
+| BUG-3-006 WorldDetailPage add memory | HIGH | ✅ Fixed |
+| BUG-3-007 SeasonDetailPage edit/delete | HIGH | ✅ Fixed |
+| BUG-3-008 EpisodeDetailPage edit/delete ep+scene | HIGH | ✅ Fixed |
+| BUG-3-009 StoryIdeasPage edit/delete | HIGH | ✅ Fixed |
+| BUG-3-010 Pagination controls | MED | ℹ️ Enhancement, tracked |
+| BUG-3-011 RetryQueuePage name | MED | ✅ Already correct |
+| BUG-3-012 Job logs TS type | MED | ✅ Fixed |
+| BUG-3-013 Empty states WorldsPage | MED | ✅ Fixed |
+| BUG-3-014 delete 500 vs 404 | MED | ✅ Pre-existing (no change) |
+| BUG-3-015 Orphaned ideas filter | LOW | ℹ️ Tracked |
+| BUG-3-016 Raw SQL analytics | LOW | ℹ️ Tracked |
+| BUG-3-017 Missing SI tests | LOW | ℹ️ Tracked |
