@@ -1,0 +1,115 @@
+PROJECT CONTEXT
+This is "AI Animation Studio." Backend: Python/FastAPI/SQLAlchemy async/
+PostgreSQL/Alembic/Celery/Redis. Frontend: React/TypeScript/Tailwind/
+TanStack Query. Architecture: models → repository → service → router →
+Celery task → frontend, kept identical across phases.
+
+THIS IS A CONTINUATION. A prior session ran for 23 minutes and made real
+progress before hitting a usage quota mid-task. Files on disk should already
+reflect that work (Replit persists files even across quota cutoffs — this is
+NOT a case of lost work, just an interrupted session). Do not redo anything
+listed as already done below. Verify each claim, don't blindly trust it.
+
+============================================================
+STEP 0 — MANDATORY RE-AUDIT (things may be in a half-finished state)
+============================================================
+Run `git status` and `git diff --stat`. Then specifically check and report on:
+
+1. frontend/src/types/index.ts around line 276 — confirm GenerationLog still
+   has the correct fields (step_name, duration_ms, tokens_used, is_error,
+   score, created_at).
+2. Run `npm run build` in frontend/ — confirm it passes cleanly. A prior
+   session fixed 7 TypeScript errors and got this passing; confirm it's still
+   passing and hasn't regressed.
+3. Check frontend/tsconfig.json — a prior session was in the middle of
+   excluding test files from the production build (test files were being
+   incorrectly included in the prod build). Confirm whether this exclusion
+   was completed or is still broken.
+4. Check for a vitest config file in frontend/ (e.g. vitest.config.ts) and a
+   test setup file — a prior session was writing these and hit TypeScript
+   errors in the setup file itself. Confirm current state: does it exist, does
+   it have errors, are there actual test files written for the new Phase 6
+   pages?
+5. Check frontend/src/pages/assetGeneration/ — confirm these files exist:
+   Dashboard, ConsistencyEngine, GenerationJobs, PromptMonitoring,
+   QualityEvaluation, RetryQueuePage, AssetLibraryPage (the last two were
+   being created when the session ended — confirm they're complete, not
+   half-written).
+6. Check frontend/src/api/assetGeneration.ts exists (~615 lines) and whether
+   AssetResponse field mismatches (thumbnail_url/file_url/current_version —
+   these don't exist on the real AssetResponse type) were fixed in the pages
+   that use them.
+7. Check whether a nav entry for Asset Generation was added to
+   ProjectDetailPage (or wherever Story Intelligence/Knowledge nav entries
+   live) and whether routes were registered.
+8. Check whether PHASE4_COMPLETION_REPORT.md, PHASE5_COMPLETION_REPORT.md,
+   PHASE6_COMPLETION_REPORT.md exist yet — a prior session was writing these
+   when it ran out of quota, so they may not exist or may be incomplete drafts.
+9. Check whether these specific bug items were actually fixed (a prior
+   session identified them as the remaining gap but it's unconfirmed whether
+   all were completed):
+   - BUG-4-008: DocumentDetailPage route missing
+   - BUG-4-009: re-embedding trigger loading state
+   - BUG-5-007: "Send to Story Intelligence" button missing/broken
+   - BUG-5-009: TrendExplorer missing Create/Edit/Archive actions
+   - BUG-5-014: Scheduler "next run time" display issue
+10. Check whether Postgres is actually running and migrated. A prior session
+    got a 500 error on /api/v1/auth/login because the database wasn't
+    connected (infrastructure issue, not a code bug) — confirm current state
+    of `docker compose ps` for postgres/redis/minio.
+
+Report all 10 findings to me as a clear list BEFORE making any changes.
+
+============================================================
+REMAINING WORK (do these in order, skipping anything Step 0 confirms is
+already done)
+============================================================
+
+TASK 1 — Get real infrastructure running
+- `docker compose up -d postgres redis minio`, confirm all healthy.
+- `alembic upgrade head` in backend/ — confirm migrations apply cleanly.
+- Start the backend, confirm `/api/v1/auth/login` no longer 500s (a real
+  login attempt should get a proper 401/200, not a 500 — the 500 was a DB
+  connectivity issue, not a code bug, so this should resolve once Postgres is
+  actually reachable).
+
+TASK 2 — Finish the frontend build/test infrastructure
+- If tsconfig test-file exclusion isn't done: exclude test files (e.g.
+  `**/*.test.ts`, `**/*.test.tsx`) from the production build's `include`/
+  point production build at a separate tsconfig if that's the existing
+  pattern in this repo — check how it's done elsewhere in the repo first.
+- If the vitest setup file still has TypeScript errors: fix them.
+- Confirm `npm run build` AND `npm run test` (or equivalent vitest command)
+  both pass.
+
+TASK 3 — Finish any incomplete Phase 6 frontend pieces
+- Confirm RetryQueuePage and AssetLibraryPage are fully built (not stubs),
+  wired into routes and nav, and use correct field names matching the actual
+  backend AssetResponse schema (re-check backend/apps/api/routers/
+  asset_generation.py response schemas directly — don't guess field names).
+- Write/complete frontend tests for all 7 asset-generation pages if not done.
+- Run backend tests relevant to asset_generation (test_asset_generation.py)
+  against the now-real Postgres/Redis — confirm they pass for real, not just
+  via a connection-error skip.
+
+TASK 4 — Finish remaining Phase 4/5 bug items
+- Fix whichever of BUG-4-008, BUG-4-009, BUG-5-007, BUG-5-009, BUG-5-014
+  Step 0 confirms are still open.
+- Re-run backend tests + frontend build after these fixes.
+
+TASK 5 — Write the three completion reports
+- PHASE4_COMPLETION_REPORT.md — document all Phase 4 fixes (both from the
+  prior session and any finished in Task 4).
+- PHASE5_COMPLETION_REPORT.md — same for Phase 5.
+- PHASE6_COMPLETION_REPORT.md — document the full Phase 6 frontend build:
+  all 7 pages, the API client, nav wiring, tests, and confirm it was verified
+  against a real running backend + Postgres + Redis (not just mocked).
+
+GLOBAL RULES
+- Do not modify the Phase 6 backend (models/services/router) — frontend-only
+  work in Task 3.
+- Do not touch Phase 2/3 files.
+- Diff first, edit minimally.
+- After each task, run relevant tests and confirm passing before moving on.
+- Stop after Task 5. Do not do Redis/MinIO teardown, git tagging, or release
+  steps — I'll do that manually once I've reviewed everything.

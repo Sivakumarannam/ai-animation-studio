@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { ChevronRight, FileText, CheckCircle2, XCircle, Clock, Loader2 } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { ChevronRight, FileText, CheckCircle2, XCircle, Clock, Loader2, RefreshCw } from 'lucide-react'
 import { knowledgeApi } from '@/api/knowledge'
 import { Spinner } from '@/components/ui/Spinner'
 
@@ -17,6 +17,7 @@ export function DocumentDetailPage() {
     collectionId: string
     documentId: string
   }>()
+  const qc = useQueryClient()
 
   const { data: document, isLoading: loadingDoc } = useQuery({
     queryKey: ['kn-document', documentId],
@@ -28,6 +29,14 @@ export function DocumentDetailPage() {
     queryKey: ['kn-chunks', documentId],
     queryFn: () => knowledgeApi.getDocumentChunks(documentId!),
     enabled: !!documentId,
+  })
+
+  const reprocessMutation = useMutation({
+    mutationFn: () => knowledgeApi.processDocument(documentId!),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['kn-document', documentId] })
+      qc.invalidateQueries({ queryKey: ['kn-chunks', documentId] })
+    },
   })
 
   if (loadingDoc) {
@@ -64,6 +73,17 @@ export function DocumentDetailPage() {
               <p className="text-xs text-gray-500 mt-0.5">{document.original_filename}</p>
             )}
           </div>
+          <button
+            onClick={() => reprocessMutation.mutate()}
+            disabled={reprocessMutation.isPending}
+            className="btn-secondary text-xs flex items-center gap-1.5 flex-shrink-0"
+            title="Re-process and re-embed this document"
+          >
+            {reprocessMutation.isPending
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <RefreshCw className="w-3.5 h-3.5" />}
+            Re-embed
+          </button>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
           <div>

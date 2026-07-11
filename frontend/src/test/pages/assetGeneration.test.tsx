@@ -1,7 +1,31 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
+
+// Module-level mock for assetGenerationApi (hoisted by vitest)
+vi.mock('@/api/assetGeneration', () => ({
+  assetGenerationApi: {
+    getDashboard: vi.fn().mockResolvedValue({
+      total_assets: 0,
+      assets_completed: 0,
+      assets_pending: 0,
+      assets_failed: 0,
+      assets_generating: 0,
+      total_retries: 0,
+      avg_quality_score: 0,
+      assets_by_type: {},
+      recent_jobs: [],
+      generation_history: [],
+    }),
+    listJobs: vi.fn().mockResolvedValue({ items: [], meta: { total: 0, page: 1, page_size: 20, total_pages: 1 } }),
+    getRetryQueue: vi.fn().mockResolvedValue([]),
+    getConsistencyReport: vi.fn().mockResolvedValue({ groups: [], total_groups: 0 }),
+    listQualityEvaluations: vi.fn().mockResolvedValue({ items: [], meta: { total: 0, page: 1, page_size: 20, total_pages: 1 } }),
+    listPromptTemplates: vi.fn().mockResolvedValue({ items: [], meta: { total: 0, page: 1, page_size: 20, total_pages: 1 } }),
+    listAssets: vi.fn().mockResolvedValue({ items: [], meta: { total: 0, page: 1, page_size: 20, total_pages: 1 } }),
+  },
+}))
 
 // Create a wrapper for tests
 function Wrapper({ children }: { children: React.ReactNode }) {
@@ -18,35 +42,47 @@ function Wrapper({ children }: { children: React.ReactNode }) {
 // ─── AssetGenerationDashboardPage ────────────────────────────────────────────
 
 describe('AssetGenerationDashboardPage', () => {
-  beforeEach(() => {
-    vi.mock('@/api/assetGeneration', () => ({
-      assetGenerationApi: {
-        getDashboard: vi.fn().mockResolvedValue({
-          total_assets: 0,
-          assets_completed: 0,
-          assets_pending: 0,
-          assets_failed: 0,
-          assets_generating: 0,
-          total_retries: 0,
-          avg_quality_score: 0,
-          assets_by_type: {},
-          recent_jobs: [],
-          generation_history: [],
-        }),
-      },
-    }))
+  afterEach(() => {
+    // Reset useQuery back to the global default (data: undefined) after this block
+    vi.mocked(useQuery).mockReset()
+    vi.mocked(useQuery).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+    } as ReturnType<typeof useQuery>)
   })
 
   it('renders heading', async () => {
+    // Provide real dashboard data so the component renders past its !data guard
+    vi.mocked(useQuery).mockReturnValue({
+      data: {
+        total_assets: 5,
+        assets_completed: 3,
+        assets_pending: 1,
+        assets_failed: 0,
+        assets_generating: 1,
+        total_retries: 0,
+        avg_quality_score: 92,
+        assets_by_type: {},
+        recent_jobs: [],
+        generation_history: [],
+        generation_history_7d: [],
+      },
+      isLoading: false,
+      isError: false,
+    } as ReturnType<typeof useQuery>)
+
     const { AssetGenerationDashboardPage } = await import(
       '@/pages/assetGeneration/AssetGenerationDashboardPage'
     )
-    render(
+    const { container } = render(
       <Wrapper>
         <AssetGenerationDashboardPage />
       </Wrapper>
     )
-    expect(screen.getByText(/asset generation/i)).toBeTruthy()
+    // h1 contains SVG icon + text; query DOM directly
+    const h1 = container.querySelector('h1')
+    expect(h1?.textContent).toMatch(/asset generation engine/i)
   })
 })
 
@@ -60,7 +96,8 @@ describe('GenerationJobsPage', () => {
         <GenerationJobsPage />
       </Wrapper>
     )
-    expect(screen.getByText(/generation jobs/i)).toBeTruthy()
+    const headings = screen.getAllByText(/generation jobs/i)
+    expect(headings.length).toBeGreaterThan(0)
   })
 })
 
@@ -74,7 +111,8 @@ describe('RetryQueuePage', () => {
         <RetryQueuePage />
       </Wrapper>
     )
-    expect(screen.getByText(/retry queue/i)).toBeTruthy()
+    const headings = screen.getAllByText(/retry queue/i)
+    expect(headings.length).toBeGreaterThan(0)
   })
 
   it('renders empty state when no entries', async () => {
@@ -84,7 +122,6 @@ describe('RetryQueuePage', () => {
         <RetryQueuePage />
       </Wrapper>
     )
-    // Empty state renders when data is undefined (default mock)
     expect(document.body).toBeTruthy()
   })
 })
@@ -99,7 +136,8 @@ describe('ConsistencyEnginePage', () => {
         <ConsistencyEnginePage />
       </Wrapper>
     )
-    expect(screen.getByText(/consistency/i)).toBeTruthy()
+    const headings = screen.getAllByText(/consistency/i)
+    expect(headings.length).toBeGreaterThan(0)
   })
 })
 
@@ -113,7 +151,8 @@ describe('QualityEvaluationPage', () => {
         <QualityEvaluationPage />
       </Wrapper>
     )
-    expect(screen.getByText(/quality evaluation/i)).toBeTruthy()
+    const headings = screen.getAllByText(/quality evaluation/i)
+    expect(headings.length).toBeGreaterThan(0)
   })
 })
 
@@ -127,7 +166,8 @@ describe('PromptMonitoringPage', () => {
         <PromptMonitoringPage />
       </Wrapper>
     )
-    expect(screen.getByText(/prompt monitoring/i)).toBeTruthy()
+    const headings = screen.getAllByText(/prompt monitoring/i)
+    expect(headings.length).toBeGreaterThan(0)
   })
 })
 
@@ -141,11 +181,11 @@ describe('AssetLibraryPage', () => {
         <AssetLibraryPage />
       </Wrapper>
     )
-    expect(screen.getByText(/asset library/i)).toBeTruthy()
-    expect(screen.getByText(/search all/i)).toBeTruthy()
-    expect(screen.getByText(/characters/i)).toBeTruthy()
-    expect(screen.getByText(/backgrounds/i)).toBeTruthy()
-    expect(screen.getByText(/props/i)).toBeTruthy()
+    expect(screen.getAllByText(/asset library/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/search all/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/characters/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/backgrounds/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/props/i).length).toBeGreaterThan(0)
   })
 
   it('shows search filters on Search All tab', async () => {

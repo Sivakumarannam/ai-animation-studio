@@ -265,6 +265,20 @@ async def get_trend(trend_id: UUID, current_user: CurrentUser, session: SessionD
     return ResearchTrendResponse.model_validate(trend)
 
 
+@router.patch("/trends/{trend_id}", response_model=ResearchTrendResponse)
+async def update_trend(trend_id: UUID, body: dict, current_user: CurrentUser, session: SessionDep) -> ResearchTrendResponse:
+    """Update a trend's status (e.g. archive it)."""
+    from packages.core.exceptions import NotFoundError
+    repos = _make_repos(session)
+    trend = await repos["trend"].get_by_id(trend_id)
+    if trend is None:
+        raise NotFoundError("ResearchTrend", trend_id)
+    allowed = {"status"}
+    update_data = {k: v for k, v in body.items() if k in allowed}
+    trend = await repos["trend"].update(trend, update_data)
+    return ResearchTrendResponse.model_validate(trend)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Topics
 # ─────────────────────────────────────────────────────────────────────────────

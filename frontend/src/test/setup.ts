@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom'
 import { vi } from 'vitest'
+import React from 'react'
 
 // Mock react-router-dom
 vi.mock('react-router-dom', async () => {

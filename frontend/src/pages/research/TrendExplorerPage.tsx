@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { TrendingUp, Filter, Zap } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { TrendingUp, Filter, Zap, Archive } from 'lucide-react'
 import { researchApi, ResearchTrend } from '@/api/research'
 import { Spinner } from '@/components/ui/Spinner'
 
@@ -10,10 +10,16 @@ export function TrendExplorerPage() {
   const [category, setCategory] = useState<string | undefined>()
   const [emergingOnly, setEmergingOnly] = useState(false)
   const [page, setPage] = useState(1)
+  const qc = useQueryClient()
 
   const { data, isLoading } = useQuery({
     queryKey: ['research-trends', page, category, emergingOnly],
     queryFn: () => researchApi.getTrends(page, 20, category, emergingOnly),
+  })
+
+  const archiveMutation = useMutation({
+    mutationFn: (id: string) => researchApi.updateTrend(id, { status: 'archived' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['research-trends'] }),
   })
 
   return (
@@ -57,17 +63,27 @@ export function TrendExplorerPage() {
             {data?.items.map((trend: ResearchTrend) => (
               <div key={trend.id} className="card p-4 space-y-2">
                 <div className="flex items-start justify-between">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium text-white">{trend.keyword}</p>
                     <span className="text-xs text-gray-400 capitalize">{trend.category} · {trend.region}</span>
                   </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold text-brand-400">{trend.trend_score.toFixed(0)}</p>
-                    {trend.is_emerging && (
-                      <span className="flex items-center gap-1 text-xs text-green-400">
-                        <Zap className="w-3 h-3" /> Emerging
-                      </span>
-                    )}
+                  <div className="flex items-start gap-2 ml-2">
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-brand-400">{trend.trend_score.toFixed(0)}</p>
+                      {trend.is_emerging && (
+                        <span className="flex items-center gap-1 text-xs text-green-400">
+                          <Zap className="w-3 h-3" /> Emerging
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => archiveMutation.mutate(trend.id)}
+                      disabled={archiveMutation.isPending}
+                      className="btn-secondary p-1.5 text-xs flex items-center gap-1 flex-shrink-0"
+                      title="Archive this trend"
+                    >
+                      <Archive className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-xs text-gray-400">
