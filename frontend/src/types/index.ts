@@ -274,11 +274,10 @@ export interface StoryVersion {
 }
 
 export interface GenerationLog {
-  id: string
-  job_id: string
-  level: 'info' | 'warning' | 'error' | 'debug'
-  message: string
-  step: string | null
-  metadata: Record<string, unknown>
+  step_name: string
+  duration_ms: number
+  tokens_used: number
+  is_error: boolean
+  score: number | null
   created_at: string
 }

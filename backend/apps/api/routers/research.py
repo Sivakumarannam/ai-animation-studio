@@ -217,6 +217,18 @@ async def list_sources(
     return ResearchSourceListResponse(items=[ResearchSourceResponse.model_validate(s) for s in result.items], meta=_meta(result))
 
 
+@router.patch("/sources/{source_id}", response_model=ResearchSourceResponse)
+async def update_source(source_id: UUID, body: dict, current_user: CurrentUser, session: SessionDep) -> ResearchSourceResponse:
+    from fastapi import Request
+    from packages.core.exceptions import NotFoundError
+    repos = _make_repos(session)
+    source = await repos["source"].get_by_id(source_id)
+    if source is None:
+        raise NotFoundError("ResearchSource", source_id)
+    updated = await repos["source"].update(source, body)
+    return ResearchSourceResponse.model_validate(updated)
+
+
 @router.delete("/sources/{source_id}", status_code=204, response_model=None)
 async def delete_source(source_id: UUID, current_user: CurrentUser, session: SessionDep) -> None:
     from packages.core.exceptions import NotFoundError
@@ -314,6 +326,17 @@ async def trigger_topic_research(topic_id: UUID, current_user: CurrentUser, sess
         task_kwargs={"topic_id": str(topic.id)},
     )
     return DispatchResponse(**result)
+
+
+@router.patch("/topics/{topic_id}", response_model=ResearchTopicResponse)
+async def update_topic(topic_id: UUID, body: dict, current_user: CurrentUser, session: SessionDep) -> ResearchTopicResponse:
+    from packages.core.exceptions import NotFoundError
+    repos = _make_repos(session)
+    topic = await repos["topic"].get_by_id(topic_id)
+    if topic is None:
+        raise NotFoundError("ResearchTopic", topic_id)
+    updated = await repos["topic"].update(topic, body)
+    return ResearchTopicResponse.model_validate(updated)
 
 
 @router.delete("/topics/{topic_id}", status_code=204, response_model=None)

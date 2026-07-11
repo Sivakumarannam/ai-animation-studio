@@ -219,15 +219,33 @@ class SchedulerService:
         return details
 
     async def get_scheduler_status(self) -> dict[str, Any]:
-        """Return last-run timestamps and status for each phase."""
-        phases = ["trend_discovery", "research_refresh", "opportunity_report"]
+        """Return last-run timestamps, status, and next scheduled run for each phase."""
+        from datetime import datetime, timezone, timedelta
+        phase_intervals = {
+            "trend_discovery": timedelta(hours=1),
+            "research_refresh": timedelta(hours=6),
+            "opportunity_report": timedelta(hours=24),
+        }
+        phases = list(phase_intervals.keys())
         status: dict[str, Any] = {"phases": {}}
+        now = datetime.now(timezone.utc)
         for phase in phases:
             last_run = await self._history_repo.get_last_run(phase)
+            last_run_at = last_run.created_at if last_run else None
+            interval = phase_intervals[phase]
+            if last_run_at:
+                # ensure timezone-aware
+                if last_run_at.tzinfo is None:
+                    last_run_at = last_run_at.replace(tzinfo=timezone.utc)
+                next_run_at = last_run_at + interval
+            else:
+                next_run_at = now
             status["phases"][phase] = {
-                "last_run_at": last_run.created_at.isoformat() if last_run else None,
+                "last_run_at": last_run_at.isoformat() if last_run_at else None,
                 "last_status": last_run.status if last_run else "never_run",
                 "last_duration_seconds": last_run.duration_seconds if last_run else None,
+                "next_run_at": next_run_at.isoformat(),
+                "interval_seconds": int(interval.total_seconds()),
             }
         return status
 

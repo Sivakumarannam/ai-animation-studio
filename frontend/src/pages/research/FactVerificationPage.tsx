@@ -6,19 +6,19 @@ import { Spinner } from '@/components/ui/Spinner'
 
 export function FactVerificationPage() {
   const [page, setPage] = useState(1)
+  const [selectedTopicId, setSelectedTopicId] = useState<string | undefined>()
 
-  // Show facts from top researched topics
   const { data: topicsData } = useQuery({
     queryKey: ['research-topics-facts'],
-    queryFn: () => researchApi.getTopics(1, 10, 'researched'),
+    queryFn: () => researchApi.getTopics(1, 50, 'researched'),
   })
 
-  const selectedTopicId = topicsData?.items[0]?.id
+  const activeTopicId = selectedTopicId ?? topicsData?.items[0]?.id
 
   const { data: factsData, isLoading } = useQuery({
-    queryKey: ['research-facts-verify', selectedTopicId, page],
-    queryFn: () => selectedTopicId ? researchApi.getFacts(selectedTopicId, page, 20) : null,
-    enabled: !!selectedTopicId,
+    queryKey: ['research-facts-verify', activeTopicId, page],
+    queryFn: () => activeTopicId ? researchApi.getFacts(activeTopicId, page, 20) : null,
+    enabled: !!activeTopicId,
   })
 
   return (
@@ -29,6 +29,22 @@ export function FactVerificationPage() {
         </h1>
         <p className="text-gray-400 text-sm mt-1">Cross-referenced facts with confidence scores and citations</p>
       </div>
+
+      {/* Topic selector */}
+      {topicsData && topicsData.items.length > 0 && (
+        <div className="card p-3 flex items-center gap-3">
+          <label className="text-sm text-gray-400 flex-shrink-0">Topic:</label>
+          <select
+            className="input flex-1"
+            value={activeTopicId || ''}
+            onChange={e => { setSelectedTopicId(e.target.value || undefined); setPage(1) }}
+          >
+            {topicsData.items.map(t => (
+              <option key={t.id} value={t.id}>{t.canonical_name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card p-3 text-center">
@@ -91,13 +107,13 @@ export function FactVerificationPage() {
               No facts available. Research a topic first, then run fact verification.
             </div>
           )}
-          {factsData && factsData.meta.total_pages > 1 && (
-            <div className="flex justify-center gap-2 pt-2">
-              <button className="btn-secondary text-sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>
-              <span className="text-gray-400 text-sm self-center">Page {page} of {factsData.meta.total_pages}</span>
-              <button className="btn-secondary text-sm" disabled={page >= factsData.meta.total_pages} onClick={() => setPage(p => p + 1)}>Next</button>
-            </div>
-          )}
+
+          {/* Always show pagination indicator */}
+          <div className="flex justify-center gap-2 pt-2">
+            <button className="btn-secondary text-sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>
+            <span className="text-gray-400 text-sm self-center">Page {page} of {factsData?.meta.total_pages ?? 1}</span>
+            <button className="btn-secondary text-sm" disabled={!factsData || page >= factsData.meta.total_pages} onClick={() => setPage(p => p + 1)}>Next</button>
+          </div>
         </div>
       )}
     </div>

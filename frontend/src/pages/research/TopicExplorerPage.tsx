@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { BookOpen, Play, Plus } from 'lucide-react'
+import { BookOpen, Play, Plus, Pencil, Trash2 } from 'lucide-react'
 import { researchApi, ResearchTopic } from '@/api/research'
 import { Spinner } from '@/components/ui/Spinner'
+import { Modal } from '@/components/ui/Modal'
 
 const STATUS_COLORS: Record<string, string> = {
   discovered: 'bg-blue-900 text-blue-300',
@@ -19,6 +20,17 @@ export function TopicExplorerPage() {
   const [statusFilter, setStatusFilter] = useState<string | undefined>()
   const [showCreate, setShowCreate] = useState(false)
   const [newTopic, setNewTopic] = useState('')
+
+  // Edit modal state
+  const [showEdit, setShowEdit] = useState(false)
+  const [editTopic, setEditTopic] = useState<ResearchTopic | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+
+  // Delete modal state
+  const [showDelete, setShowDelete] = useState(false)
+  const [topicToDelete, setTopicToDelete] = useState<ResearchTopic | null>(null)
+
   const qc = useQueryClient()
 
   const { data, isLoading } = useQuery({
@@ -35,10 +47,40 @@ export function TopicExplorerPage() {
     },
   })
 
+  const updateTopic = useMutation({
+    mutationFn: () => researchApi.updateTopic(editTopic!.id, { canonical_name: editName, description: editDescription }),
+    onSuccess: () => {
+      setShowEdit(false)
+      setEditTopic(null)
+      qc.invalidateQueries({ queryKey: ['research-topics'] })
+    },
+  })
+
+  const deleteTopic = useMutation({
+    mutationFn: (id: string) => researchApi.deleteTopic(id),
+    onSuccess: () => {
+      setShowDelete(false)
+      setTopicToDelete(null)
+      qc.invalidateQueries({ queryKey: ['research-topics'] })
+    },
+  })
+
   const researchTopic = useMutation({
     mutationFn: (id: string) => researchApi.researchTopic(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['research-topics'] }),
   })
+
+  function openEdit(topic: ResearchTopic) {
+    setEditTopic(topic)
+    setEditName(topic.canonical_name)
+    setEditDescription(topic.description)
+    setShowEdit(true)
+  }
+
+  function openDelete(topic: ResearchTopic) {
+    setTopicToDelete(topic)
+    setShowDelete(true)
+  }
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
@@ -113,6 +155,18 @@ export function TopicExplorerPage() {
                     <Play className="w-3 h-3" /> Research
                   </button>
                 )}
+                <button
+                  onClick={() => openEdit(topic)}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-200 transition-colors px-2 py-1"
+                >
+                  <Pencil className="w-3 h-3" /> Edit
+                </button>
+                <button
+                  onClick={() => openDelete(topic)}
+                  className="flex items-center gap-1 text-xs text-red-500 hover:text-red-400 transition-colors px-2 py-1"
+                >
+                  <Trash2 className="w-3 h-3" /> Delete
+                </button>
               </div>
             </div>
           ))}
@@ -122,7 +176,7 @@ export function TopicExplorerPage() {
             </div>
           )}
 
-          {data && data.meta.total_pages > 1 && (
+          {data && (
             <div className="flex justify-center gap-2 pt-2">
               <button className="btn-secondary text-sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</button>
               <span className="text-gray-400 text-sm self-center">Page {page} of {data.meta.total_pages}</span>
@@ -131,6 +185,57 @@ export function TopicExplorerPage() {
           )}
         </div>
       )}
+
+      {/* Edit Modal */}
+      <Modal title="Edit Topic" open={showEdit} onClose={() => setShowEdit(false)}>
+        <form onSubmit={(e) => { e.preventDefault(); updateTopic.mutate() }} className="space-y-4">
+          <div>
+            <label className="label">Topic Name</label>
+            <input
+              className="input"
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="label">Description</label>
+            <textarea
+              className="input resize-none"
+              rows={3}
+              value={editDescription}
+              onChange={e => setEditDescription(e.target.value)}
+            />
+          </div>
+          {updateTopic.isError && <p className="text-xs text-red-400">Failed to save changes.</p>}
+          <div className="flex gap-3 justify-end pt-2">
+            <button type="button" className="btn-secondary" onClick={() => setShowEdit(false)}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={updateTopic.isPending}>
+              {updateTopic.isPending ? <Spinner size="sm" /> : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal title="Delete Topic" open={showDelete} onClose={() => setShowDelete(false)}>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-300">
+            Are you sure you want to delete <strong className="text-white">{topicToDelete?.canonical_name}</strong>? All associated articles and facts will also be removed. This cannot be undone.
+          </p>
+          {deleteTopic.isError && <p className="text-xs text-red-400">Failed to delete topic.</p>}
+          <div className="flex gap-3 justify-end pt-2">
+            <button className="btn-secondary" onClick={() => setShowDelete(false)}>Cancel</button>
+            <button
+              className="btn-danger"
+              disabled={deleteTopic.isPending}
+              onClick={() => topicToDelete && deleteTopic.mutate(topicToDelete.id)}
+            >
+              {deleteTopic.isPending ? <Spinner size="sm" /> : 'Delete Topic'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

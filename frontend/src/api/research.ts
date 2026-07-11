@@ -192,6 +192,26 @@ export interface SchedulerPhaseStatus {
   last_run_at: string | null
   last_status: string
   last_duration_seconds: number | null
+  next_run_at: string | null
+  interval_seconds: number | null
+}
+
+export interface ResearchAnalytics {
+  id: string
+  period_type: string
+  period_start: string
+  period_end: string
+  total_trends: number
+  active_trends: number
+  emerging_trends: number
+  total_topics: number
+  researched_topics: number
+  verified_facts: number
+  knowledge_docs_created: number
+  opportunities_scored: number
+  avg_opportunity_score: number
+  top_categories: string[]
+  top_keywords: string[]
 }
 
 export interface SchedulerStatus {
@@ -323,7 +343,23 @@ export const researchApi = {
 
   // Analytics
   getAnalytics: (periodType = 'daily', limit = 30) =>
-    apiClient.get<Record<string, unknown>[]>(`${BASE}/analytics`, {
+    apiClient.get<ResearchAnalytics[]>(`${BASE}/analytics`, {
       params: { period_type: periodType, limit },
     }).then(r => r.data),
+
+  // Topics (update)
+  updateTopic: (id: string, data: { canonical_name?: string; description?: string; keywords?: string[]; categories?: string[] }) =>
+    apiClient.patch<ResearchTopic>(`${BASE}/topics/${id}`, data).then(r => r.data),
+
+  // Sources (update)
+  updateSource: (id: string, data: { name?: string; source_type?: string; url?: string; description?: string; is_active?: boolean; fetch_interval_seconds?: number }) =>
+    apiClient.patch<ResearchSource>(`${BASE}/sources/${id}`, data).then(r => r.data),
+
+  // Trends (create/update/delete)
+  createTrend: (data: { keyword: string; category?: string; region?: string }) =>
+    apiClient.post<ResearchTrend>(`${BASE}/trends`, data).then(r => r.data),
+  updateTrend: (id: string, data: { status?: string; keyword?: string; category?: string }) =>
+    apiClient.patch<ResearchTrend>(`${BASE}/trends/${id}`, data).then(r => r.data),
+  deleteTrend: (id: string) =>
+    apiClient.delete(`${BASE}/trends/${id}`),
 }

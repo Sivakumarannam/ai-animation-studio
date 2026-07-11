@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ChevronRight, FileText, Upload, Search, Trash2, Plus,
-  Loader2, CheckCircle2, XCircle, Clock,
+  Loader2, CheckCircle2, XCircle, Clock, Pencil,
 } from 'lucide-react'
 import { knowledgeApi, type SearchResultItem } from '@/api/knowledge'
 import { Spinner } from '@/components/ui/Spinner'
@@ -19,6 +19,7 @@ function DocumentStatusIcon({ status }: { status: string }) {
 export function CollectionDetailPage() {
   const { projectId, collectionId } = useParams<{ projectId: string; collectionId: string }>()
   const qc = useQueryClient()
+  const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [activeTab, setActiveTab] = useState<'documents' | 'search'>('documents')
@@ -29,6 +30,11 @@ export function CollectionDetailPage() {
   const [searchResults, setSearchResults] = useState<SearchResultItem[] | null>(null)
   const [searching, setSearching] = useState(false)
   const [docPage, setDocPage] = useState(1)
+
+  // Edit collection state
+  const [showEdit, setShowEdit] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editDescription, setEditDescription] = useState('')
 
   const { data: collection, isLoading: loadingCollection } = useQuery({
     queryKey: ['kn-collection', collectionId],
@@ -71,6 +77,21 @@ export function CollectionDetailPage() {
       qc.invalidateQueries({ queryKey: ['kn-stats', projectId] })
     },
   })
+
+  const editMutation = useMutation({
+    mutationFn: () => knowledgeApi.updateCollection(collectionId!, { name: editName, description: editDescription }),
+    onSuccess: () => {
+      setShowEdit(false)
+      qc.invalidateQueries({ queryKey: ['kn-collection', collectionId] })
+      qc.invalidateQueries({ queryKey: ['kn-collections', projectId] })
+    },
+  })
+
+  function openEdit() {
+    setEditName(collection?.name ?? '')
+    setEditDescription(collection?.description ?? '')
+    setShowEdit(true)
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -120,6 +141,12 @@ export function CollectionDetailPage() {
           {collection.description && <p className="text-gray-400 text-sm mt-1">{collection.description}</p>}
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={openEdit}
+            className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-200 btn-secondary"
+          >
+            <Pencil className="w-3.5 h-3.5" /> Edit
+          </button>
           <input ref={fileInputRef} type="file" accept=".txt,.md,.csv,.json,.pdf" className="hidden" onChange={handleFileChange} />
           <button onClick={() => fileInputRef.current?.click()} className="btn-secondary" disabled={uploadMutation.isPending}>
             {uploadMutation.isPending ? <Spinner size="sm" /> : <Upload className="w-4 h-4" />}
@@ -180,7 +207,11 @@ export function CollectionDetailPage() {
           ) : (
             <div className="space-y-2">
               {docs.map((doc) => (
-                <div key={doc.id} className="card p-4 flex items-center gap-4">
+                <div
+                  key={doc.id}
+                  className="card p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-800/60 transition-colors"
+                  onClick={() => navigate(`/projects/${projectId}/knowledge/collections/${collectionId}/documents/${doc.id}`)}
+                >
                   <DocumentStatusIcon status={doc.status} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-100 font-medium truncate">{doc.title}</p>
@@ -190,7 +221,7 @@ export function CollectionDetailPage() {
                     {doc.error_message && <p className="text-xs text-red-400 mt-0.5">{doc.error_message}</p>}
                   </div>
                   <button
-                    onClick={() => { if (confirm(`Delete "${doc.title}"?`)) deleteMutation.mutate(doc.id) }}
+                    onClick={(e) => { e.stopPropagation(); if (confirm(`Delete "${doc.title}"?`)) deleteMutation.mutate(doc.id) }}
                     className="text-gray-600 hover:text-red-400"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -252,6 +283,27 @@ export function CollectionDetailPage() {
           )}
         </div>
       )}
+
+      {/* Edit Collection Modal */}
+      <Modal title="Edit Collection" open={showEdit} onClose={() => setShowEdit(false)}>
+        <form onSubmit={(e) => { e.preventDefault(); editMutation.mutate() }} className="space-y-4">
+          <div>
+            <label className="label">Name *</label>
+            <input className="input" value={editName} onChange={(e) => setEditName(e.target.value)} required placeholder="Collection name" />
+          </div>
+          <div>
+            <label className="label">Description</label>
+            <textarea className="input resize-none" rows={2} value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Optional description" />
+          </div>
+          {editMutation.isError && <p className="text-xs text-red-400">Failed to save changes.</p>}
+          <div className="flex gap-3 justify-end pt-2">
+            <button type="button" className="btn-secondary" onClick={() => setShowEdit(false)}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={editMutation.isPending || !editName.trim()}>
+              {editMutation.isPending ? <Spinner size="sm" /> : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       <Modal title="Add Text Document" open={showAddText} onClose={() => setShowAddText(false)}>
         <form onSubmit={(e) => { e.preventDefault(); createTextMutation.mutate() }} className="space-y-4">

@@ -5,25 +5,25 @@ import { researchApi } from '@/api/research'
 import { Spinner } from '@/components/ui/Spinner'
 
 export function ResearchLibraryPage() {
-  const [page] = useState(1)
+  const [selectedTopicId, setSelectedTopicId] = useState<string | undefined>()
 
   const { data: topicsData, isLoading: topicsLoading } = useQuery({
-    queryKey: ['research-topics-library', page],
-    queryFn: () => researchApi.getTopics(page, 10, 'researched'),
+    queryKey: ['research-topics-library'],
+    queryFn: () => researchApi.getTopics(1, 50, 'researched'),
   })
 
-  const selectedTopicId = topicsData?.items[0]?.id
+  const activeTopicId = selectedTopicId ?? topicsData?.items[0]?.id
 
   const { data: articles, isLoading: articlesLoading } = useQuery({
-    queryKey: ['research-articles', selectedTopicId],
-    queryFn: () => selectedTopicId ? researchApi.getArticles(selectedTopicId, 1, 20) : null,
-    enabled: !!selectedTopicId,
+    queryKey: ['research-articles', activeTopicId],
+    queryFn: () => activeTopicId ? researchApi.getArticles(activeTopicId, 1, 20) : null,
+    enabled: !!activeTopicId,
   })
 
   const { data: facts } = useQuery({
-    queryKey: ['research-facts', selectedTopicId],
-    queryFn: () => selectedTopicId ? researchApi.getFacts(selectedTopicId, 1, 20) : null,
-    enabled: !!selectedTopicId,
+    queryKey: ['research-facts', activeTopicId],
+    queryFn: () => activeTopicId ? researchApi.getFacts(activeTopicId, 1, 20) : null,
+    enabled: !!activeTopicId,
   })
 
   return (
@@ -35,6 +35,22 @@ export function ResearchLibraryPage() {
         <p className="text-gray-400 text-sm mt-1">Articles and facts collected for researched topics</p>
       </div>
 
+      {/* Topic selector dropdown */}
+      {topicsData && topicsData.items.length > 0 && (
+        <div className="card p-3 flex items-center gap-3">
+          <label className="text-sm text-gray-400 flex-shrink-0">Topic:</label>
+          <select
+            className="input flex-1"
+            value={activeTopicId || ''}
+            onChange={e => setSelectedTopicId(e.target.value || undefined)}
+          >
+            {topicsData.items.map(t => (
+              <option key={t.id} value={t.id}>{t.canonical_name} ({t.article_count} articles)</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {topicsLoading ? (
         <div className="flex justify-center py-12"><Spinner /></div>
       ) : (
@@ -43,7 +59,11 @@ export function ResearchLibraryPage() {
           <div className="card p-4 space-y-2">
             <h2 className="font-semibold text-white text-sm mb-3">Researched Topics ({topicsData?.meta.total || 0})</h2>
             {topicsData?.items.map(t => (
-              <div key={t.id} className="p-2 rounded bg-gray-800 hover:bg-gray-700 cursor-pointer">
+              <div
+                key={t.id}
+                className={`p-2 rounded cursor-pointer transition-colors ${activeTopicId === t.id ? 'bg-brand-600/20 border border-brand-600/40' : 'bg-gray-800 hover:bg-gray-700'}`}
+                onClick={() => setSelectedTopicId(t.id)}
+              >
                 <p className="text-sm text-white font-medium">{t.canonical_name}</p>
                 <p className="text-xs text-gray-400">{t.article_count} articles · {t.fact_count} facts</p>
               </div>
@@ -55,7 +75,7 @@ export function ResearchLibraryPage() {
 
           {/* Articles + Facts */}
           <div className="md:col-span-2 space-y-4">
-            {selectedTopicId && (
+            {activeTopicId && (
               <>
                 <div className="card p-4">
                   <h2 className="font-semibold text-white mb-3">Articles</h2>
@@ -100,6 +120,11 @@ export function ResearchLibraryPage() {
                   </div>
                 </div>
               </>
+            )}
+            {!activeTopicId && !topicsLoading && (
+              <div className="text-center py-16 text-gray-500">
+                Select a topic to view its articles and facts.
+              </div>
             )}
           </div>
         </div>

@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronRight, Library, Plus, Trash2, FileText, Layers } from 'lucide-react'
+import { ChevronRight, Library, Plus, Trash2, FileText, Layers, Pencil } from 'lucide-react'
 import { knowledgeApi } from '@/api/knowledge'
+import type { KnowledgeCollection } from '@/api/knowledge'
 import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
 
@@ -14,6 +15,12 @@ export function CollectionsPage() {
   const [description, setDescription] = useState('')
   const [collectionType, setCollectionType] = useState('general')
   const [page, setPage] = useState(1)
+
+  // Edit state
+  const [showEdit, setShowEdit] = useState(false)
+  const [editCollection, setEditCollection] = useState<KnowledgeCollection | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editDescription, setEditDescription] = useState('')
 
   const { data, isLoading } = useQuery({
     queryKey: ['kn-collections', projectId, page],
@@ -39,6 +46,23 @@ export function CollectionsPage() {
       qc.invalidateQueries({ queryKey: ['kn-stats', projectId] })
     },
   })
+
+  const editMutation = useMutation({
+    mutationFn: () => knowledgeApi.updateCollection(editCollection!.id, { name: editName, description: editDescription }),
+    onSuccess: () => {
+      setShowEdit(false)
+      setEditCollection(null)
+      qc.invalidateQueries({ queryKey: ['kn-collections', projectId] })
+    },
+  })
+
+  function openEdit(c: KnowledgeCollection, e: React.MouseEvent) {
+    e.preventDefault()
+    setEditCollection(c)
+    setEditName(c.name)
+    setEditDescription(c.description ?? '')
+    setShowEdit(true)
+  }
 
   const collections = data?.items ?? []
   const meta = data?.meta
@@ -92,12 +116,22 @@ export function CollectionsPage() {
                     <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{c.description}</p>
                   )}
                 </div>
-                <button
-                  onClick={() => { if (confirm(`Delete "${c.name}"?`)) deleteMutation.mutate(c.id) }}
-                  className="text-gray-600 hover:text-red-400 ml-2 flex-shrink-0"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                  <button
+                    onClick={(e) => openEdit(c, e)}
+                    className="text-gray-600 hover:text-gray-300 p-1"
+                    title="Edit"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => { if (confirm(`Delete "${c.name}"?`)) deleteMutation.mutate(c.id) }}
+                    className="text-gray-600 hover:text-red-400 p-1"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center gap-4 text-xs text-gray-500">

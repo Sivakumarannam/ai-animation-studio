@@ -1,20 +1,29 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronRight, Brain, Plus, Trash2 } from 'lucide-react'
+import { ChevronRight, Brain, Plus, Trash2, XCircle } from 'lucide-react'
 import { knowledgeApi } from '@/api/knowledge'
+import type { KnowledgeMemory } from '@/api/knowledge'
 import { Spinner } from '@/components/ui/Spinner'
 import { Modal } from '@/components/ui/Modal'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 const MEMORY_TYPES = ['fact', 'rule', 'lore', 'preference', 'constraint']
 
 export function KnowledgeMemoryPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const qc = useQueryClient()
+
+  // Create
   const [showCreate, setShowCreate] = useState(false)
   const [memoryType, setMemoryType] = useState('fact')
   const [key, setKey] = useState('')
   const [valueText, setValueText] = useState('')
+
+  // Delete confirmation
+  const [showDelete, setShowDelete] = useState(false)
+  const [memoryToDelete, setMemoryToDelete] = useState<KnowledgeMemory | null>(null)
+
   const [filterType, setFilterType] = useState('')
   const [page, setPage] = useState(1)
 
@@ -34,6 +43,7 @@ export function KnowledgeMemoryPage() {
       setShowCreate(false)
       setKey('')
       setValueText('')
+      setMemoryType('fact')
       qc.invalidateQueries({ queryKey: ['kn-memory', projectId] })
       qc.invalidateQueries({ queryKey: ['kn-stats', projectId] })
     },
@@ -43,6 +53,21 @@ export function KnowledgeMemoryPage() {
     mutationFn: (id: string) => knowledgeApi.deactivateMemory(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['kn-memory', projectId] }),
   })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => knowledgeApi.deactivateMemory(id),
+    onSuccess: () => {
+      setShowDelete(false)
+      setMemoryToDelete(null)
+      qc.invalidateQueries({ queryKey: ['kn-memory', projectId] })
+      qc.invalidateQueries({ queryKey: ['kn-stats', projectId] })
+    },
+  })
+
+  function openDelete(m: KnowledgeMemory) {
+    setMemoryToDelete(m)
+    setShowDelete(true)
+  }
 
   const memories = data?.items ?? []
   const meta = data?.meta
@@ -99,14 +124,16 @@ export function KnowledgeMemoryPage() {
       {isLoading ? (
         <div className="flex justify-center py-20"><Spinner size="lg" /></div>
       ) : memories.length === 0 ? (
-        <div className="card p-12 text-center">
-          <Brain className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-400 font-medium">No memory entries</p>
-          <p className="text-gray-600 text-sm mt-1 mb-4">Add facts, rules, and lore to guide AI generation.</p>
-          <button onClick={() => setShowCreate(true)} className="btn-primary">
-            <Plus className="w-4 h-4" /> Add Memory
-          </button>
-        </div>
+        <EmptyState
+          icon={Brain}
+          title="No memory entries"
+          description="Add facts, rules, and lore to guide AI generation."
+          action={
+            <button onClick={() => setShowCreate(true)} className="btn-primary">
+              <Plus className="w-4 h-4" /> Add Memory
+            </button>
+          }
+        />
       ) : (
         <div className="space-y-3">
           {memories.map((m) => (
@@ -126,15 +153,24 @@ export function KnowledgeMemoryPage() {
                   <span>{new Date(m.created_at).toLocaleDateString()}</span>
                 </div>
               </div>
-              {m.is_active && (
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {m.is_active && (
+                  <button
+                    onClick={() => deactivateMutation.mutate(m.id)}
+                    className="text-gray-600 hover:text-yellow-400 p-1"
+                    title="Deactivate"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                )}
                 <button
-                  onClick={() => deactivateMutation.mutate(m.id)}
-                  className="text-gray-600 hover:text-red-400 flex-shrink-0"
-                  title="Deactivate"
+                  onClick={() => openDelete(m)}
+                  className="text-gray-600 hover:text-red-400 p-1"
+                  title="Delete"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
-              )}
+              </div>
             </div>
           ))}
         </div>
@@ -148,6 +184,7 @@ export function KnowledgeMemoryPage() {
         </div>
       )}
 
+      {/* Create Memory Modal */}
       <Modal title="Add Knowledge Memory" open={showCreate} onClose={() => setShowCreate(false)}>
         <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate() }} className="space-y-4">
           <div>
@@ -181,6 +218,26 @@ export function KnowledgeMemoryPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal title="Delete Memory" open={showDelete} onClose={() => setShowDelete(false)}>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-300">
+            Are you sure you want to delete memory entry <strong className="text-white">{memoryToDelete?.key}</strong>? This cannot be undone.
+          </p>
+          {deleteMutation.isError && <p className="text-xs text-red-400">Failed to delete memory entry.</p>}
+          <div className="flex gap-3 justify-end pt-2">
+            <button className="btn-secondary" onClick={() => setShowDelete(false)}>Cancel</button>
+            <button
+              className="btn-danger"
+              disabled={deleteMutation.isPending}
+              onClick={() => memoryToDelete && deleteMutation.mutate(memoryToDelete.id)}
+            >
+              {deleteMutation.isPending ? <Spinner size="sm" /> : 'Delete'}
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   )
