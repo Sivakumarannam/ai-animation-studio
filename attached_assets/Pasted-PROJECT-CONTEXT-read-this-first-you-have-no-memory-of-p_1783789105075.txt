@@ -1,0 +1,136 @@
+PROJECT CONTEXT (read this first, you have no memory of prior sessions)
+
+This is "AI Animation Studio" — an autonomous YouTube animation business platform.
+Backend: Python, FastAPI, SQLAlchemy async, PostgreSQL, Alembic, Celery, Redis.
+Frontend: React, TypeScript, Tailwind, TanStack Query.
+Storage: MinIO. Architecture pattern: models → repository → service → router →
+Celery task → frontend, kept identical across every phase.
+
+CURRENT STATE OF THE REPO (verified, not assumed):
+- Phase 1 (Auth/Projects/Asset Mgmt) — done
+- Phase 2 (Character Studio) — done, bug-fixed, see PHASE2_COMPLETION_REPORT.md
+- Phase 3 (Story Intelligence) — done, bug-fixed, see PHASE3_COMPLETION_REPORT.md
+- Phase 4 (Knowledge/RAG) — backend done, some bugs open in PHASE4_BUG_REPORT.md
+- Phase 5 (Research Intelligence) — backend done, some bugs open in PHASE5_BUG_REPORT.md
+- Phase 6 (Asset Generation) — BACKEND ONLY. Migration
+  c4e1f2a3b5d6_phase6_asset_generation_engine exists, 8 services under
+  backend/services/asset_generation/ exist, a 35-endpoint router at
+  backend/apps/api/routers/asset_generation.py exists, backend tests exist.
+  NO FRONTEND EXISTS for Phase 6 — nothing under frontend/src/pages or
+  frontend/src/api for asset generation. This must be built from scratch.
+
+A prior session started fixing a type mismatch and was interrupted before
+finishing. Describe it below so you can pick it up correctly.
+
+STEP 0 — MANDATORY AUDIT BEFORE CHANGING ANYTHING
+Run `git status` and `git diff --stat`. List every modified/untracked file and
+report it to me before proceeding. Specifically check:
+(a) whether the GenerationLog type (described in Task A below) was already
+    fixed, partially fixed, or is untouched
+(b) whether any Phase 6 frontend files already exist (partial/orphaned work)
+(c) whether a vitest config exists under frontend/ yet
+Report this list to me. Then proceed to the three tasks below IN ORDER
+(sequential — fully verify each one before starting the next; do not run them
+as parallel subagents).
+
+============================================================
+TASK A — Fix the GenerationLog frontend/backend type mismatch
+============================================================
+Problem: the frontend TypeScript interface for GenerationLog does not match
+what the backend actually returns.
+
+Backend actually sends these fields on each generation log entry:
+  step_name (string), duration_ms (number), tokens_used (number),
+  is_error (boolean), score (number), created_at (string/datetime)
+
+Frontend's current interface incorrectly expects:
+  id, job_id, message (and possibly other fields that don't match)
+
+What to do:
+1. Find the GenerationLog interface/type definition (likely in
+   frontend/src/types/ or inline in an api client file).
+2. Rewrite it to exactly match the backend fields above — do not keep the old
+   fields unless the backend genuinely also returns them (verify by reading
+   the actual Pydantic response schema in the backend, don't guess).
+3. Search the entire frontend codebase for every usage of GenerationLog
+   (imports, destructuring, .map() renders, prop types) and fix each call site
+   to use the corrected field names.
+4. If GenerationLog is not currently rendered in any page yet, just fix the
+   type and say so explicitly in your report — do not build new UI for it as
+   part of Task A (that happens in Task C if it's part of Phase 6 job
+   monitoring).
+5. Run frontend build (`npm run build`) to confirm no type errors remain.
+
+============================================================
+TASK B — Complete all remaining Phase 4 and Phase 5 bugs
+============================================================
+Source of truth: PHASE4_BUG_REPORT.md and PHASE5_BUG_REPORT.md in the repo
+root. Also cross-check MASTER_BUG_REPORT.md in case any Critical-severity
+items tagged Phase 4 or Phase 5 are still open.
+
+Requirements:
+- Fix every bug listed for Phase 4, then every bug listed for Phase 5.
+- Do NOT touch Phase 2 or Phase 3 files unless a bug report explicitly
+  references a file in those phases as the root cause.
+- Update backend, frontend, Celery tasks, routing, and tests together for
+  each bug — a bug isn't fixed until its test coverage exists and passes.
+- After Phase 4's bugs are done: run backend tests, run frontend build,
+  produce/update PHASE4_COMPLETION_REPORT.md documenting each fix.
+- After Phase 5's bugs are done: same — run backend tests, run frontend
+  build, produce/update PHASE5_COMPLETION_REPORT.md.
+- Preserve existing architecture patterns; don't refactor unrelated code.
+
+============================================================
+TASK C — Build the missing Phase 6 (Asset Generation) frontend
+============================================================
+The backend is complete and must NOT be modified in this task. Before writing
+any frontend code:
+1. Read backend/apps/api/routers/asset_generation.py fully to enumerate all
+   35 endpoints and their request/response schemas.
+2. Read the existing frontend patterns at frontend/src/pages/intelligence/
+   (Phase 3) and frontend/src/pages/knowledge/ (Phase 4) and their matching
+   API clients (frontend/src/api/storyIntelligence.ts, frontend/src/api/
+   knowledge.ts) — match this exact structure and style, don't invent a new
+   pattern.
+
+Build the following:
+- frontend/src/api/assetGeneration.ts — a typed API client function for each
+  of the 35 backend endpoints, following the existing api-client conventions
+  (TanStack Query hooks pattern used elsewhere in the repo).
+- Pages (under frontend/src/pages/asset-generation/ or matching existing
+  naming convention):
+  - Dashboard: overview stats (jobs pending/running/completed/failed, asset
+    counts by type)
+  - Job monitoring page: list of generation jobs with live status
+    (pending → running → completed/failed), using the corrected
+    GenerationLog type from Task A to show step-by-step logs per job
+  - Retry queue page: failed jobs eligible for retry, manual retry action
+  - Consistency engine review page: shows consistency check results per
+    asset/character, allows accept/reject
+  - Quality evaluation review page: shows quality scores per generated asset,
+    allows accept/regenerate
+  - Asset library browse/reuse page: search/filter generated assets by type,
+    tag, character, world; select an existing asset to reuse instead of
+    regenerating
+- Wire navigation entries into the existing sidebar/nav component the same
+  way Story Intelligence and Knowledge are wired (find the relevant nav/route
+  file first — likely AppLayout.tsx or a routes config file).
+- Add a vitest config under frontend/ if one does not already exist (check in
+  Step 0 audit).
+- Add frontend tests for each new page (rendering, basic interaction).
+- Run backend tests (should be unaffected but confirm nothing broke).
+- Run frontend build and frontend tests.
+- Produce PHASE6_COMPLETION_REPORT.md documenting what was built.
+
+============================================================
+GLOBAL RULES FOR ALL THREE TASKS
+============================================================
+- Diff first, edit minimally — do not regenerate or rewrite files that are
+  already correct.
+- Do not touch High/Medium/Low severity bugs beyond what's explicitly listed.
+- Do not modify the Phase 6 backend (models/services/router) — it's already
+  correct; Task C is frontend-only.
+- Run relevant tests after each task and confirm passing before moving to the
+  next task.
+- Stop after Task C. Do not attempt Redis/MinIO verification, git tagging, or
+  any release steps — I will do that manually afterward.

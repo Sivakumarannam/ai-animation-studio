@@ -29,8 +29,17 @@ import { RetryQueuePage } from '@/pages/intelligence/RetryQueuePage'
 import { KnowledgeDashboardPage } from '@/pages/knowledge/KnowledgeDashboardPage'
 import { CollectionsPage } from '@/pages/knowledge/CollectionsPage'
 import { CollectionDetailPage } from '@/pages/knowledge/CollectionDetailPage'
+import { DocumentDetailPage } from '@/pages/knowledge/DocumentDetailPage'
 import { KnowledgeMemoryPage } from '@/pages/knowledge/KnowledgeMemoryPage'
 import { EmbeddingJobsPage } from '@/pages/knowledge/EmbeddingJobsPage'
+// Phase 6 — Asset Generation
+import { AssetGenerationDashboardPage } from '@/pages/assetGeneration/AssetGenerationDashboardPage'
+import { GenerationJobsPage } from '@/pages/assetGeneration/GenerationJobsPage'
+import { RetryQueuePage as AssetRetryQueuePage } from '@/pages/assetGeneration/RetryQueuePage'
+import { ConsistencyEnginePage } from '@/pages/assetGeneration/ConsistencyEnginePage'
+import { QualityEvaluationPage as AssetQualityEvaluationPage } from '@/pages/assetGeneration/QualityEvaluationPage'
+import { PromptMonitoringPage } from '@/pages/assetGeneration/PromptMonitoringPage'
+import { AssetLibraryPage } from '@/pages/assetGeneration/AssetLibraryPage'
 // Phase 5 — Research & Trend Intelligence
 import { ResearchDashboardPage } from '@/pages/research/ResearchDashboardPage'
 import { TrendExplorerPage } from '@/pages/research/TrendExplorerPage'
@@ -82,8 +91,18 @@ export default function App() {
         <Route path="/projects/:projectId/knowledge" element={<KnowledgeDashboardPage />} />
         <Route path="/projects/:projectId/knowledge/collections" element={<CollectionsPage />} />
         <Route path="/projects/:projectId/knowledge/collections/:collectionId" element={<CollectionDetailPage />} />
+        <Route path="/projects/:projectId/knowledge/collections/:collectionId/documents/:documentId" element={<DocumentDetailPage />} />
         <Route path="/projects/:projectId/knowledge/memory" element={<KnowledgeMemoryPage />} />
         <Route path="/projects/:projectId/knowledge/jobs" element={<EmbeddingJobsPage />} />
+
+        {/* Phase 6 — Asset Generation */}
+        <Route path="/projects/:projectId/asset-generation" element={<AssetGenerationDashboardPage />} />
+        <Route path="/projects/:projectId/asset-generation/jobs" element={<GenerationJobsPage />} />
+        <Route path="/projects/:projectId/asset-generation/retry-queue" element={<AssetRetryQueuePage />} />
+        <Route path="/projects/:projectId/asset-generation/consistency" element={<ConsistencyEnginePage />} />
+        <Route path="/projects/:projectId/asset-generation/quality" element={<AssetQualityEvaluationPage />} />
+        <Route path="/projects/:projectId/asset-generation/prompts" element={<PromptMonitoringPage />} />
+        <Route path="/projects/:projectId/asset-generation/library" element={<AssetLibraryPage />} />
 
         {/* Phase 5 — Research & Trend Intelligence */}
         <Route path="/research" element={<ResearchDashboardPage />} />

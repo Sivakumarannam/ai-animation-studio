@@ -71,7 +71,7 @@ export function SchedulerStatusPage() {
                   </button>
                 </div>
 
-                <div className="flex items-center gap-6 text-sm border-t border-gray-800 pt-3">
+                <div className="flex items-center gap-6 text-sm border-t border-gray-800 pt-3 flex-wrap">
                   <div>
                     <p className="text-xs text-gray-500">Last Status</p>
                     <p className={`font-medium ${statusColor}`}>{status.replace(/_/g, ' ')}</p>
@@ -86,6 +86,12 @@ export function SchedulerStatusPage() {
                     <div>
                       <p className="text-xs text-gray-500">Duration</p>
                       <p className="text-gray-300">{info.last_duration_seconds.toFixed(1)}s</p>
+                    </div>
+                  )}
+                  {info?.next_run_at && (
+                    <div>
+                      <p className="text-xs text-gray-500">Next Run</p>
+                      <p className="text-gray-300">{new Date(info.next_run_at).toLocaleString()}</p>
                     </div>
                   )}
                 </div>

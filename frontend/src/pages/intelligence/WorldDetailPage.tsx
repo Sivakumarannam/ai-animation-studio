@@ -85,7 +85,7 @@ export function WorldDetailPage() {
       return storyIntelligenceApi.createMemory(worldId!, {
         key: memoryKey,
         memory_type: memoryType,
-        value: parsedValue,
+        value: parsedValue as Record<string, unknown>,
       })
     },
     onSuccess: () => {

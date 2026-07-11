@@ -23,7 +23,6 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
 export function QualityEvaluationPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const [assetId, setAssetId] = useState('')
-  const [inputVal, setInputVal] = useState('')
   const [assetPage, setAssetPage] = useState(1)
   const [evalPage, setEvalPage] = useState(1)
 

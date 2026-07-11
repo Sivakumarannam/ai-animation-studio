@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { MessageSquare, ChevronRight, X } from 'lucide-react'
+import { MessageSquare, ChevronRight } from 'lucide-react'
 import { assetGenerationApi } from '@/api/assetGeneration'
 import type { AssetPromptResponse } from '@/api/assetGeneration'
 import { Spinner } from '@/components/ui/Spinner'
@@ -9,7 +8,6 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { Modal } from '@/components/ui/Modal'
 
 export function PromptMonitoringPage() {
-  const { projectId } = useParams<{ projectId: string }>()
   const [page, setPage] = useState(1)
   const [successfulOnly, setSuccessfulOnly] = useState(false)
   const [promptType, setPromptType] = useState('')

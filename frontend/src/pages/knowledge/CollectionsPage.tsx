@@ -201,6 +201,28 @@ export function CollectionsPage() {
           </div>
         </form>
       </Modal>
+
+      <Modal title="Edit Collection" open={showEdit} onClose={() => { setShowEdit(false); setEditCollection(null) }}>
+        <form onSubmit={(e) => { e.preventDefault(); editMutation.mutate() }} className="space-y-4">
+          <div>
+            <label className="label">Name *</label>
+            <input className="input" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+          </div>
+          <div>
+            <label className="label">Description</label>
+            <textarea className="input resize-none" rows={2} value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+          </div>
+          {editMutation.isError && (
+            <p className="text-xs text-red-400">Failed to update collection.</p>
+          )}
+          <div className="flex gap-3 justify-end pt-2">
+            <button type="button" className="btn-secondary" onClick={() => { setShowEdit(false); setEditCollection(null) }}>Cancel</button>
+            <button type="submit" className="btn-primary" disabled={editMutation.isPending || !editName.trim()}>
+              {editMutation.isPending ? <Spinner size="sm" /> : 'Save'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }
