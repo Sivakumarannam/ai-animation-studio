@@ -1,0 +1,36 @@
+Found a real backend bug via manual UI testing — reproduced 100% of the time.
+
+Submitting the new "Generate" form (POST /api/v1/ag/generate/asset) fails
+with:
+  TypeError: TaskDispatcher.dispatch() got an unexpected keyword argument 'task'
+at backend/apps/api/routers/asset_generation.py line 514.
+
+There's also a RuntimeWarning: coroutine '_generate_asset_core' was never
+awaited — same root cause, a leftover coroutine from the broken dispatch call.
+
+Fix:
+1. Find TaskDispatcher's real dispatch() signature:
+   `grep -n "def dispatch" backend/workflow/*.py` (or wherever it's defined).
+2. Compare against a WORKING dispatcher.dispatch(...) call elsewhere in the
+   codebase — e.g. story_intelligence.py or research.py's generation
+   endpoints — to see the correct keyword arguments and calling convention.
+3. Fix the call at asset_generation.py line 514 (trigger_asset_generation
+   endpoint) to match the real signature. Do NOT change TaskDispatcher itself
+   unless the working callers reveal it's actually broken too — most likely
+   this one endpoint just used the wrong keyword name.
+4. Confirm the RuntimeWarning disappears too once the call is fixed
+   (it should, since it's a symptom of the same broken call).
+5. Test end-to-end: submit the New Generation form in the browser again,
+   confirm it succeeds (or at minimum dispatches without a 500), and watch
+   the Celery terminal for `Task asset.generate_asset[...] received`.
+6. Run backend tests — this suggests test_asset_generation.py's existing
+   tests either don't cover this endpoint's dispatch call at all, or they
+   mock dispatcher.dispatch() in a way that didn't catch the wrong keyword
+   argument. Check which, and add a real test that would have caught this
+   (calling the actual endpoint, not just the service function beneath it).
+7. Update PHASE6_COMPLETION_REPORT.md — this is the third distinct bug found
+   via manual testing after "complete": missing router registration,
+   pagination cap, and now this dispatch() signature mismatch. All three
+   were invisible to the existing test suite. Note that going forward,
+   the recommended check for any "generation trigger" endpoint is an actual
+   manual submit through the UI, not just a passing pytest run.
