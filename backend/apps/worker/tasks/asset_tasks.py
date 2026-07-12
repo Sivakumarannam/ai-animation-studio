@@ -87,6 +87,19 @@ def _make_repos(session):
     )
 
 
+_worker_asset_storage = None
+
+
+def _get_asset_storage():
+    """Lazily-built, process-wide MinIOStorage for generated asset images
+    (worker-side counterpart of apps/api/routers/asset_generation.py::_get_asset_storage)."""
+    global _worker_asset_storage
+    if _worker_asset_storage is None:
+        from plugins.storage.minio_storage import MinIOStorage
+        _worker_asset_storage = MinIOStorage.from_settings()
+    return _worker_asset_storage
+
+
 def _make_services(repos, image_provider, evaluation_provider, embedding_provider):
     from services.asset_generation.generation_job_service import GenerationJobService
     from services.asset_generation.prompt_generation_service import PromptGenerationService
@@ -106,7 +119,10 @@ def _make_services(repos, image_provider, evaluation_provider, embedding_provide
         ),
         shot=ShotPlanningService(repos["composition"], repos["shot"]),
         planner=AssetPlanningService(repos["asset"], repos["cache"]),
-        gen=ImageGenerationService(repos["asset"], repos["version"], repos["image"], image_provider),
+        gen=ImageGenerationService(
+            repos["asset"], repos["version"], repos["image"], image_provider,
+            storage=_get_asset_storage(),
+        ),
         eval=QualityEvaluationService(
             repos["evaluation"], repos["asset"], repos["version"],
             repos["retry"], evaluation_provider,

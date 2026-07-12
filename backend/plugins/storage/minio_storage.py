@@ -20,6 +20,23 @@ class MinIOStorage:
     ) -> None:
         self._client = Minio(endpoint, access_key=access_key, secret_key=secret_key, secure=secure)
 
+    @classmethod
+    def from_settings(cls, bucket: str | None = None) -> "MinIOStorage":
+        """Build a MinIOStorage directly from app settings, for contexts
+        without FastAPI DI (e.g. Celery workers). Ensures the given bucket
+        (default: settings.MINIO_BUCKET_ASSETS) exists before returning."""
+        from apps.api.config import get_settings
+
+        settings = get_settings()
+        storage = cls(
+            endpoint=settings.MINIO_ENDPOINT,
+            access_key=settings.MINIO_ACCESS_KEY,
+            secret_key=settings.MINIO_SECRET_KEY,
+            secure=settings.MINIO_SECURE,
+        )
+        storage.ensure_bucket(bucket or settings.MINIO_BUCKET_ASSETS)
+        return storage
+
     def ensure_bucket(self, bucket: str) -> None:
         try:
             if not self._client.bucket_exists(bucket):
@@ -47,6 +64,17 @@ class MinIOStorage:
             return key
         except S3Error as e:
             raise StorageError(f"Upload failed for '{key}': {e}") from e
+
+    def get_object_bytes(self, bucket: str, key: str) -> bytes:
+        try:
+            response = self._client.get_object(bucket, key)
+            try:
+                return response.read()
+            finally:
+                response.close()
+                response.release_conn()
+        except S3Error as e:
+            raise StorageError(f"Cannot read object '{key}': {e}") from e
 
     def get_presigned_url(self, bucket: str, key: str, expires: int = 3600) -> str:
         try:

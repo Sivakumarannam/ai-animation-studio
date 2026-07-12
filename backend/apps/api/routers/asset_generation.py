@@ -63,6 +63,17 @@ logger = structlog.get_logger()
 
 router = APIRouter(prefix="/ag", tags=["asset-generation"])
 
+_asset_storage = None
+
+
+def _get_asset_storage():
+    """Lazily-built, process-wide MinIOStorage for generated asset images."""
+    global _asset_storage
+    if _asset_storage is None:
+        from plugins.storage.minio_storage import MinIOStorage
+        _asset_storage = MinIOStorage.from_settings()
+    return _asset_storage
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # DI helpers
@@ -150,6 +161,7 @@ def _make_services(session, repos):
         "gen": ImageGenerationService(
             repos["asset"], repos["version"], repos["image"],
             get_image_provider(),
+            storage=_get_asset_storage(),
         ),
         "eval": QualityEvaluationService(
             repos["evaluation"], repos["asset"], repos["version"],
@@ -389,6 +401,30 @@ async def delete_asset(asset_id: UUID, session: SessionDep, _: CurrentUser):
     await session.commit()
 
 
+@router.get("/assets/{asset_id}/file")
+async def get_asset_file(asset_id: UUID, session: SessionDep, _: CurrentUser):
+    """Stream the generated image for this asset from MinIO, so the Asset
+    Library can actually render it (not just show its storage key)."""
+    from fastapi import HTTPException
+    from fastapi.responses import StreamingResponse
+    from plugins.storage.minio_storage import StorageError
+
+    repos = _make_repos(session)
+    asset = await repos["asset"].get_by_id(asset_id)
+    if asset is None:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if not asset.storage_key:
+        raise HTTPException(status_code=404, detail="Asset has no generated image yet")
+
+    storage = _get_asset_storage()
+    try:
+        data = storage.get_object_bytes(bucket="assets", key=asset.storage_key)
+    except StorageError:
+        raise HTTPException(status_code=404, detail="Image not found in storage")
+
+    return StreamingResponse(iter([data]), media_type=asset.mime_type or "image/png")
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Asset Versions
 # ─────────────────────────────────────────────────────────────────────────────
@@ -459,15 +495,16 @@ async def trigger_episode_generation(
     await session.commit()
 
     dispatcher = TaskDispatcher()
-    mode = await dispatcher.dispatch(
-        task=generate_episode_assets,
-        core_coro=_generate_episode_assets_core(
+    dispatch_result = await dispatcher.dispatch(
+        celery_task=generate_episode_assets,
+        core_coro_factory=lambda: _generate_episode_assets_core(
             str(job.id), str(body.episode_id), str(body.project_id),
             {"asset_types": body.asset_types, "quality_threshold": body.quality_threshold,
              "force_regenerate": body.force_regenerate, "triggered_by": "api"},
         ),
-        kwargs={
-            "job_id": str(job.id),
+        job_id=str(job.id),
+        queue="ai",
+        task_kwargs={
             "episode_id": str(body.episode_id),
             "project_id": str(body.project_id),
             "params": {
@@ -477,6 +514,7 @@ async def trigger_episode_generation(
             },
         },
     )
+    mode = dispatch_result["mode"]
     return DispatchResponse(
         job_id=job.id,
         status="dispatched",
@@ -570,11 +608,14 @@ async def retry_entry(entry_id: UUID, session: SessionDep, _: CurrentUser):
     await session.commit()
 
     dispatcher = TaskDispatcher()
-    mode = await dispatcher.dispatch(
-        task=process_retry_queue,
-        core_coro=_process_retry_queue_core(str(job.id), str(entry.project_id), {"limit": 1}),
-        kwargs={"job_id": str(job.id), "project_id": str(entry.project_id), "params": {"limit": 1}},
+    dispatch_result = await dispatcher.dispatch(
+        celery_task=process_retry_queue,
+        core_coro_factory=lambda: _process_retry_queue_core(str(job.id), str(entry.project_id), {"limit": 1}),
+        job_id=str(job.id),
+        queue="ai",
+        task_kwargs={"project_id": str(entry.project_id), "params": {"limit": 1}},
     )
+    mode = dispatch_result["mode"]
     return DispatchResponse(
         job_id=job.id,
         status="dispatched",
@@ -916,11 +957,14 @@ async def trigger_embedding_update(
     await session.commit()
 
     dispatcher = TaskDispatcher()
-    mode = await dispatcher.dispatch(
-        task=update_embeddings,
-        core_coro=_update_embeddings_core(str(job.id), str(project_id), {}),
-        kwargs={"job_id": str(job.id), "project_id": str(project_id), "params": {}},
+    dispatch_result = await dispatcher.dispatch(
+        celery_task=update_embeddings,
+        core_coro_factory=lambda: _update_embeddings_core(str(job.id), str(project_id), {}),
+        job_id=str(job.id),
+        queue="ai",
+        task_kwargs={"project_id": str(project_id), "params": {}},
     )
+    mode = dispatch_result["mode"]
     return DispatchResponse(
         job_id=job.id,
         status="dispatched",

@@ -510,6 +510,8 @@ export const assetGenerationApi = {
     apiClient.get<AssetResponse>(`${BASE}/assets/${assetId}`).then((r) => r.data),
   deleteAsset: (assetId: string) =>
     apiClient.delete(`${BASE}/assets/${assetId}`),
+  getAssetFileBlob: (assetId: string) =>
+    apiClient.get(`${BASE}/assets/${assetId}/file`, { responseType: 'blob' }).then((r) => r.data as Blob),
 
   // Asset Versions
   listAssetVersions: (assetId: string, page = 1, pageSize = 20) =>

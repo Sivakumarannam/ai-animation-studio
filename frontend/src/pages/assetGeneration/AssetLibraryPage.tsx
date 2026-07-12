@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Search, BookImage, Users, Layers, Package, SlidersHorizontal, ChevronRight } from 'lucide-react'
@@ -11,6 +11,48 @@ type LibraryTab = 'search' | 'characters' | 'backgrounds' | 'props'
 
 const ASSET_TYPES = ['character', 'background', 'prop', 'scene_layout', 'audio', 'animation']
 const STATUSES = ['completed', 'pending', 'failed', 'generating']
+
+/** Fetches the generated image via the authenticated API client (a plain
+ * <img src> can't carry the bearer token) and exposes it as an object URL. */
+function useAssetImageUrl(assetId: string, hasImage: boolean): string | null {
+  const [url, setUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!hasImage) {
+      setUrl(null)
+      return
+    }
+    let objectUrl: string | null = null
+    let cancelled = false
+    assetGenerationApi.getAssetFileBlob(assetId).then((blob) => {
+      if (cancelled) return
+      objectUrl = URL.createObjectURL(blob)
+      setUrl(objectUrl)
+    }).catch(() => {
+      if (!cancelled) setUrl(null)
+    })
+    return () => {
+      cancelled = true
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [assetId, hasImage])
+
+  return url
+}
+
+function AssetThumbnail({ asset, className }: { asset: AssetResponse; className: string }) {
+  const hasImage = asset.status === 'completed' && !!asset.storage_key
+  const imageUrl = useAssetImageUrl(asset.id, hasImage)
+
+  if (imageUrl) {
+    return <img src={imageUrl} alt={asset.name} className={`${className} object-cover`} />
+  }
+  return (
+    <div className={`${className} bg-gray-800 flex items-center justify-center`}>
+      <BookImage className="w-8 h-8 text-gray-600" />
+    </div>
+  )
+}
 
 function AssetCard({ asset, onSelect }: { asset: AssetResponse; onSelect?: (a: AssetResponse) => void }) {
   const qualityColor =
@@ -25,9 +67,7 @@ function AssetCard({ asset, onSelect }: { asset: AssetResponse; onSelect?: (a: A
       className="card p-3 space-y-2 cursor-pointer hover:border-gray-600 transition-colors"
       onClick={() => onSelect?.(asset)}
     >
-      <div className="w-full aspect-video rounded bg-gray-800 flex items-center justify-center">
-          <BookImage className="w-8 h-8 text-gray-600" />
-        </div>
+      <AssetThumbnail asset={asset} className="w-full aspect-video rounded" />
       <div>
         <p className="text-sm font-medium text-gray-100 truncate">{asset.name}</p>
         <div className="flex items-center justify-between mt-1">
@@ -286,6 +326,7 @@ export function AssetLibraryPage() {
               </div>
               <button onClick={() => setSelected(null)} className="text-gray-500 hover:text-gray-300 text-xl leading-none">×</button>
             </div>
+            <AssetThumbnail asset={selected} className="w-full aspect-video rounded" />
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div><span className="text-gray-400">Quality:</span> <span className="text-white">{selected.quality_score.toFixed(1)}</span></div>
               <div><span className="text-gray-400">Versions:</span> <span className="text-white">{selected.version_count}</span></div>

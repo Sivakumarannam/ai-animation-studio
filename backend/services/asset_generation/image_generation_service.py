@@ -31,11 +31,13 @@ class ImageGenerationService:
         version_repo: AssetVersionRepository,
         image_repo: GeneratedImageRepository,
         image_provider,               # agents.interfaces.image_provider.ImageProvider
+        storage=None,                 # plugins.storage.minio_storage.MinIOStorage
     ) -> None:
         self._asset_repo = asset_repo
         self._version_repo = version_repo
         self._image_repo = image_repo
         self._provider = image_provider
+        self._storage = storage
 
     async def generate_for_asset(
         self,
@@ -85,6 +87,18 @@ class ImageGenerationService:
 
         # Storage key (MinIO object path)
         storage_key = _make_storage_key(asset, prompt)
+
+        # Upload the generated image bytes to MinIO so it can actually be
+        # viewed later (via the /assets/file/{storage_key} endpoint). Mirrors
+        # the upload pattern used for user-uploaded assets in
+        # apps/api/routers/asset_manager.py::upload_asset_file.
+        if self._storage is not None:
+            self._storage.upload_bytes(
+                bucket="assets",
+                key=storage_key,
+                data=image_data,
+                content_type="image/png",
+            )
 
         # Persist GeneratedImage
         gen_image = GeneratedImage(
@@ -147,6 +161,8 @@ class ImageGenerationService:
         asset.storage_key = storage_key
         asset.width = actual_width
         asset.height = actual_height
+        asset.file_size_bytes = len(image_data)
+        asset.mime_type = "image/png"
         await self._asset_repo._session.flush()
 
         return version, gen_image
