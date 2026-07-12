@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Film, ChevronRight, CheckCircle2, History, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Film, ChevronRight, CheckCircle2, History, Pencil, Trash2, Wand2 } from 'lucide-react'
 import { storyIntelligenceApi } from '@/api/storyIntelligence'
+import { assetGenerationApi } from '@/api/assetGeneration'
 import type { StoryScene } from '@/types'
 import { Spinner } from '@/components/ui/Spinner'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -26,6 +27,10 @@ export function EpisodeDetailPage() {
 
   // Delete episode
   const [showDeleteEp, setShowDeleteEp] = useState(false)
+
+  // Generate assets
+  const [showGenAssets, setShowGenAssets] = useState(false)
+  const [genForceRegen, setGenForceRegen] = useState(false)
 
   // Edit scene
   const [showEditScene, setShowEditScene] = useState(false)
@@ -61,6 +66,16 @@ export function EpisodeDetailPage() {
   const evaluateMutation = useMutation({
     mutationFn: () => storyIntelligenceApi.evaluateEpisode(episodeId!),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['si-episode', episodeId] }),
+  })
+
+  const generateAssetsMutation = useMutation({
+    mutationFn: () =>
+      assetGenerationApi.triggerEpisodeGeneration({
+        episode_id: episodeId!,
+        project_id: projectId!,
+        force_regenerate: genForceRegen,
+      }),
+    onSuccess: () => setShowGenAssets(false),
   })
 
   const createSceneMutation = useMutation({
@@ -172,6 +187,13 @@ export function EpisodeDetailPage() {
         <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-800">
           <button onClick={() => evaluateMutation.mutate()} className="btn-secondary" disabled={evaluateMutation.isPending}>
             {evaluateMutation.isPending ? <Spinner size="sm" /> : <CheckCircle2 className="w-4 h-4" />} Evaluate
+          </button>
+          <button
+            onClick={() => setShowGenAssets(true)}
+            className="btn-primary flex items-center gap-1.5"
+            data-testid="generate-assets-btn"
+          >
+            <Wand2 className="w-4 h-4" /> Generate Assets
           </button>
           <button onClick={() => setShowVersions(true)} className="btn-secondary">
             <History className="w-4 h-4" /> Version History
@@ -329,6 +351,52 @@ export function EpisodeDetailPage() {
             <button className="btn-secondary" onClick={() => setShowDeleteScene(false)}>Cancel</button>
             <button className="btn-danger" disabled={deleteSceneMutation.isPending} onClick={() => sceneToDelete && deleteSceneMutation.mutate(sceneToDelete.id)}>
               {deleteSceneMutation.isPending ? <Spinner size="sm" /> : 'Delete Scene'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Generate Assets */}
+      <Modal title="Generate Assets for Episode" open={showGenAssets} onClose={() => setShowGenAssets(false)}>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-400">
+            Queues an AI generation job for all assets in{' '}
+            <strong className="text-white">Ep {episode.episode_number}: {episode.title}</strong>.
+          </p>
+          <label className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="rounded border-gray-700"
+              checked={genForceRegen}
+              onChange={(e) => setGenForceRegen(e.target.checked)}
+              disabled={generateAssetsMutation.isPending}
+            />
+            Force re-generate already-completed assets
+          </label>
+          {generateAssetsMutation.isError && (
+            <p className="text-xs text-red-400">Failed to queue generation job.</p>
+          )}
+          {generateAssetsMutation.isSuccess && (
+            <p className="text-xs text-green-400">Generation job queued successfully.</p>
+          )}
+          <div className="flex gap-3 justify-end pt-2">
+            <button
+              className="btn-secondary"
+              onClick={() => setShowGenAssets(false)}
+              disabled={generateAssetsMutation.isPending}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn-primary flex items-center gap-1.5"
+              onClick={() => generateAssetsMutation.mutate()}
+              disabled={generateAssetsMutation.isPending}
+              data-testid="confirm-generate-assets"
+            >
+              {generateAssetsMutation.isPending
+                ? <><Spinner size="sm" /> Queuing…</>
+                : <><Wand2 className="w-4 h-4" /> Generate</>
+              }
             </button>
           </div>
         </div>

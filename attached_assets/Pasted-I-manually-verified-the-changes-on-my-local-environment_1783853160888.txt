@@ -1,0 +1,51 @@
+I manually verified the changes on my local environment, pushed them to the GitHub repository, and pulled the latest updates a few minutes ago. Please check the pull status and proceed with the steps below.
+
+Found the exact gap via manual testing + code inspection — no investigation
+needed, just build this directly.
+
+frontend/src/api/assetGeneration.ts already exports two fully-typed,
+working functions: triggerAssetGeneration(data: TriggerAssetGenerationRequest)
+and triggerEpisodeGeneration(data: TriggerEpisodeGenerationRequest), calling
+real backend endpoints POST /generate/asset and /generate/episode. These
+dispatch to the real, working Celery task (asset.generate_asset), confirmed
+manually to register correctly and run async.
+
+However, NO page in the frontend actually calls either function. I checked
+GenerationJobsPage.tsx directly — it only has tab-switching, pagination, and
+a retry button for existing failed jobs. There is no "Generate" button
+anywhere in the Asset Generation UI. A user cannot start a new generation
+job at all right now.
+
+Fix:
+1. Read the TriggerAssetGenerationRequest and TriggerEpisodeGenerationRequest
+   type definitions to know exactly what fields are required (likely
+   character_id, asset_type, project_id, maybe a prompt/style override —
+   confirm exact shape before building the form).
+2. Add a "New Generation" button to GenerationJobsPage.tsx (or its own
+   modal/panel triggered from there) that opens a small form:
+   - Asset type selector (character reference, background, prop, etc. —
+     check what asset_type values the backend actually accepts)
+   - Character selector (pull from the existing characters API for this
+     project)
+   - Optional prompt/style override field
+   - Submit button calling assetGenerationApi.triggerAssetGeneration(...)
+3. On successful submit, the new job should appear in the jobs list (poll or
+   invalidate the query so it shows up without a manual refresh).
+4. Add the equivalent trigger for triggerEpisodeGeneration if there's a
+   sensible place for it (likely on the Story Intelligence episode detail
+   page instead, if that's where "generate all assets for this episode"
+   conceptually belongs — check with me if unsure which page fits better
+   before building it).
+5. Add a frontend test confirming the button renders and calls the API
+   function with the right payload on submit.
+6. Run frontend build and tests.
+7. Update PHASE6_COMPLETION_REPORT.md — note that the dashboard, job
+   monitor, retry queue, and API client were all real and correct, but the
+   actual "start a generation" trigger UI was missing entirely and has now
+   been added. This is the second UI-completeness gap found via manual
+   testing (after the router-mount bug) — going forward, verify every
+   button a user would need to actually use the feature exists, not just
+   that the display/monitoring pages render.
+
+Do not touch the backend or API client — both are already correct and
+tested. This is frontend UI only.
