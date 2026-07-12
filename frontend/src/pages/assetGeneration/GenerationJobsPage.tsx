@@ -25,7 +25,9 @@ function statusColor(status: string) {
   switch (status) {
     case 'completed': return 'text-green-400'
     case 'failed':    return 'text-red-400'
+    case 'exhausted': return 'text-red-400'
     case 'running':   return 'text-blue-400'
+    case 'retrying':  return 'text-orange-400'
     case 'pending':   return 'text-yellow-400'
     default:          return 'text-gray-400'
   }
@@ -355,15 +357,19 @@ export function GenerationJobsPage() {
                           Retried {entry.retry_count}/{entry.max_retries} times
                         </p>
                       </div>
-                      <div className="flex-shrink-0">
+                      <div className="flex-shrink-0 flex flex-col items-end gap-1">
                         <button
                           onClick={() => retryMutation.mutate(entry.id)}
-                          disabled={retryMutation.isPending}
-                          className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"
+                          disabled={retryMutation.isPending || entry.status === 'exhausted'}
+                          title={entry.status === 'exhausted' ? 'Max retries reached' : undefined}
+                          className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           {retryMutation.isPending ? <Spinner size="sm" /> : <RefreshCw className="w-3 h-3" />}
                           Retry
                         </button>
+                        {entry.status === 'exhausted' && (
+                          <span className="text-[10px] text-red-400">Max retries reached</span>
+                        )}
                       </div>
                     </div>
                   </div>
