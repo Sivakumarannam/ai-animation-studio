@@ -699,3 +699,50 @@ class TestGenerateAssetEndpointDispatch:
         assert "core_coro_factory=" in src, "must call dispatch(core_coro_factory=...) (lazy, not eagerly-created coroutine)"
         assert "\n        task=generate_asset" not in src, "must not use the old, wrong 'task=' kwarg"
         assert "core_coro=_generate_asset_core" not in src, "must not use the old, wrong 'core_coro=' kwarg (creates an unawaited coroutine)"
+
+    @pytest.mark.asyncio
+    async def test_generate_asset_reaches_completed(self, client, auth_headers, project):
+        """End-to-end regression: after dispatch succeeds, the Celery task
+        must actually reach status 'completed' (not just 'received' then
+        crash/retry). This catches bugs downstream of dispatch too, such as
+        ImageProvider.generate() being called with the wrong keyword
+        arguments, or a stdlib task logger being called with structlog-style
+        kwargs it doesn't accept."""
+        project_id = project["id"]
+
+        r = await client.post(
+            "/ag/projects", headers=auth_headers,
+            json={"project_id": project_id, "name": "AG Project"},
+        )
+        assert r.status_code == 201, f"ag project create failed: {r.text}"
+
+        r = await client.post(
+            "/ag/assets", headers=auth_headers,
+            json={"project_id": project_id, "name": "Asset 1", "asset_type": "character"},
+        )
+        assert r.status_code == 201, f"asset create failed: {r.text}"
+        asset_id = r.json()["id"]
+
+        r = await client.post(
+            "/ag/generate/asset", headers=auth_headers,
+            json={"asset_id": asset_id, "force_regenerate": False, "custom_params": {}},
+        )
+        assert r.status_code == 202, f"generate/asset should dispatch, got: {r.status_code} {r.text}"
+        job_id = r.json()["job_id"]
+
+        status = None
+        for _ in range(20):
+            await asyncio.sleep(1)
+            r = await client.get(f"/ag/jobs/{job_id}", headers=auth_headers)
+            assert r.status_code == 200
+            status = r.json()["status"]
+            if status in ("completed", "failed"):
+                break
+        assert status == "completed", f"job never completed (last status={status}): {r.text}"
+
+        r = await client.get(f"/ag/assets/{asset_id}", headers=auth_headers)
+        assert r.status_code == 200
+        asset = r.json()
+        assert asset["status"] == "completed"
+        assert asset["version_count"] >= 1
+        assert asset["storage_key"]

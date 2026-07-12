@@ -143,11 +143,81 @@ keyword arguments.
     are very likely broken the same way. Only the reported endpoint
     (`/ag/generate/asset`) was fixed here per explicit scope; the other three
     still need the identical fix.
-  - **Separately noticed, not fixed (out of scope):** once dispatch succeeds,
-    the Celery task itself fails with `RuntimeError: Image provider failed
-    ... ImageProvider.generate() got an unexpected keyword argument 'prompt'`
-    — a distinct bug in the asset-generation task's call into the (mock)
-    image provider, unrelated to the dispatcher.
+- **BUG-6-XXX — `ImageProvider.generate()` called with the wrong keyword
+  arguments in `ImageGenerationService.generate_for_asset`**
+  (`backend/services/asset_generation/image_generation_service.py`): once the
+  dispatch bug above was fixed, the Celery task itself failed on every run
+  with `RuntimeError: Image provider failed for asset ...:
+  ImageProvider.generate() got an unexpected keyword argument 'prompt'`.
+  - Root cause: the service called `self._provider.generate(prompt=...,
+    negative_prompt=..., width=..., height=..., steps=..., cfg_scale=...,
+    sampler=..., seed=...)` — flat kwargs — but `ImageProvider`'s real
+    interface (`agents/interfaces/image_provider.py`) takes a single
+    `ImageGenerationRequest` dataclass (`generate_image(request)`, with
+    `generate()` as a backward-compat alias that forwards to it), and
+    returns an `ImageGenerationResult` dataclass, not a dict. The service was
+    also reading the result back as `gen_result.get("image_data")` /
+    `.get("job_id")`, which doesn't exist on that dataclass either. The
+    interface was the source of truth — `ComfyUIProvider`, the only
+    production implementation, is written correctly against it.
+  - Fixed by building an `ImageGenerationRequest` (mapping `cfg_scale` →
+    `guidance_scale`; `sampler` has no interface field, so it's now only
+    persisted in local `generation_params`), calling
+    `generate_image(request)`, and reading the response via
+    `gen_result.image_bytes` / `.width` / `.height` / `.seed` /
+    `.metadata`.
+  - **Also discovered while chasing this down:** the project had no "mock"
+    image backend at all — `_register_image()` in
+    `agents/provider_factory.py` always instantiated `ComfyUIProvider`
+    unconditionally, unlike every other provider (LLM, embedding, vector
+    store, research, evaluation), which default to a zero-dependency mock
+    and only use a real backend when explicitly configured. That meant
+    asset generation could never complete in this environment (no ComfyUI
+    server running) even with the call signature fixed. Brought image
+    generation in line with the rest of the codebase: added
+    `agents/implementations/mock_image_provider.py` (deterministic
+    placeholder PNGs, via Pillow, no external dependency), a new
+    `AG_IMAGE_PROVIDER` setting (default `"mock"`, `"comfyui"` for the real
+    backend), and updated `_register_image()` to select between them the
+    same way `_register_llm()`/`_register_embedding()` already do.
+  - **Also discovered while re-testing:** the Celery task itself
+    (`apps/worker/tasks/asset_tasks.py`) used `get_task_logger()` (a plain
+    stdlib `logging.Logger`) but called it with structlog-style keyword
+    arguments (e.g. `logger.info("generate_asset_complete", asset_id=...,
+    quality=...)`) in 6 places. Every other task module in the same
+    directory uses the same stdlib logger but only ever calls it with
+    plain f-strings — `asset_tasks.py` was the one file that drifted to the
+    structlog calling convention, which raised
+    `TypeError: Logger._log() got an unexpected keyword argument 'asset_id'`
+    and forced the task into an infinite 30s retry loop. Converted all 6
+    call sites to f-strings to match the convention used everywhere else in
+    `apps/worker/tasks/`.
+  - **Verified end-to-end, this time to real completion:** submitted a
+    generation request via the live API (register → login → create
+    project → create ag_project → create asset → `POST
+    /ag/generate/asset`) and polled the job. Full cycle observed for the
+    first time: job `pending` → `completed` in under a second, asset status
+    `pending` → `completed`, `version_count: 1`, a real `storage_key`
+    assigned, `quality_score: 95.79` (passed the 90.0 threshold), and the
+    asset shows up in the `GET /ag/assets` library listing with status
+    `completed`. Celery worker log shows `Task asset.generate_asset[...]
+    received` immediately followed by successful completion — no more
+    retry loop.
+  - Added `TestGenerateAssetEndpointDispatch.test_generate_asset_reaches_completed`
+    in `backend/tests/test_asset_generation.py`, which drives the real
+    endpoint through to a polled `completed` status — this is the first
+    test in the suite that exercises the full dispatch → generate →
+    evaluate → complete pipeline against live infrastructure (Redis +
+    Celery worker), rather than mocking any layer of it.
+  - **Known gap, not fixed (separate from the reported bug):** the
+    generated image bytes are never uploaded to MinIO — `MinIOStorage
+    .upload_bytes()` is defined but nothing in the asset-generation path
+    calls it, and the API never returns a presigned URL for a generated
+    image. The DB records (asset, version, generated-image, quality score)
+    are all fully correct, and this is what "appears in the Asset Library"
+    is currently based on, but there's no way yet to actually view the
+    generated image itself. This is a larger, separate feature gap, not a
+    bug in the reported dispatch/provider signature issue.
 
 ---
 

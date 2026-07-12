@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
+from agents.interfaces.image_provider import ImageGenerationRequest
 from database.models.asset_generation import GeneratedAsset as Asset, AssetPrompt, GeneratedAssetVersion as AssetVersion, GeneratedImage
 from repositories.asset_generation_repository import (
     AssetRepository,
@@ -53,30 +54,34 @@ class ImageGenerationService:
         sampler = params.get("sampler", "euler_a")
         seed = int(params.get("seed", _deterministic_seed(prompt.full_prompt)))
 
-        # Call the image provider
+        # Call the image provider. ImageProvider.generate_image() takes a single
+        # ImageGenerationRequest and returns an ImageGenerationResult — both are
+        # dataclasses defined on the interface (agents/interfaces/image_provider.py).
+        # `sampler` has no equivalent field on ImageGenerationRequest; it's only
+        # persisted locally in generation_params below.
         try:
             start_ms = _now_ms()
-            gen_result = await self._provider.generate(
+            request = ImageGenerationRequest(
                 prompt=prompt.full_prompt,
                 negative_prompt=prompt.full_negative_prompt,
                 width=width_str,
                 height=height_str,
                 steps=steps,
-                cfg_scale=cfg,
-                sampler=sampler,
+                guidance_scale=cfg,
                 seed=seed,
             )
+            gen_result = await self._provider.generate_image(request)
             duration_ms = _now_ms() - start_ms
         except Exception as exc:
             # Provider error — propagate with context
             raise RuntimeError(f"Image provider failed for asset {asset.id}: {exc}") from exc
 
-        # Provider returns a dict with at least: image_data, width, height, seed
-        image_data: str = gen_result.get("image_data", "")
-        actual_width: int = int(gen_result.get("width", width_str))
-        actual_height: int = int(gen_result.get("height", height_str))
-        actual_seed: int = int(gen_result.get("seed", seed))
-        provider_job_id: str = str(gen_result.get("job_id", ""))
+        # Provider returns an ImageGenerationResult dataclass.
+        image_data: bytes = gen_result.image_bytes
+        actual_width: int = gen_result.width
+        actual_height: int = gen_result.height
+        actual_seed: int = gen_result.seed if gen_result.seed >= 0 else seed
+        provider_job_id: str = str(gen_result.metadata.get("prompt_id", ""))
 
         # Storage key (MinIO object path)
         storage_key = _make_storage_key(asset, prompt)
@@ -100,7 +105,7 @@ class ImageGenerationService:
                 "sampler": sampler,
                 "seed": actual_seed,
             },
-            raw_metadata=gen_result,
+            raw_metadata=dict(gen_result.metadata),
         )
         gen_image = await self._image_repo.create(gen_image)
 

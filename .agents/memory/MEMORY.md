@@ -7,3 +7,4 @@
 - [Celery dispatch mode in tests](celery-dispatch-mode-tests.md) — when Redis is running, TaskDispatcher uses async/celery mode; tests asserting `mode == "sync"` break. Always assert `mode in ("sync", "async", "celery")`.
 - [session_scope for Celery task cores](session-scope-fix.md) — `async for session in get_session()` skips commit on `return`; use `async with session_scope()`. Celery fork+asyncpg also needs `NullPool`.
 - [TaskDispatcher.dispatch() call signature](taskdispatcher-call-signature.md) — real kwargs are celery_task/core_coro_factory/job_id/queue/task_kwargs; some call sites drift to made-up task/core_coro/kwargs names untested by mocked dispatcher tests.
+- [ImageProvider interface contract](image-provider-interface-mismatch.md) — takes an ImageGenerationRequest dataclass, not flat kwargs; every AI provider should default to a "mock" backend, image provider didn't.

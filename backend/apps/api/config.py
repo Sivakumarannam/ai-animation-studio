@@ -146,6 +146,13 @@ class Settings(BaseSettings):
     # Asset evaluation provider: "mock"
     AG_EVALUATION_PROVIDER: str = "mock"
 
+    # Image provider selection: "mock" (deterministic placeholder images,
+    # no external dependency) | "comfyui" (real SDXL backend, requires a
+    # running ComfyUI server). Defaults to "mock" so the pipeline works
+    # out of the box without a GPU/ComfyUI instance.
+    AG_IMAGE_PROVIDER: str = "mock"
+    COMFYUI_BASE_URL: str = "http://localhost:8188"
+
     # Quality threshold (0–100) — images below this score are retried
     AG_QUALITY_THRESHOLD: float = 90.0
 

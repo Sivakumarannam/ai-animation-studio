@@ -81,10 +81,32 @@ def _register_llm(settings: object, registry: ProviderRegistry) -> None:
 
 
 def _register_image(settings: object, registry: ProviderRegistry) -> None:
-    from agents.implementations.comfyui_provider import ComfyUIProvider
+    """
+    Select the image implementation based on `AG_IMAGE_PROVIDER`.
 
-    base_url: str = getattr(settings, "COMFYUI_BASE_URL", "http://localhost:8188")
-    registry.register(ImageProvider, ComfyUIProvider(base_url=base_url))
+    Supported values today: "mock" (deterministic placeholder images, zero
+    dependency) and "comfyui" (real SDXL backend via a running ComfyUI
+    server). Unknown/future values fall back to "mock" with a warning so
+    the app never crashes at startup.
+    """
+    provider_name: str = getattr(settings, "AG_IMAGE_PROVIDER", "mock").lower()
+
+    if provider_name == "comfyui":
+        from agents.implementations.comfyui_provider import ComfyUIProvider
+
+        base_url: str = getattr(settings, "COMFYUI_BASE_URL", "http://localhost:8188")
+        registry.register(ImageProvider, ComfyUIProvider(base_url=base_url))
+        return
+
+    if provider_name != "mock":
+        logger.warning(
+            "image_provider_unsupported_falling_back_to_mock",
+            requested=provider_name,
+        )
+
+    from agents.implementations.mock_image_provider import MockImageProvider
+
+    registry.register(ImageProvider, MockImageProvider())
 
 
 def _register_tts(settings: object, registry: ProviderRegistry) -> None:

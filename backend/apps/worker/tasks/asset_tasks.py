@@ -169,7 +169,7 @@ async def _plan_episode_assets_core(job_id: str, episode_id: str, project_id: st
 
             if job:
                 await job_svc.complete_job(job.id, result)
-            logger.info("plan_episode_assets_complete", result=result)
+            logger.info(f"plan_episode_assets_complete result={result}")
             return result
         except Exception as exc:
             if job:
@@ -247,10 +247,8 @@ async def _generate_asset_core(job_id: str, asset_id: str, params: dict) -> dict
             if job:
                 await job_svc.complete_job(job.id, result)
             logger.info(
-                "generate_asset_complete",
-                asset_id=asset_id,
-                quality=evaluation.overall_score,
-                passed=evaluation.passed_threshold,
+                f"generate_asset_complete asset_id={asset_id} "
+                f"quality={evaluation.overall_score} passed={evaluation.passed_threshold}"
             )
             return result
         except Exception as exc:
@@ -339,7 +337,7 @@ async def _generate_episode_assets_core(job_id: str, episode_id: str, project_id
                     else:
                         failed += 1
                 except Exception as exc:
-                    logger.warning("asset_generation_failed", asset_id=str(aid), error=str(exc))
+                    logger.warning(f"asset_generation_failed asset_id={aid} error={exc}")
                     failed += 1
 
             duration = round(time.time() - start, 2)
@@ -372,7 +370,7 @@ async def _generate_episode_assets_core(job_id: str, episode_id: str, project_id
             }
             if job:
                 await job_svc.complete_job(job.id, result)
-            logger.info("generate_episode_assets_complete", **result)
+            logger.info(f"generate_episode_assets_complete {result}")
             return result
         except Exception as exc:
             if job:
@@ -448,7 +446,7 @@ async def _process_retry_queue_core(job_id: str, project_id: str, params: dict) 
                             exhausted += 1
                         # else stays pending for next run
                 except Exception as exc:
-                    logger.warning("retry_failed", asset_id=str(entry.asset_id), error=str(exc))
+                    logger.warning(f"retry_failed asset_id={entry.asset_id} error={exc}")
                     if entry.retry_count >= entry.max_retries:
                         await retry_svc.mark_exhausted(entry)
                         exhausted += 1
@@ -522,10 +520,11 @@ class BaseAssetTask(celery_app.Task):  # type: ignore[misc]
     abstract = True
 
     def on_failure(self, exc, task_id, args, kwargs, einfo):
-        logger.error("task_failed", task=self.name, task_id=task_id, error=str(exc))
+        logger.error(f"task_failed task={self.name} task_id={task_id} error={exc}")
 
     def on_success(self, retval, task_id, args, kwargs):
-        logger.info("task_success", task=self.name, result_keys=list(retval.keys()) if isinstance(retval, dict) else [])
+        result_keys = list(retval.keys()) if isinstance(retval, dict) else []
+        logger.info(f"task_success task={self.name} result_keys={result_keys}")
 
 
 @celery_app.task(
