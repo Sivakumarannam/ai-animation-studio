@@ -642,3 +642,60 @@ class TestJobLifecycleE2E:
         loop = asyncio.get_event_loop()
         loop.run_until_complete(svc.fail_job(uuid.UUID(job_id), "Image generation failed"))
         assert job_repo.fail_job.called
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 16. POST /ag/generate/asset — live endpoint dispatch call
+#
+# Regression test for a bug where the endpoint called
+# `dispatcher.dispatch(task=..., core_coro=..., kwargs=...)` but
+# TaskDispatcher.dispatch()'s real signature is
+# `dispatch(celery_task=..., core_coro_factory=..., job_id=..., queue=..., task_kwargs=...)`.
+# That mismatch raised a TypeError inside the endpoint (500) and left the
+# eagerly-constructed `core_coro` coroutine unawaited. Unit tests that mock
+# `dispatcher.dispatch` wholesale (or call the service layer directly) never
+# exercise the real keyword arguments, so this must hit the actual endpoint.
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestGenerateAssetEndpointDispatch:
+    @pytest.mark.asyncio
+    async def test_generate_asset_dispatches_without_error(self, client, auth_headers, project):
+        """POST /ag/generate/asset must accept the request and dispatch a
+        Celery task (or run the sync fallback) instead of raising a 500 from
+        a keyword-argument mismatch on TaskDispatcher.dispatch()."""
+        project_id = project["id"]
+
+        r = await client.post(
+            "/ag/projects", headers=auth_headers,
+            json={"project_id": project_id, "name": "AG Project"},
+        )
+        assert r.status_code == 201, f"ag project create failed: {r.text}"
+
+        r = await client.post(
+            "/ag/assets", headers=auth_headers,
+            json={"project_id": project_id, "name": "Asset 1", "asset_type": "character"},
+        )
+        assert r.status_code == 201, f"asset create failed: {r.text}"
+        asset_id = r.json()["id"]
+
+        r = await client.post(
+            "/ag/generate/asset", headers=auth_headers,
+            json={"asset_id": asset_id, "force_regenerate": False, "custom_params": {}},
+        )
+        assert r.status_code == 202, f"generate/asset should dispatch, got: {r.status_code} {r.text}"
+        body = r.json()
+        assert body["dispatch_mode"] in ("sync", "async", "celery")
+        assert body["status"] == "dispatched"
+
+    def test_dispatch_call_uses_real_dispatcher_signature(self):
+        """Static guard: the call site must use TaskDispatcher's real keyword
+        arguments (celery_task/core_coro_factory/job_id/queue/task_kwargs),
+        not the made-up task/core_coro/kwargs names that caused the bug."""
+        import inspect
+        from apps.api.routers import asset_generation as mod
+
+        src = inspect.getsource(mod.trigger_asset_generation)
+        assert "celery_task=" in src, "must call dispatch(celery_task=...)"
+        assert "core_coro_factory=" in src, "must call dispatch(core_coro_factory=...) (lazy, not eagerly-created coroutine)"
+        assert "\n        task=generate_asset" not in src, "must not use the old, wrong 'task=' kwarg"
+        assert "core_coro=_generate_asset_core" not in src, "must not use the old, wrong 'core_coro=' kwarg (creates an unawaited coroutine)"

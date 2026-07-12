@@ -105,6 +105,50 @@ Bugs confirmed already fixed from prior session (verified, not re-done):
 - **BUG-5-007** — Send to Story Intelligence ✅ (OpportunityBoardPage)
 - **BUG-5-014** — Scheduler next run time ✅ (SchedulerStatusPage)
 
+### Post-"complete" bugs found via manual UI testing
+
+Three distinct bugs have now been found by actually exercising the app after
+it was marked "complete," none of which were caught by the passing pytest
+suite: a missing router registration, a pagination cap, and (this session)
+a dispatcher call signature mismatch. All three were invisible to the
+existing tests because those tests exercised the service layer or mocked
+the dispatcher wholesale, never the real endpoint call site with real
+keyword arguments.
+
+- **BUG-6-XXX — `TaskDispatcher.dispatch()` wrong keyword arguments in
+  `trigger_asset_generation`** (`POST /ag/generate/asset`): the endpoint
+  called `dispatcher.dispatch(task=generate_asset, core_coro=_generate_asset_core(...), kwargs={...})`,
+  but `TaskDispatcher.dispatch()`'s real signature is
+  `dispatch(celery_task=..., core_coro_factory=..., job_id=..., queue=..., task_kwargs=...)`.
+  This raised `TypeError: TaskDispatcher.dispatch() got an unexpected keyword
+  argument 'task'` on every submission of the "New Generation" form, and the
+  eagerly-constructed `core_coro` coroutine (built before the call failed)
+  was left unawaited, producing a `RuntimeWarning`.
+  - Fixed by matching the call to the same pattern used by the working
+    callers in `story_intelligence.py`/`research.py`: `celery_task=`,
+    `core_coro_factory=` (a lambda, so the coroutine is only constructed if
+    actually needed), `job_id=`, `queue="ai"`, `task_kwargs=`.
+  - Verified end-to-end: registered a user, created a project/asset, and
+    POSTed to `/ag/generate/asset` — now returns `202` with
+    `dispatch_mode=async` and the Celery worker logs `Task
+    asset.generate_asset[...] received`. No more 500, no more RuntimeWarning.
+  - Added `TestGenerateAssetEndpointDispatch` in
+    `backend/tests/test_asset_generation.py`, which hits the real endpoint
+    (not just the service layer) and asserts a `202` — this test would have
+    caught the original bug, since the existing suite only checked that the
+    route existed, never dispatched through it.
+  - **Scope note:** the other three `TaskDispatcher.dispatch()` call sites in
+    `asset_generation.py` (`trigger_episode_generation`, `retry_entry`, and
+    one more) use the same wrong `task=`/`core_coro=`/`kwargs=` signature and
+    are very likely broken the same way. Only the reported endpoint
+    (`/ag/generate/asset`) was fixed here per explicit scope; the other three
+    still need the identical fix.
+  - **Separately noticed, not fixed (out of scope):** once dispatch succeeds,
+    the Celery task itself fails with `RuntimeError: Image provider failed
+    ... ImageProvider.generate() got an unexpected keyword argument 'prompt'`
+    — a distinct bug in the asset-generation task's call into the (mock)
+    image provider, unrelated to the dispatcher.
+
 ---
 
 ## Tests

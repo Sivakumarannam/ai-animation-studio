@@ -511,11 +511,14 @@ async def trigger_asset_generation(
     await session.commit()
 
     dispatcher = TaskDispatcher()
-    mode = await dispatcher.dispatch(
-        task=generate_asset,
-        core_coro=_generate_asset_core(str(job.id), str(body.asset_id), body.custom_params),
-        kwargs={"job_id": str(job.id), "asset_id": str(body.asset_id), "params": body.custom_params},
+    dispatch_result = await dispatcher.dispatch(
+        celery_task=generate_asset,
+        core_coro_factory=lambda: _generate_asset_core(str(job.id), str(body.asset_id), body.custom_params),
+        job_id=str(job.id),
+        queue="ai",
+        task_kwargs={"asset_id": str(body.asset_id), "params": body.custom_params},
     )
+    mode = dispatch_result["mode"]
     return DispatchResponse(
         job_id=job.id,
         status="dispatched",
