@@ -40,6 +40,8 @@ import { ConsistencyEnginePage } from '@/pages/assetGeneration/ConsistencyEngine
 import { QualityEvaluationPage as AssetQualityEvaluationPage } from '@/pages/assetGeneration/QualityEvaluationPage'
 import { PromptMonitoringPage } from '@/pages/assetGeneration/PromptMonitoringPage'
 import { AssetLibraryPage } from '@/pages/assetGeneration/AssetLibraryPage'
+// Workflow Control
+import { WorkflowPipelinePage } from '@/pages/workflow/WorkflowPipelinePage'
 // Phase 5 — Research & Trend Intelligence
 import { ResearchDashboardPage } from '@/pages/research/ResearchDashboardPage'
 import { TrendExplorerPage } from '@/pages/research/TrendExplorerPage'
@@ -103,6 +105,8 @@ export default function App() {
         <Route path="/projects/:projectId/asset-generation/quality" element={<AssetQualityEvaluationPage />} />
         <Route path="/projects/:projectId/asset-generation/prompts" element={<PromptMonitoringPage />} />
         <Route path="/projects/:projectId/asset-generation/library" element={<AssetLibraryPage />} />
+        {/* Workflow Control */}
+        <Route path="/projects/:projectId/pipeline" element={<WorkflowPipelinePage />} />
 
         {/* Phase 5 — Research & Trend Intelligence */}
         <Route path="/research" element={<ResearchDashboardPage />} />

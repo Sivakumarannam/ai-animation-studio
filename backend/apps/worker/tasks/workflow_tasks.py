@@ -56,6 +56,7 @@ def run_pipeline(
     user_id: str,
     plugin_id: str,
     settings: dict[str, Any],
+    run_id: str | None = None,
 ) -> dict[str, Any]:
     """
     Start a full generation pipeline for a story.
@@ -79,6 +80,7 @@ def run_pipeline(
             user_id=user_id,
             plugin_id=plugin_id,
             settings=settings,
+            run_id=run_id,  # Use API-provided run_id when given (enables immediate status polling)
         )
         executor = _build_executor()
         try:
@@ -194,6 +196,70 @@ def run_single_step(
     except Exception as exc:
         logger.error(f"run_single_step failed run_id={run_id} step={step_name} error={exc}")
         raise self.retry(exc=exc, countdown=15)
+
+
+# ---------------------------------------------------------------------------
+# Pause / Cancel Celery wrappers
+# ---------------------------------------------------------------------------
+
+@celery_app.task(
+    bind=True,
+    name="workflow.pause_run",
+    queue="default",
+    max_retries=1,
+    acks_late=True,
+)
+def pause_run(self: Task, run_id: str) -> dict[str, Any]:
+    """
+    Thin Celery wrapper for WorkflowExecutor.pause().
+    Sets run state to PAUSED in Redis; the in-flight pipeline detects this at
+    the next step boundary via the state_refresher hook.
+    """
+    logger.info(f"pause_run run_id={run_id}")
+
+    async def _pause():
+        executor = _build_executor()
+        try:
+            ctx = await executor.pause(run_id)
+            return ctx.to_dict()
+        finally:
+            await executor.close()
+
+    try:
+        return _run_async(_pause())
+    except Exception as exc:
+        logger.error(f"pause_run failed run_id={run_id} error={exc}")
+        raise self.retry(exc=exc, countdown=5)
+
+
+@celery_app.task(
+    bind=True,
+    name="workflow.cancel_run",
+    queue="default",
+    max_retries=1,
+    acks_late=True,
+)
+def cancel_run(self: Task, run_id: str) -> dict[str, Any]:
+    """
+    Thin Celery wrapper for WorkflowExecutor.cancel().
+    Sets run state to CANCELLED in Redis; any in-flight Celery task will detect
+    this at the next step boundary and exit cleanly.
+    """
+    logger.info(f"cancel_run run_id={run_id}")
+
+    async def _cancel():
+        executor = _build_executor()
+        try:
+            ctx = await executor.cancel(run_id)
+            return ctx.to_dict()
+        finally:
+            await executor.close()
+
+    try:
+        return _run_async(_cancel())
+    except Exception as exc:
+        logger.error(f"cancel_run failed run_id={run_id} error={exc}")
+        raise self.retry(exc=exc, countdown=5)
 
 
 # Import here to avoid circular reference issues

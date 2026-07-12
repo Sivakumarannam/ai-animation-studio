@@ -1,0 +1,66 @@
+Audit finding: backend/workflow/executor.py only implements execute(), resume(),
+and get_status(). It does NOT implement pause() or cancel() — those exist only
+as transition labels in state_machine.py's table, with no method behind them.
+Also: there are two `def _build_pipeline` methods (lines ~120 and ~133), the
+second silenced with `# noqa: F811`, meaning one silently shadows the other.
+
+Do the following, in order:
+
+1. First, explain: which _build_pipeline (line 120 or 133) is actually the one
+   that runs, confirm whether the other is genuinely dead code, and either
+   remove the dead one or merge them if they diverge in meaningful ways.
+   Do NOT change pipeline behavior when doing this — if they're functionally
+   identical, just delete the redundant one.
+
+2. Implement pause(run_id) on WorkflowExecutor: transition the run's state to
+   PAUSED via the existing state machine, persist that state to Redis via the
+   existing _save_context, and ensure execute()/resume() check for PAUSED
+   state and halt before starting the next step (not mid-step — pausing must
+   happen at a clean step boundary).
+
+3. Implement cancel(run_id): transition to CANCELLED via the state machine,
+   persist to Redis, and ensure any in-flight Celery task for that run's
+   current step checks for CANCELLED state and exits cleanly rather than
+   continuing to the next step.
+
+4. Implement delete(run_id): remove the run's Redis context and any
+   associated DB records. Only allow this when state is COMPLETED, CANCELLED,
+   or FAILED — raise an error if called on a RUNNING or PAUSED run (must
+   cancel first).
+
+5. Create backend/apps/api/routers/workflow.py exposing:
+   - GET /workflow/runs?project_id=...
+   - GET /workflow/runs/{run_id}
+   - POST /workflow/runs/{run_id}/pause
+   - POST /workflow/runs/{run_id}/resume  (already have executor.resume(), just wire it)
+   - POST /workflow/runs/{run_id}/cancel
+   - DELETE /workflow/runs/{run_id}
+   Match existing router conventions (auth dependency, error handling, schemas)
+   from story_intelligence.py or research.py.
+
+6. Add Celery task wrappers for pause/cancel dispatch if needed, following the
+   asset_tasks.py pattern (thin task, async core, session_scope).
+
+7. Build one frontend page: project-level "Automation Pipeline" dashboard,
+   listing runs with live per-step status across the 7 existing steps
+   (StoryGeneration → SceneBreakdown → CharacterResolution → AssetGeneration →
+   VoiceGeneration → SubtitleGeneration → VideoRender), with Start / Pause /
+   Resume / Cancel / Delete buttons wired to the endpoints above. Match
+   existing frontend page patterns.
+
+8. Add tests: executor pause/cancel/delete unit tests, router endpoint tests,
+   and confirm resume() still correctly skips already-completed steps after
+   a pause→resume cycle (this is the existing resume() behavior — don't
+   break it).
+
+9. Run backend tests, run frontend build.
+
+10. Produce WORKFLOW_CONTROL_COMPLETION_REPORT.md. It must explicitly state:
+    - Whether the duplicate _build_pipeline was dead code, and what was done
+      about it
+    - That pause/cancel were newly implemented (not pre-existing, despite the
+      state machine table appearing to support them)
+    - That Thumbnail/SEO/Publish steps were NOT touched — pipeline still ends
+      at VideoRenderStep
+
+Do not add Thumbnail, SEO, or YouTube-publish steps in this task.

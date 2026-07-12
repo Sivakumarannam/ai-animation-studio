@@ -6,10 +6,12 @@ Design:
 - Pipeline.run() executes them in order, updating WorkflowContext as it goes.
 - Failed (non-retryable) steps halt the pipeline unless the step is marked optional.
 - Steps that already completed (ctx.completed_steps) are skipped — resume support.
+- A state_refresher callback is called before each step so externally-requested
+  pause/cancel signals are detected at a clean step boundary (not mid-step).
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Awaitable, Callable
 
 import structlog
 
@@ -19,6 +21,9 @@ from workflow.state_machine import WorkflowStateMachine
 from workflow.step import BaseStep, StepResult
 
 logger = structlog.get_logger()
+
+# Type alias for the optional state-refresh callback
+StateRefresher = Callable[[], Awaitable[None]]
 
 
 class Pipeline:
@@ -33,11 +38,13 @@ class Pipeline:
         tracker: ProgressTracker | None = None,
         state_machine: WorkflowStateMachine | None = None,
         stop_on_failure: bool = True,
+        state_refresher: StateRefresher | None = None,
     ) -> None:
         self._steps = list(steps)
         self._tracker = tracker
         self._sm = state_machine or WorkflowStateMachine()
         self._stop_on_failure = stop_on_failure
+        self._state_refresher = state_refresher
 
     @classmethod
     def builder(cls) -> "PipelineBuilder":
@@ -56,6 +63,9 @@ class Pipeline:
         Execute all steps in order.
         Updates ctx.state and emits progress events along the way.
         Returns the final context (mutated in place).
+
+        Pause/cancel are detected at step boundaries: before each step the pipeline
+        refreshes state from Redis, then halts cleanly if PAUSED or CANCELLED.
         """
         total = len(self._steps)
         ctx.state = self._sm.transition(ctx.state, "start")
@@ -64,6 +74,22 @@ class Pipeline:
         for idx, step in enumerate(self._steps):
             base_pct = (idx / total) * 100.0
             end_pct = ((idx + 1) / total) * 100.0
+
+            # ── Interrupt check: detect pause/cancel at a clean step boundary ──
+            if self._state_refresher is not None:
+                await self._state_refresher()
+
+            if ctx.state == WorkflowState.PAUSED:
+                logger.info("pipeline_paused_at_boundary", run_id=ctx.run_id, next_step=step.name)
+                await self._emit(ctx, step.name, base_pct, f"Paused before: {step.description}", status="paused")
+                return ctx
+
+            if ctx.state == WorkflowState.CANCELLED:
+                logger.info("pipeline_cancelled_at_boundary", run_id=ctx.run_id, next_step=step.name)
+                await self._emit(ctx, step.name, base_pct, "Workflow cancelled", status="cancelled")
+                return ctx
+            # ─────────────────────────────────────────────────────────────────
+
             ctx.current_step = step.name
 
             await self._emit(ctx, step.name, base_pct, f"Starting: {step.description}")
@@ -125,6 +151,7 @@ class PipelineBuilder:
         self._steps: list[BaseStep] = []
         self._tracker: ProgressTracker | None = None
         self._stop_on_failure: bool = True
+        self._state_refresher: StateRefresher | None = None
 
     def add(self, step: BaseStep) -> "PipelineBuilder":
         self._steps.append(step)
@@ -132,6 +159,14 @@ class PipelineBuilder:
 
     def with_tracker(self, tracker: ProgressTracker) -> "PipelineBuilder":
         self._tracker = tracker
+        return self
+
+    def with_state_refresher(self, refresher: StateRefresher) -> "PipelineBuilder":
+        """
+        Register a callback that is awaited before each step to detect
+        externally-requested pause/cancel signals.
+        """
+        self._state_refresher = refresher
         return self
 
     def continue_on_failure(self) -> "PipelineBuilder":
@@ -143,4 +178,5 @@ class PipelineBuilder:
             steps=self._steps,
             tracker=self._tracker,
             stop_on_failure=self._stop_on_failure,
+            state_refresher=self._state_refresher,
         )
