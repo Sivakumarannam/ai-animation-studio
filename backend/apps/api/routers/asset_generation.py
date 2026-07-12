@@ -209,7 +209,7 @@ async def get_dashboard(
             a.retry_count
             for a in (await repos["asset"].get_by_project(
                 project_id,
-                PaginationParams(page=1, page_size=1000),
+                PaginationParams(page=1, page_size=100),
             )).items
         ),
         avg_quality_score=await repos["evaluation"].get_avg_score([project_id]),

@@ -35,6 +35,7 @@ from apps.api.routers import (
     knowledge,
     research,
     workflow as workflow_router,
+    asset_generation,
 )
 from database.connection import close_db, init_db
 from packages.core.exceptions import AppError
@@ -206,6 +207,9 @@ v1.include_router(research.router)
 
 # Workflow Control (pause / cancel / delete / list runs)
 v1.include_router(workflow_router.router)
+
+# Phase 6 — AI Asset Generation Engine
+v1.include_router(asset_generation.router)
 
 app.mount(API_V1_PREFIX, v1)
 
