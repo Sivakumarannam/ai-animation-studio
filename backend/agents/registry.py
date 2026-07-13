@@ -208,3 +208,12 @@ def get_crawler_provider() -> "CrawlerProvider":
 def get_asset_evaluation_provider() -> "AssetEvaluationProvider":
     from agents.interfaces.asset_evaluation_provider import AssetEvaluationProvider
     return get_provider_registry().resolve(AssetEvaluationProvider)
+
+
+# ---------------------------------------------------------------------------
+# Phase 7 — Animation Engine providers
+# ---------------------------------------------------------------------------
+
+def get_animation_provider():
+    from agents.interfaces.animation_provider import AnimationProvider
+    return get_provider_registry().resolve(AnimationProvider)

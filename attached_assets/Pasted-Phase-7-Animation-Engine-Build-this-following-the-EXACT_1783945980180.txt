@@ -1,0 +1,85 @@
+Phase 7 — Animation Engine. Build this following the EXACT same architecture
+pattern as Phases 3-6 (models → repository → service → router → Celery task
+→ frontend), not as loose workflow steps.
+
+CONTEXT — what already exists, do not duplicate:
+- backend/workflow/steps/render_step.py, character_step.py, scene_step.py —
+  these are pipeline-step wrappers for the 7-step Automation Pipeline
+  (Phase 3-6 orchestration). Read them first to understand what they
+  currently call.
+- backend/agents/implementations/ffmpeg_renderer.py — real FFmpeg wrapper,
+  check its interface before building around it.
+- backend/services/animation_service.py — a 709-line legacy service. Read
+  it fully first. Decide whether it's the right foundation to build Phase 7
+  on top of, or whether it's outdated/disconnected code that should be
+  replaced. Tell me which, with reasoning, before writing new code.
+
+SCOPE — Phase 7 takes Phase 6's completed, quality-passed image assets
+(character/background/prop images now confirmed working end-to-end) and
+composites them into actual animated scene clips: character positioning,
+basic movement/transitions between poses, camera pans/zooms if in scope,
+and lip-sync placeholder timing (real lip-sync audio comes in Phase 8,
+but scene timing should account for dialogue duration).
+
+Build:
+1. SQLAlchemy models (an_* table prefix, following ag_* convention) for:
+   scene compositions, animation jobs, render outputs, retry queue —
+   mirror Phase 6's model shape (AssetGenerationJob → AnimationJob, etc.)
+2. Alembic migration.
+3. Repository layer.
+4. Service layer: SceneCompositionService, RenderJobService,
+   RetryEngineService (reuse Phase 6's retry pattern/thresholds if it fits).
+5. FastAPI router (/an prefix) — CRUD + trigger-generation endpoints,
+   following asset_generation.py's shape.
+6. Celery tasks in a new apps/worker/tasks/animation_tasks.py — CAREFULLY
+   copy the CORRECT dispatcher.dispatch(...) call signature this time
+   (celery_task=, core_coro_factory=, job_id=, queue=, task_kwargs=) — this
+   exact mistake (task=, core_coro=, kwargs=) caused two separate bugs in
+   Phase 6 that took multiple rounds to find. Grep every dispatch call you
+   write against the real TaskDispatcher signature before considering it done.
+7. REGISTER the new router in backend/apps/api/main.py's import block AND
+   include_router calls — Phase 6's router was built correctly but never
+   wired into main.py for an entire session, causing 404s that looked like
+   a bigger bug. Do not repeat this. Confirm registration by actually
+   starting the server and curling the new endpoint, not just checking the
+   file exists.
+8. REGISTER the new Celery task module in apps/worker/main.py's include=[...]
+   list — same class of bug, different location, also happened in Phase 6.
+9. Add a mock renderer/animation provider (following the AG_IMAGE_PROVIDER
+   pattern from Phase 6) so this works with zero external dependencies in
+   dev, falling back to real FFmpeg only when configured.
+10. Frontend: dashboard + job monitoring + retry queue pages, following
+    Phase 6's page structure. INCLUDE THE ACTUAL TRIGGER BUTTON THIS TIME —
+    Phase 6 shipped a fully-built job monitor with no way to start a job for
+    an entire session. Confirm a user can click a real "Generate Animation"
+    button and it calls the real API.
+11. Nav card wiring into ProjectDetailPage.tsx and route registration in
+    App.tsx.
+12. Tests: unit tests for services, AND at least one test that drives the
+    real endpoint end-to-end (dispatch → task → completion), the way
+    TestGenerateAssetEndpointDispatch does for Phase 6 — not just
+    service-layer tests that never touch the real dispatch call.
+
+BEFORE claiming this is complete, self-check against this list — Phase 6
+needed 6 rounds of manual testing to find bugs invisible to passing unit
+tests:
+- [ ] Did you actually start the server and curl every new endpoint, not
+      just confirm the router file exists?
+- [ ] Did you actually start the Celery worker and confirm the new task
+      names appear in the [tasks] startup log?
+- [ ] Did you grep every dispatcher.dispatch(...) call you wrote against
+      the real signature?
+- [ ] Is there an actual clickable button in the frontend that triggers
+      generation, confirmed by you loading the page (describe what you did
+      to confirm, don't just say "built")?
+- [ ] Does a real end-to-end test exist that isn't just mocking the
+      dispatcher/service layer away?
+
+Produce PHASE7_COMPLETION_REPORT.md. In it, explicitly list any known gaps
+or things NOT verified end-to-end — do not claim something works unless
+you've actually observed it complete via a real API call or Celery log,
+the same standard used to close out Phase 6.
+
+Run backend tests once at the end, run frontend build once at the end.
+Stop after that — I will do the manual browser/Celery verification myself,
+the same way I did for Phase 6.

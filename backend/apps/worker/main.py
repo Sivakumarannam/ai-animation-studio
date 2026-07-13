@@ -31,6 +31,7 @@ celery_app = Celery(
         "apps.worker.tasks.knowledge_tasks",
         "apps.worker.tasks.research_tasks",
         "apps.worker.tasks.asset_tasks",
+        "apps.worker.tasks.animation_tasks",
     ],
 )
 

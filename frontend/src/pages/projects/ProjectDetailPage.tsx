@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
-import { BookOpen, Users, ChevronRight, Sparkles, Library, Wand2, GitBranch } from 'lucide-react'
+import { BookOpen, Users, ChevronRight, Sparkles, Library, Wand2, GitBranch, Film } from 'lucide-react'
 import { projectsApi } from '@/api/projects'
 import { Spinner } from '@/components/ui/Spinner'
 
@@ -27,6 +27,7 @@ export function ProjectDetailPage() {
     { label: 'Story Intelligence', description: 'AI-driven worlds, seasons, episodes & analytics', icon: Sparkles, to: `/projects/${projectId}/intelligence` },
     { label: 'Knowledge Intelligence', description: 'RAG knowledge base for AI story generation', icon: Library, to: `/projects/${projectId}/knowledge` },
     { label: 'Asset Generation', description: 'AI asset generation engine — images, audio, animations', icon: Wand2, to: `/projects/${projectId}/asset-generation` },
+    { label: 'Animation Engine', description: 'Phase 7 — composite assets into animated scene clips', icon: Film, to: `/projects/${projectId}/animation` },
     { label: 'Automation Pipeline', description: 'Full 7-step generation pipeline — story to video', icon: GitBranch, to: `/projects/${projectId}/pipeline` },
   ]
 

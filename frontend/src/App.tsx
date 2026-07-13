@@ -32,6 +32,11 @@ import { CollectionDetailPage } from '@/pages/knowledge/CollectionDetailPage'
 import { DocumentDetailPage } from '@/pages/knowledge/DocumentDetailPage'
 import { KnowledgeMemoryPage } from '@/pages/knowledge/KnowledgeMemoryPage'
 import { EmbeddingJobsPage } from '@/pages/knowledge/EmbeddingJobsPage'
+// Phase 7 — Animation Engine
+import { AnimationDashboardPage } from '@/pages/animationEngine/AnimationDashboardPage'
+import { AnimationJobsPage } from '@/pages/animationEngine/AnimationJobsPage'
+import { AnimationOutputsPage } from '@/pages/animationEngine/AnimationOutputsPage'
+import { AnimationRetryQueuePage } from '@/pages/animationEngine/AnimationRetryQueuePage'
 // Phase 6 — Asset Generation
 import { AssetGenerationDashboardPage } from '@/pages/assetGeneration/AssetGenerationDashboardPage'
 import { GenerationJobsPage } from '@/pages/assetGeneration/GenerationJobsPage'
@@ -96,6 +101,12 @@ export default function App() {
         <Route path="/projects/:projectId/knowledge/collections/:collectionId/documents/:documentId" element={<DocumentDetailPage />} />
         <Route path="/projects/:projectId/knowledge/memory" element={<KnowledgeMemoryPage />} />
         <Route path="/projects/:projectId/knowledge/jobs" element={<EmbeddingJobsPage />} />
+
+        {/* Phase 7 — Animation Engine */}
+        <Route path="/projects/:projectId/animation" element={<AnimationDashboardPage />} />
+        <Route path="/projects/:projectId/animation/jobs" element={<AnimationJobsPage />} />
+        <Route path="/projects/:projectId/animation/outputs" element={<AnimationOutputsPage />} />
+        <Route path="/projects/:projectId/animation/retry-queue" element={<AnimationRetryQueuePage />} />
 
         {/* Phase 6 — Asset Generation */}
         <Route path="/projects/:projectId/asset-generation" element={<AssetGenerationDashboardPage />} />

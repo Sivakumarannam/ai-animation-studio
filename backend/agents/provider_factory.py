@@ -40,6 +40,8 @@ def setup_providers(settings: object, registry: ProviderRegistry) -> None:
     _register_crawler(settings, registry)
     # Phase 6 — Asset Generation providers
     _register_asset_evaluation(settings, registry)
+    # Phase 7 — Animation Engine providers
+    _register_animation(settings, registry)
 
     registered = registry.list_registered()
     logger.info("providers_registered", providers=registered)
@@ -243,3 +245,33 @@ def _register_asset_evaluation(settings: object, registry: ProviderRegistry) -> 
     from agents.interfaces.asset_evaluation_provider import AssetEvaluationProvider
     from agents.implementations.mock_asset_evaluation_provider import MockAssetEvaluationProvider
     registry.register(AssetEvaluationProvider, MockAssetEvaluationProvider())
+
+
+# ---------------------------------------------------------------------------
+# Phase 7 — Animation Engine providers
+# ---------------------------------------------------------------------------
+
+def _register_animation(settings: object, registry: ProviderRegistry) -> None:
+    """
+    Select the animation rendering backend based on `AN_ANIMATION_PROVIDER`.
+
+    Supported values: "mock" (deterministic, zero-dependency) and
+    "ffmpeg" (real FFmpeg compositing). Unknown values fall back to "mock".
+    """
+    from agents.interfaces.animation_provider import AnimationProvider
+
+    provider_name: str = getattr(settings, "AN_ANIMATION_PROVIDER", "mock").lower()
+
+    if provider_name == "ffmpeg":
+        try:
+            from agents.implementations.ffmpeg_animation_provider import FFmpegAnimationProvider
+            registry.register(AnimationProvider, FFmpegAnimationProvider())
+            return
+        except Exception as exc:
+            logger.warning("ffmpeg_animation_provider_unavailable_falling_back_to_mock", error=str(exc))
+
+    if provider_name != "mock":
+        logger.warning("animation_provider_unsupported_falling_back_to_mock", requested=provider_name)
+
+    from agents.implementations.mock_animation_provider import MockAnimationProvider
+    registry.register(AnimationProvider, MockAnimationProvider())
