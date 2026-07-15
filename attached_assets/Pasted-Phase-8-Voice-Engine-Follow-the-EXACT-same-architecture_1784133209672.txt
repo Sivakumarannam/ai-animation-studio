@@ -1,0 +1,74 @@
+Phase 8 — Voice Engine. Follow the EXACT same architecture and process
+discipline that made Phase 7 succeed cleanly on first real test: models →
+repository → service → router → Celery task → frontend, mirroring Phase 6
+and 7's shape precisely.
+
+CONTEXT — what already exists, do not duplicate:
+- backend/agents/implementations/piper_provider.py — real Piper TTS wrapper,
+  read its interface first.
+- backend/workflow/steps/voice_step.py — pipeline-step wrapper used by the
+  7-step Automation Pipeline. Read it to understand current usage, but
+  Phase 8 needs its own real service layer, not just this stub.
+- Phase 7's AnimationRenderOutput pattern (an_render_outputs) — Phase 8's
+  voice output should follow the identical shape (vo_* table prefix).
+
+SCOPE — Phase 8 generates voice audio per character per scene/dialogue
+line: multi-voice (male/female/child/narrator), multi-language, emotion
+control, per-character voice consistency. Input: Phase 3's scene/dialogue
+data (Story Intelligence) + Phase 2's character voice profile field.
+Output: real audio files usable by Phase 10 (Video Assembly) for lip-sync
+timing.
+
+Build:
+1. SQLAlchemy models (vo_* prefix): VoiceGenerationJob, VoiceOutput,
+   VoiceRetryQueue — same shape as an_jobs/an_render_outputs/an_retry_queue.
+2. Alembic migration (check current head first: `alembic heads` — merge
+   cleanly if needed).
+3. Repository layer.
+4. Service layer: VoiceGenerationService (calls provider per dialogue line),
+   RetryEngineService (reuse Phase 6/7 pattern: max_retries=3).
+5. Provider interface (backend/agents/interfaces/voice_provider.py) with
+   VoiceGenerationRequest/VoiceGenerationResult dataclasses — model this on
+   Phase 7's AnimationProvider interface shape exactly, since that one
+   worked correctly on the first try.
+6. MockVoiceProvider (deterministic, zero-dependency) AND a real
+   PiperVoiceProvider wrapping the existing piper_provider.py, selected via
+   a VO_VOICE_PROVIDER env var (mirror AG_IMAGE_PROVIDER / AN_ANIMATION_PROVIDER).
+7. FastAPI router (/vo prefix) — literal routes before parameterized
+   (Phase 7's lesson). REGISTER in apps/api/main.py's import block AND
+   include_router calls — confirm by actually curling a new endpoint after
+   starting the server, not just checking the file.
+8. Celery tasks in apps/worker/tasks/voice_tasks.py — voice.generate_line,
+   voice.generate_scene (all lines in a scene), voice.process_retry_queue.
+   Every dispatcher.dispatch() call MUST use celery_task=, core_coro_factory=,
+   job_id=, queue=, task_kwargs= — grep-check this yourself against the real
+   TaskDispatcher signature before considering it done, do not just copy
+   Phase 7's calls blindly, verify.
+9. REGISTER the new task module in apps/worker/main.py's include=[...] list
+   — confirm by starting the worker and checking the task names appear in
+   the [tasks] startup log yourself before reporting complete.
+10. Frontend: dashboard + job monitoring + outputs + retry queue pages,
+    following Phase 7's page structure exactly (it worked). Include the
+    actual "Generate Voice" trigger button and modal from the start.
+11. Nav card in ProjectDetailPage.tsx, routes in App.tsx.
+12. Tests: unit tests per service/provider, PLUS a dispatcher-signature
+    verification test and a full end-to-end dispatch-to-completion test
+    (mirror TestGenerateSceneEndpointDispatch from Phase 7 exactly — that
+    pattern caught real bugs before manual testing had to).
+
+SELF-CHECK before claiming complete (same checklist that made Phase 7 solid):
+- [ ] Actually started the server, curled every new endpoint
+- [ ] Actually started Celery, confirmed new task names in startup log
+- [ ] Grepped every dispatcher.dispatch() call against the real signature
+- [ ] Actually clicked through the frontend pages you built and confirmed
+      the trigger button exists and calls the real API
+- [ ] Ran alembic upgrade head against a real Postgres and confirmed the
+      new tables exist (not just "migration file created")
+
+Produce PHASE8_COMPLETION_REPORT.md, explicitly listing anything NOT
+verified end-to-end (be honest, like Phase 7's report was about episode
+render).
+
+Run backend tests once, frontend build once. Stop after that — I will
+personally test the real end-to-end flow (submit a real voice generation,
+watch Celery, check output) myself before this is considered done.

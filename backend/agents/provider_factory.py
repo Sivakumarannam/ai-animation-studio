@@ -42,6 +42,8 @@ def setup_providers(settings: object, registry: ProviderRegistry) -> None:
     _register_asset_evaluation(settings, registry)
     # Phase 7 — Animation Engine providers
     _register_animation(settings, registry)
+    # Phase 8 — Voice Engine providers
+    _register_voice(settings, registry)
 
     registered = registry.list_registered()
     logger.info("providers_registered", providers=registered)
@@ -275,3 +277,36 @@ def _register_animation(settings: object, registry: ProviderRegistry) -> None:
 
     from agents.implementations.mock_animation_provider import MockAnimationProvider
     registry.register(AnimationProvider, MockAnimationProvider())
+
+
+# ---------------------------------------------------------------------------
+# Phase 8 — Voice Engine providers
+# ---------------------------------------------------------------------------
+
+def _register_voice(settings: object, registry: ProviderRegistry) -> None:
+    """
+    Select the voice synthesis backend based on `VO_VOICE_PROVIDER`.
+
+    Supported values: "mock" (deterministic, zero-dependency) and
+    "piper" (real Piper TTS binary). Unknown values fall back to "mock".
+    """
+    from agents.interfaces.voice_provider import VoiceProvider
+
+    provider_name: str = getattr(settings, "VO_VOICE_PROVIDER", "mock").lower()
+
+    if provider_name == "piper":
+        try:
+            from agents.implementations.piper_voice_provider import PiperVoiceProvider
+
+            piper_binary: str = getattr(settings, "PIPER_BINARY", "piper")
+            models_dir: str = getattr(settings, "PIPER_MODELS_DIR", "/models/piper")
+            registry.register(VoiceProvider, PiperVoiceProvider(piper_binary=piper_binary, models_dir=models_dir))
+            return
+        except Exception as exc:
+            logger.warning("piper_voice_provider_unavailable_falling_back_to_mock", error=str(exc))
+
+    if provider_name != "mock":
+        logger.warning("voice_provider_unsupported_falling_back_to_mock", requested=provider_name)
+
+    from agents.implementations.mock_voice_provider import MockVoiceProvider
+    registry.register(VoiceProvider, MockVoiceProvider())

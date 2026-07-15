@@ -217,3 +217,12 @@ def get_asset_evaluation_provider() -> "AssetEvaluationProvider":
 def get_animation_provider():
     from agents.interfaces.animation_provider import AnimationProvider
     return get_provider_registry().resolve(AnimationProvider)
+
+
+# ---------------------------------------------------------------------------
+# Phase 8 — Voice Engine providers
+# ---------------------------------------------------------------------------
+
+def get_voice_provider():
+    from agents.interfaces.voice_provider import VoiceProvider
+    return get_provider_registry().resolve(VoiceProvider)

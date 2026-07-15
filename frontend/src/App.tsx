@@ -37,6 +37,11 @@ import { AnimationDashboardPage } from '@/pages/animationEngine/AnimationDashboa
 import { AnimationJobsPage } from '@/pages/animationEngine/AnimationJobsPage'
 import { AnimationOutputsPage } from '@/pages/animationEngine/AnimationOutputsPage'
 import { AnimationRetryQueuePage } from '@/pages/animationEngine/AnimationRetryQueuePage'
+// Phase 8 — Voice Engine
+import { VoiceDashboardPage } from '@/pages/voiceEngine/VoiceDashboardPage'
+import { VoiceJobsPage } from '@/pages/voiceEngine/VoiceJobsPage'
+import { VoiceOutputsPage } from '@/pages/voiceEngine/VoiceOutputsPage'
+import { VoiceRetryQueuePage } from '@/pages/voiceEngine/VoiceRetryQueuePage'
 // Phase 6 — Asset Generation
 import { AssetGenerationDashboardPage } from '@/pages/assetGeneration/AssetGenerationDashboardPage'
 import { GenerationJobsPage } from '@/pages/assetGeneration/GenerationJobsPage'
@@ -107,6 +112,12 @@ export default function App() {
         <Route path="/projects/:projectId/animation/jobs" element={<AnimationJobsPage />} />
         <Route path="/projects/:projectId/animation/outputs" element={<AnimationOutputsPage />} />
         <Route path="/projects/:projectId/animation/retry-queue" element={<AnimationRetryQueuePage />} />
+
+        {/* Phase 8 — Voice Engine */}
+        <Route path="/projects/:projectId/voice" element={<VoiceDashboardPage />} />
+        <Route path="/projects/:projectId/voice/jobs" element={<VoiceJobsPage />} />
+        <Route path="/projects/:projectId/voice/outputs" element={<VoiceOutputsPage />} />
+        <Route path="/projects/:projectId/voice/retry-queue" element={<VoiceRetryQueuePage />} />
 
         {/* Phase 6 — Asset Generation */}
         <Route path="/projects/:projectId/asset-generation" element={<AssetGenerationDashboardPage />} />
