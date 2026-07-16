@@ -635,7 +635,151 @@ class TestGenerateSceneEndpointDispatch:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 7. Celery task module registration verification
+# 7. Regression: render_episode DB scene lookup
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestRenderEpisodeSceneLookup:
+    """
+    Regression tests for the bug where render_episode silently produced
+    scenes_rendered=0 when no 'scenes' list was included in params.
+
+    Root cause: `_render_episode_core` did `scenes = params.get("scenes", [])` and
+    never queried the DB.  Fix: fall back to querying si_story_scenes by episode_id;
+    raise ValueError if that also returns zero rows.
+    """
+
+    def _make_mock_story_scene(self, scene_number: int, episode_id_str: str):
+        import uuid
+        from unittest.mock import MagicMock
+        s = MagicMock()
+        s.id = uuid.uuid4()
+        s.scene_number = scene_number
+        s.episode_id = uuid.UUID(episode_id_str)
+        s.image_prompt = f"scene {scene_number} image prompt"
+        s.animation_prompt = f"scene {scene_number} animation prompt"
+        s.character_names = []
+        s.duration_seconds = 5.0
+        s.camera_direction = "static"
+        s.dialogue = []
+        return s
+
+    def _build_mock_context(self, story_scenes):
+        """Return (mock_session_scope, mock_repos, mock_svcs, mock_output) wired together."""
+        import uuid
+        from unittest.mock import AsyncMock, MagicMock
+        from database.models.animation_engine import AnimationJob, AnimationRenderOutput
+
+        mock_output = MagicMock(spec=AnimationRenderOutput)
+        mock_output.id = uuid.uuid4()
+        mock_output.storage_key = "mock/render/output.mp4"
+
+        mock_job = MagicMock(spec=AnimationJob)
+        mock_job.id = uuid.uuid4()
+        mock_job.status = "pending"
+
+        # session — execute() returns a chain that ends in .scalars().all()
+        mock_execute_result = MagicMock()
+        mock_execute_result.scalars.return_value.all.return_value = story_scenes
+        mock_session = AsyncMock()
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=False)
+        mock_session.flush = AsyncMock()
+        mock_session.execute = AsyncMock(return_value=mock_execute_result)
+
+        job_svc = MagicMock()
+        job_svc.get_job = AsyncMock(return_value=mock_job)
+        job_svc.start_job = AsyncMock(return_value=mock_job)
+        job_svc.complete_job = AsyncMock(return_value=mock_job)
+        job_svc.fail_job = AsyncMock(return_value=mock_job)
+
+        composition_svc = MagicMock()
+        composition_svc.render_scene = AsyncMock(return_value=mock_output)
+
+        mock_job_repo = MagicMock()
+        mock_job_repo.create = AsyncMock(return_value=mock_job)
+
+        mock_repos = {"job": mock_job_repo, "output": MagicMock(), "retry": MagicMock()}
+        mock_svcs = {"job": job_svc, "composition": composition_svc, "retry": MagicMock()}
+
+        return mock_session, mock_repos, mock_svcs, mock_output
+
+    def test_render_episode_queries_db_when_params_empty(self):
+        """
+        When params has no 'scenes' key, the task must fall back to querying
+        si_story_scenes and render every scene found.  scenes_rendered must
+        equal the real scene count — never 0 with status='completed'.
+        """
+        import asyncio, uuid
+        from unittest.mock import patch
+        from apps.worker.tasks.animation_tasks import _render_episode_core
+
+        NUM_SCENES = 3
+        episode_id = str(uuid.uuid4())
+        job_id = str(uuid.uuid4())
+        project_id = str(uuid.uuid4())
+
+        story_scenes = [self._make_mock_story_scene(i + 1, episode_id) for i in range(NUM_SCENES)]
+        mock_session, mock_repos, mock_svcs, _ = self._build_mock_context(story_scenes)
+
+        with (
+            patch("apps.worker.tasks.animation_tasks._make_repos", return_value=mock_repos),
+            patch("apps.worker.tasks.animation_tasks._make_services", return_value=mock_svcs),
+            patch("database.connection.session_scope", return_value=mock_session),
+        ):
+            result = asyncio.get_event_loop().run_until_complete(
+                _render_episode_core(
+                    job_id=job_id,
+                    episode_id=episode_id,
+                    project_id=project_id,
+                    params={},  # <-- no "scenes" key: must trigger DB fallback
+                )
+            )
+
+        assert result["scenes_rendered"] == NUM_SCENES, (
+            f"Expected {NUM_SCENES} scenes rendered but got {result['scenes_rendered']}. "
+            "The DB fallback query is missing or broken — this was the original silent bug."
+        )
+        assert result["scenes_failed"] == 0
+        assert len(result["output_ids"]) == NUM_SCENES
+        assert mock_svcs["composition"].render_scene.call_count == NUM_SCENES
+
+    def test_render_episode_raises_when_zero_scenes_in_db(self):
+        """
+        An episode with genuinely zero scenes must raise ValueError, not silently
+        report scenes_rendered=0 with status='completed'.
+        """
+        import asyncio, uuid
+        import pytest
+        from unittest.mock import patch
+        from apps.worker.tasks.animation_tasks import _render_episode_core
+
+        episode_id = str(uuid.uuid4())
+        job_id = str(uuid.uuid4())
+        project_id = str(uuid.uuid4())
+
+        # DB returns empty list
+        mock_session, mock_repos, mock_svcs, _ = self._build_mock_context([])
+
+        with (
+            patch("apps.worker.tasks.animation_tasks._make_repos", return_value=mock_repos),
+            patch("apps.worker.tasks.animation_tasks._make_services", return_value=mock_svcs),
+            patch("database.connection.session_scope", return_value=mock_session),
+        ):
+            with pytest.raises(ValueError, match="no scenes"):
+                asyncio.get_event_loop().run_until_complete(
+                    _render_episode_core(
+                        job_id=job_id,
+                        episode_id=episode_id,
+                        project_id=project_id,
+                        params={},  # no scenes in params and none in DB
+                    )
+                )
+        # fail_job must have been called since the task raised
+        assert mock_svcs["job"].fail_job.called
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 8. Celery task module registration verification
 # ──────────────────────────────────────────────────────────────────────────────
 
 class TestCeleryTaskRegistration:

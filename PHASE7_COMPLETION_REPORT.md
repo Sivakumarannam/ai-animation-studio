@@ -1,8 +1,37 @@
 # Phase 7 — Animation Engine: Completion Report
 
 **Date:** 2026-07-13  
-**Updated:** 2026-07-15  
-**Status:** Complete — all 24 tests passing, server running
+**Updated:** 2026-07-16 (post-manual-test bug fix)  
+**Status:** Complete — all 26 tests passing, server running
+
+---
+
+## Bug Found and Fixed via Manual Testing (2026-07-16)
+
+**Symptom:** `POST /api/v1/an/generate/episode` with a real `episode_id` (confirmed 5 scenes
+via `intelligence.run_full_pipeline` log `scene_count=5`) returned 202/dispatched, but the
+Celery task completed with `scenes_rendered=0, scenes_failed=0, output_ids=[], status='completed'`.
+A silent no-op that looked successful.
+
+**Root cause:** `_render_episode_core` in `animation_tasks.py` read
+`scenes = params.get("scenes", [])`. The router built `scenes` from `body.scene_ids or []`.
+When you POST with just `episode_id` (the documented use case), `scene_ids` is null, so
+`scenes=[]`, and the for-loop never ran.
+
+**Fix applied:**
+1. `_render_episode_core` now falls back to querying `si_story_scenes` by `episode_id`
+   (ordered by `scene_number`) when `params["scenes"]` is absent or empty. Scene dicts are
+   built from `StoryScene` fields (`image_prompt`, `animation_prompt`, `character_names`,
+   `duration_seconds`, `camera_direction`, `dialogue`, plus render params from outer `params`).
+2. If the DB query also returns zero rows (genuinely empty episode), the task now raises
+   `ValueError("Episode {id} has no scenes …")` — the job is marked `failed`, never `completed`.
+   The false-positive silent success is no longer possible.
+
+**Two regression tests added** (`TestRenderEpisodeSceneLookup`):
+- `test_render_episode_queries_db_when_params_empty` — 3 mock `StoryScene` rows in DB,
+  params `{}`, asserts `scenes_rendered == 3` and `render_scene.call_count == 3`.
+- `test_render_episode_raises_when_zero_scenes_in_db` — DB returns `[]`, asserts
+  `ValueError` is raised and `fail_job` is called.
 
 ---
 

@@ -156,6 +156,57 @@ async def _render_episode_core(job_id: str, episode_id: str, project_id: str, pa
 
             start = time.time()
             scenes = params.get("scenes", [])
+
+            # ----------------------------------------------------------------
+            # DB fallback: if no scenes were passed in params (the common case
+            # when the caller just sends episode_id), query si_story_scenes
+            # directly.  This is the primary path; passing scenes in params is
+            # the optional override for callers that pre-filter.
+            # ----------------------------------------------------------------
+            if not scenes:
+                from sqlalchemy import select
+                from database.models.intelligence import StoryScene
+
+                db_result = await session.execute(
+                    select(StoryScene)
+                    .where(StoryScene.episode_id == UUID(episode_id))
+                    .order_by(StoryScene.scene_number)
+                )
+                story_scenes = db_result.scalars().all()
+                fps = params.get("fps", 24)
+                width = params.get("width", 1920)
+                height = params.get("height", 1080)
+                scenes = [
+                    {
+                        "scene_id": str(s.id),
+                        "scene_number": s.scene_number,
+                        "image_prompt": s.image_prompt,
+                        "animation_prompt": s.animation_prompt,
+                        "background_storage_key": "",
+                        "characters": s.character_names or [],
+                        "duration_seconds": float(s.duration_seconds or 5.0),
+                        "fps": fps,
+                        "width": width,
+                        "height": height,
+                        "camera_motion": s.camera_direction or "static",
+                        "dialogue_segments": s.dialogue or [],
+                    }
+                    for s in story_scenes
+                ]
+                if scenes:
+                    logger.info(
+                        f"render_episode_db_fallback episode_id={episode_id} "
+                        f"scenes_found={len(scenes)}"
+                    )
+
+            # Guard: a genuine zero-scene episode must not silently "succeed"
+            if not scenes:
+                raise ValueError(
+                    f"Episode {episode_id} has no scenes in si_story_scenes — "
+                    "ensure story generation completed before triggering "
+                    "animation render"
+                )
+
             rendered = 0
             failed = 0
             output_ids = []

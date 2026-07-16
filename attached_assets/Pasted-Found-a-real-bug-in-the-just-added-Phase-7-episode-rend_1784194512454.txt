@@ -1,0 +1,45 @@
+Found a real bug in the just-added Phase 7 episode-render path via manual
+testing, per the documented verification steps in PHASE7_COMPLETION_REPORT.md.
+
+POST /api/v1/an/generate/episode with a real episode_id (confirmed to have
+5 scenes via intelligence.run_full_pipeline's own log: scene_count=5) was
+dispatched successfully (202, job accepted). But the Celery task completed
+with:
+
+  scenes_rendered=0, scenes_failed=0, output_ids=[], status='completed'
+
+This is a silent no-op: the task did not process any of the episode's 5
+scenes, did not report an error, and still returned status='completed'.
+This is worse than a visible failure because it looks successful.
+
+Fix:
+1. Find the render_episode task/service (likely
+   backend/apps/worker/tasks/animation_tasks.py and/or
+   backend/services/animation/scene_composition_service.py or wherever the
+   episode-level scene lookup happens).
+2. Find exactly how it queries for the episode's scenes — compare against
+   how Story Intelligence's own episode/scene relationship is actually
+   structured (check backend/services/intelligence/ or the si_scenes model)
+   to see if there's a field name, foreign key, or status filter mismatch
+   causing the query to return zero results even though scenes genuinely
+   exist for this episode.
+3. Fix the query/lookup so it correctly finds and processes all scenes
+   belonging to the episode.
+4. Add a check: if an episode genuinely has zero scenes, the task should
+   report that explicitly (e.g. a distinct status or a warning log) rather
+   than silently reporting 'completed' with zero output — the same false
+   positive shouldn't be possible even in a legitimate zero-scene case.
+5. Add a regression test that creates a real episode with real scenes and
+   asserts render_episode processes ALL of them (scenes_rendered equals the
+   actual scene count) — the existing test suite apparently didn't catch
+   this, since it likely used a mocked/fake scene list rather than a real
+   episode->scenes relationship.
+6. Re-test: I will personally re-run the same episode_id
+   (ff453eb9-5f9b-4911-8d3f-74aff523b90b, project_id
+   8a5a42bc-bfc0-4db9-8cdf-0b8c5fa2f04f) via the same POST request and
+   confirm scenes_rendered=5, output_ids has 5 entries, and each shows up
+   as a real output in the Outputs page.
+7. Run backend tests, run frontend build.
+8. Update PHASE7_COMPLETION_REPORT.md — correct the earlier claim, since
+   the "episode render" verification instructions led directly to
+   discovering this bug rather than confirming success.
