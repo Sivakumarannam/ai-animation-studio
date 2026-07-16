@@ -87,7 +87,7 @@ async def _run_full_pipeline_core(
             llm=llm,
             retrieval_svc=build_retrieval_service(session),
         )
-        return await orchestrator.run_full_pipeline(
+        result = await orchestrator.run_full_pipeline(
             project_id=UUID(project_id),
             job_id=UUID(job_id),
             world_id=UUID(world_id) if world_id else None,
@@ -97,6 +97,8 @@ async def _run_full_pipeline_core(
             world_data=world_data or {},
             knowledge_collection_id=UUID(knowledge_collection_id) if knowledge_collection_id else None,
         )
+        await session.commit()
+        return result
     return {}
 
 
@@ -153,13 +155,15 @@ async def _generate_episode_core(
             llm=llm,
             retrieval_svc=build_retrieval_service(session),
         )
-        return await orchestrator.generate_episode_only(
+        result = await orchestrator.generate_episode_only(
             project_id=UUID(project_id),
             job_id=UUID(job_id),
             season_id=UUID(season_id),
             world_id=UUID(world_id),
             knowledge_collection_id=UUID(knowledge_collection_id) if knowledge_collection_id else None,
         )
+        await session.commit()
+        return result
     return {}
 
 

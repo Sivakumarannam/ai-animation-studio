@@ -94,6 +94,7 @@ async def _process_document_core(
             }
             if job:
                 await job_svc.complete_job(job.id, result)
+            await session.commit()
             return result
         except Exception as exc:
             if job:
@@ -146,6 +147,7 @@ async def _reembed_collection_core(
             result = {"collection_id": collection_id, "documents_reembedded": processed}
             if job:
                 await job_svc.complete_job(job.id, result)
+            await session.commit()
             return result
         except Exception as exc:
             if job:

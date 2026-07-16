@@ -68,6 +68,7 @@ async def _discover_trends_core(job_id: str) -> dict[str, Any]:
             result = await scheduler.run_trend_discovery(triggered_by="celery")
             if job:
                 await job_svc.complete_job(job.id, result)
+            await session.commit()
             return result
         except Exception as exc:
             if job:
@@ -117,6 +118,7 @@ async def _research_topic_core(job_id: str, topic_id: str) -> dict[str, Any]:
             result = await engine.research_topic(topic)
             if job:
                 await job_svc.complete_job(job.id, result)
+            await session.commit()
             return result
         except Exception as exc:
             if job:
@@ -156,6 +158,7 @@ async def _verify_facts_core(job_id: str) -> dict[str, Any]:
             result = await verification_svc.verify_pending_facts(batch_size=30)
             if job:
                 await job_svc.complete_job(job.id, result)
+            await session.commit()
             return result
         except Exception as exc:
             if job:
@@ -186,6 +189,7 @@ async def _research_refresh_core(job_id: str) -> dict[str, Any]:
             result = await scheduler.run_research_refresh(triggered_by="celery")
             if job:
                 await job_svc.complete_job(job.id, result)
+            await session.commit()
             return result
         except Exception as exc:
             if job:
@@ -229,6 +233,7 @@ async def _score_opportunities_core(job_id: str) -> dict[str, Any]:
             result = await scoring_svc.score_all_researched()
             if job:
                 await job_svc.complete_job(job.id, result)
+            await session.commit()
             return result
         except Exception as exc:
             if job:
@@ -276,6 +281,7 @@ async def _scheduler_tick_core(job_id: str) -> dict[str, Any]:
                 await job_svc.complete_job(job.id, results)
             except Exception:
                 pass
+        await session.commit()
         return results
     return {}
 

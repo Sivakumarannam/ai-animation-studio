@@ -1,0 +1,96 @@
+CRITICAL BUG — found via manual DB inspection, affecting Phases 3, 4, and 5.
+
+Root cause: backend/database/connection.py's get_session() is an async
+generator with commit-after-yield semantics:
+
+  async def get_session():
+      async with _session_factory() as session:
+          try:
+              yield session
+              await session.commit()
+          except Exception:
+              await session.rollback()
+              raise
+
+This is the correct pattern for FastAPI's Depends() injection, where the
+framework fully drains the generator on request completion. But it is being
+used incorrectly in Celery task "core" functions with this shape:
+
+  async for session in get_session():
+      ...
+      return result   # <- return INSIDE the loop body
+
+Returning from inside a loop over an async generator forces Python to call
+.aclose() on it, which throws GeneratorExit AT the yield line — meaning
+`await session.commit()` (the line after yield) NEVER executes. The
+function returns a fully-formed, convincing result, all service calls run
+normally, all logging fires — but the transaction is silently discarded
+every time.
+
+CONFIRMED VIA DIRECT DATABASE INSPECTION: triggered
+POST /api/v1/si/projects/{id}/generate twice today. Celery logged full
+pipeline_complete success both times with real-looking world_id, season_id,
+episode_id, scene_count=5. Direct psql query on cartoon_studio confirmed
+ZERO rows exist for either episode_id in si_episodes, si_worlds, si_seasons,
+or si_story_scenes. Nothing was ever persisted, despite 100% "successful"
+task_success logs.
+
+AFFECTED FILES — confirmed via grep, same broken pattern in every core
+function of all three files:
+- backend/apps/worker/tasks/intelligence_tasks.py
+  (_run_full_pipeline_core, _generate_episode_core)
+- backend/apps/worker/tasks/knowledge_tasks.py
+  (2 core functions, lines ~77 and ~118)
+- backend/apps/worker/tasks/research_tasks.py
+  (6 core functions, lines ~56, ~94, ~140, ~174, ~211, ~247)
+
+FIX — for every one of these 10 functions, add an explicit commit
+immediately before the early return, inside the loop, so correctness does
+not depend on the generator's post-yield code ever executing:
+
+  async for session in get_session():
+      ...
+      result = await orchestrator.some_method(...)
+      await session.commit()
+      return result
+  return {}
+
+Do this for all 10 functions across all 3 files. Do NOT change
+get_session() itself — it is correct for its intended FastAPI Depends()
+use case; the bug is entirely in how these Celery tasks consume it.
+
+ALSO — audit every OTHER Celery task file for the same
+"async for session in get_session(): ... return" pattern, in case there are
+more instances beyond these 3 files:
+  grep -rln "async for session in get_session" backend/apps/worker/tasks/
+Fix any additional instances found the same way.
+
+ALSO — check whether backend/apps/worker/tasks/asset_tasks.py,
+animation_tasks.py, and voice_tasks.py (Phases 6-8) use a DIFFERENT,
+correct pattern (they reportedly use "session_scope()" per prior
+documentation) — confirm this explicitly and confirm they do NOT have this
+bug, rather than assuming.
+
+VERIFICATION REQUIRED — for each of the 3 affected files, write a real
+regression test that:
+1. Calls the core function directly against a real test database session
+   (not a mock)
+2. After the function returns, opens a SEPARATE, NEW session and queries
+   for the row(s) that should have been created
+3. Asserts the row(s) actually exist
+This is the only kind of test that would have caught this bug — a test
+that reuses the same session the function wrote to would not catch a
+missing commit, since uncommitted writes are still visible within the same
+session/transaction.
+
+I will personally re-verify by:
+1. Triggering POST /api/v1/si/projects/{id}/generate again
+2. Noting the returned episode_id from the Celery log
+3. Querying si_episodes directly via psql for that episode_id
+4. Confirming it now actually exists
+
+Run the full backend test suite once after all fixes. Update relevant
+completion reports (PHASE3, PHASE4, PHASE5) noting this critical bug and
+fix, since it means prior "verified end-to-end" claims for background-job
+writes in those phases were not actually true — only synchronous
+API-driven writes were ever really being tested.
