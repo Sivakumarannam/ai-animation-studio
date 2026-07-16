@@ -183,12 +183,29 @@ async def _render_episode_core(job_id: str, episode_id: str, project_id: str, pa
                         "image_prompt": s.image_prompt,
                         "animation_prompt": s.animation_prompt,
                         "background_storage_key": "",
-                        "characters": s.character_names or [],
+                        # character_names stores plain name strings; render_scene
+                        # expects dicts with character_id/position/etc., so wrap
+                        # each name into a minimal placement dict.
+                        "characters": [
+                            {
+                                "character_id": name,
+                                "asset_storage_key": "",
+                                "position_x": 0.5,
+                                "position_y": 0.8,
+                                "scale": 1.0,
+                                "expression": "idle",
+                                "pose": "idle",
+                                "z_index": 1,
+                            }
+                            for name in (s.character_names or [])
+                        ],
                         "duration_seconds": float(s.duration_seconds or 5.0),
                         "fps": fps,
                         "width": width,
                         "height": height,
                         "camera_motion": s.camera_direction or "static",
+                        # dialogue is a list of LLM-generated dicts
+                        # ({character, line, emotion, action}); pass through as-is.
                         "dialogue_segments": s.dialogue or [],
                     }
                     for s in story_scenes
