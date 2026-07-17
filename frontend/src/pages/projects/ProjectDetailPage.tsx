@@ -30,6 +30,7 @@ export function ProjectDetailPage() {
     { label: 'Animation Engine', description: 'Phase 7 — composite assets into animated scene clips', icon: Film, to: `/projects/${projectId}/animation` },
     { label: 'Voice Engine', description: 'Phase 8 — multi-voice TTS audio per character and scene', icon: Mic, to: `/projects/${projectId}/voice` },
     { label: 'Music & Sound', description: 'Phase 9 — mood-matched background music and SFX per scene', icon: Music, to: `/projects/${projectId}/music` },
+    { label: 'Video Assembly', description: 'Phase 10 — composite animation, voice & music into final video', icon: Film, to: `/projects/${projectId}/video` },
     { label: 'Automation Pipeline', description: 'Full 7-step generation pipeline — story to video', icon: GitBranch, to: `/projects/${projectId}/pipeline` },
   ]
 

@@ -47,6 +47,11 @@ import { MusicDashboardPage } from '@/pages/musicEngine/MusicDashboardPage'
 import { MusicJobsPage } from '@/pages/musicEngine/MusicJobsPage'
 import { MusicOutputsPage } from '@/pages/musicEngine/MusicOutputsPage'
 import { MusicRetryQueuePage } from '@/pages/musicEngine/MusicRetryQueuePage'
+// Phase 10 — Video Assembly Engine
+import VideoAssemblyDashboardPage from '@/pages/videoAssembly/VideoAssemblyDashboardPage'
+import VideoAssemblyJobsPage from '@/pages/videoAssembly/VideoAssemblyJobsPage'
+import VideoAssemblyOutputsPage from '@/pages/videoAssembly/VideoAssemblyOutputsPage'
+import VideoAssemblyRetryQueuePage from '@/pages/videoAssembly/VideoAssemblyRetryQueuePage'
 // Phase 6 — Asset Generation
 import { AssetGenerationDashboardPage } from '@/pages/assetGeneration/AssetGenerationDashboardPage'
 import { GenerationJobsPage } from '@/pages/assetGeneration/GenerationJobsPage'
@@ -129,6 +134,12 @@ export default function App() {
         <Route path="/projects/:projectId/music/jobs" element={<MusicJobsPage />} />
         <Route path="/projects/:projectId/music/outputs" element={<MusicOutputsPage />} />
         <Route path="/projects/:projectId/music/retry-queue" element={<MusicRetryQueuePage />} />
+
+        {/* Phase 10 — Video Assembly Engine */}
+        <Route path="/projects/:projectId/video" element={<VideoAssemblyDashboardPage />} />
+        <Route path="/projects/:projectId/video/jobs" element={<VideoAssemblyJobsPage />} />
+        <Route path="/projects/:projectId/video/outputs" element={<VideoAssemblyOutputsPage />} />
+        <Route path="/projects/:projectId/video/retry-queue" element={<VideoAssemblyRetryQueuePage />} />
 
         {/* Phase 6 — Asset Generation */}
         <Route path="/projects/:projectId/asset-generation" element={<AssetGenerationDashboardPage />} />

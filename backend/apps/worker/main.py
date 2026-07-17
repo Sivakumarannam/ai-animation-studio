@@ -34,6 +34,7 @@ celery_app = Celery(
         "apps.worker.tasks.animation_tasks",
         "apps.worker.tasks.voice_tasks",
         "apps.worker.tasks.music_tasks",
+        "apps.worker.tasks.video_assembly_tasks",
     ],
 )
 

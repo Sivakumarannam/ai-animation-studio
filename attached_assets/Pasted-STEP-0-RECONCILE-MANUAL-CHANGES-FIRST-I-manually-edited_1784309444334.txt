@@ -1,0 +1,179 @@
+STEP 0 — RECONCILE MANUAL CHANGES FIRST
+
+I manually edited and pushed backend/apps/api/routers/music_engine.py directly
+to the repo (git push), outside of a Replit session. It fixes two bugs found
+via manual testing:
+1. UUID objects being passed to req.model_dump() without mode="json",
+   causing "TypeError: Object of type UUID is not JSON serializable" on
+   insert into mu_jobs.params (a JSON column).
+2. dispatch_mode=mode being assigned the full dispatcher.dispatch() return
+   dict instead of just its "mode" string field, causing a Pydantic
+   ValidationError on DispatchResponse construction.
+
+Before doing ANYTHING else:
+1. Run `git pull` (or confirm you already have latest) and diff
+   music_engine.py against what you last had — confirm my fix is present:
+   look for `req.model_dump(mode="json")` (6 occurrences) and
+   `dispatch_result = await dispatcher.dispatch(...)` followed by
+   `mode = dispatch_result["mode"]` (3 occurrences, in generate_track,
+   generate_scene_audio, and process_retry_queue).
+2. Confirm this matches the CORRECT pattern already used in
+   voice_engine.py (dispatch_result → mode = dispatch_result["mode"]) —
+   this was the reference pattern I copied from.
+   
+   
+After that proceed with below phase 10
+
+============================================================
+PHASE 10 — VIDEO ASSEMBLY ENGINE
+============================================================
+
+This is the phase that finally produces a real, finished, watchable video.
+It merges outputs from Phases 7, 8, and 9 into one file per episode:
+Animation clips (an_render_outputs) + Voice audio (vo_outputs) + Music/SFX
+(mu_outputs) + subtitles + transitions + logo/end-screen → exported video.
+
+Follow the EXACT same architecture and process discipline used for Phases
+6-9: models → repository → service → router → Celery task → frontend.
+
+CRITICAL LESSONS FROM PHASES 6-9 — APPLY ALL OF THESE, DO NOT SKIP:
+
+1. SILENT COMMIT BUG (found in Phases 3-5, fixed): NEVER use
+   `async for session in get_session(): ... return result` in a Celery task
+   core function — the early return kills the generator via GeneratorExit
+   before the post-yield commit runs, silently discarding all writes.
+   ALWAYS use session_scope() (the pattern already correct in
+   asset_tasks.py, animation_tasks.py, voice_tasks.py, music_tasks.py).
+   Before reporting complete, run:
+   grep -n "async for session in get_session" apps/worker/tasks/video_assembly_tasks.py
+   This MUST return nothing.
+
+2. DISPATCH SIGNATURE: every dispatcher.dispatch() call must use
+   celery_task=, core_coro_factory=, job_id=, queue=, task_kwargs=. Grep
+   your own new code against the real TaskDispatcher signature before
+   considering it done.
+
+3. DISPATCH_MODE UNWRAPPING: dispatcher.dispatch() returns a dict
+   ({"job_id":..., "task_id":..., "mode":..., "status":...}), NOT a plain
+   string. Always capture it as `dispatch_result = await dispatcher.dispatch(...)`
+   then extract `mode = dispatch_result["mode"]` before using mode anywhere,
+   especially before passing it into a Pydantic response model's string field.
+
+4. UUID JSON SERIALIZATION: any `req.model_dump()` on a Pydantic request
+   model containing UUID fields, used as a JSON column value, MUST use
+   `req.model_dump(mode="json")` — plain `.model_dump()` leaves UUID objects
+   as Python objects, which crash on JSON serialization at insert time.
+
+5. ROUTER REGISTRATION: after building the router, you MUST add it to BOTH
+   the import block AND v1.include_router(...) calls in
+   backend/apps/api/main.py. Confirm by actually starting the server and
+   curling a new endpoint — a router file existing is not sufficient proof
+   it's reachable (this exact bug caused a full session of confusion in
+   Phase 6).
+
+6. CELERY TASK REGISTRATION: add the new task module to
+   apps/worker/main.py's include=[...] list. Confirm by starting the worker
+   and checking the new task names appear in the [tasks] startup log
+   yourself.
+
+7. SCENE/EPISODE LOOKUP MUST QUERY THE REAL DATA: when looking up scenes,
+   animation outputs, voice outputs, or music outputs for an episode, query
+   the REAL database tables/relationships — do not trust an optional
+   request-body field with a silent empty-list fallback (this exact bug in
+   Phase 7's render_episode caused a false "completed" with 0 scenes
+   processed). If a genuine "nothing found" case is possible, raise an
+   explicit error — never silently report success with zero work done.
+
+8. REAL TRIGGER BUTTON REQUIRED: the frontend must include an actual
+   clickable "Assemble Video" button wired to a real API call from the
+   start — not just dashboard/monitoring pages with no way to trigger
+   generation (this exact gap existed in Phase 6 for a full session).
+
+CONTEXT — what already exists, read these first:
+- backend/apps/api/routers/animation_engine.py, voice_engine.py,
+  music_engine.py — the 3 source data types this phase consumes.
+- backend/database/models/animation_engine.py (an_render_outputs),
+  voice_engine model (vo_outputs), music_engine model (mu_outputs) — find
+  the exact fields (storage_key, duration_seconds, etc.) needed to locate
+  and combine these files.
+- backend/agents/implementations/ffmpeg_renderer.py — real FFmpeg wrapper
+  already exists in the codebase; read its interface before building a new
+  one. This phase is the natural place to actually USE it for real
+  compositing, not just as an unused stub.
+- backend/workflow/steps/render_step.py, subtitle_step.py — pipeline-step
+  wrappers from the 7-step Automation Pipeline; read for context but Phase
+  10 needs its own real service layer.
+
+SCOPE:
+- Merge: animation clips + voice audio + music/SFX + subtitles + transitions
+  + logo + end screen → one exported video file per episode.
+- Subtitle generation/burning (whisper/base is already registered as
+  SubtitleProvider — check if it's usable here, or if this phase needs its
+  own subtitle timing logic based on voice output durations).
+- Output both a Short-form cut (20-28s, per the original project spec) and
+  a long-form episode cut, OR at minimum episode-level assembly first, with
+  Short-form as a documented follow-up if scope needs to be trimmed.
+- Real quality/duration validation before marking a video "completed"
+  (e.g. does the assembled video's duration roughly match the sum of its
+  scene durations — a sanity check that would catch a broken assembly
+  early, the same spirit as Phase 6's quality-score gate).
+
+Build:
+1. SQLAlchemy models (va_* prefix): VideoAssemblyJob, VideoOutput,
+   VideoAssemblyRetryQueue — mirror the an_*/vo_*/mu_* shape exactly.
+2. Alembic migration (`alembic heads` first, merge cleanly if needed).
+3. Repository layer.
+4. Service layer: VideoAssemblyService (the real FFmpeg compositing logic:
+   concatenate scene clips in order, mux in voice audio per scene, mux in
+   background music/SFX, burn or attach subtitles), RetryEngineService
+   (reuse the established max_retries=3 pattern).
+5. Provider interface if a clean abstraction makes sense here (e.g.
+   VideoRenderProvider), OR use ffmpeg_renderer.py directly if it already
+   provides sufficient abstraction — your call, but explain the decision in
+   the completion report the way Phase 7 explained its animation_service.py
+   decision.
+6. FastAPI router (/va prefix) — literal routes before parameterized.
+   REGISTER in main.py (see lesson #5 above) and CONFIRM by curling.
+7. Celery tasks in apps/worker/tasks/video_assembly_tasks.py —
+   video.assemble_episode, video.process_retry_queue. Use session_scope()
+   (lesson #1). Correct dispatch signature (lesson #2) and dispatch_mode
+   unwrapping (lesson #3).
+8. REGISTER the new task module in apps/worker/main.py (lesson #6) and
+   CONFIRM via the worker startup log.
+9. Frontend: dashboard + job monitoring + outputs (with an actual video
+   player/preview, not just a file link) + retry queue pages, following
+   established patterns. Include the actual "Assemble Video" trigger button
+   (lesson #8).
+10. Nav card in ProjectDetailPage.tsx, routes in App.tsx.
+11. Tests: unit tests per service, dispatcher-signature verification test,
+    AND a full end-to-end test that opens a FRESH session after task
+    completion to confirm the video output row actually persisted (lesson
+    #1's verification pattern) — not just checking the in-memory return
+    value.
+
+SELF-CHECK before claiming complete — this list has caught a real bug every
+single time it's been used, do not skip any item:
+- [ ] Grepped new task file for the get_session()-in-a-loop anti-pattern —
+      confirmed absent
+- [ ] Actually started the server, curled every new endpoint
+- [ ] Actually started Celery, confirmed new task names in startup log
+- [ ] Grepped every dispatcher.dispatch() call against the real signature
+- [ ] Confirmed every dispatch_mode assignment unwraps dispatch_result["mode"],
+      never the raw dict
+- [ ] Confirmed every req.model_dump() feeding a JSON column uses mode="json"
+- [ ] Confirmed the video assembly's scene/output lookup queries real DB
+      relationships, not an optional field with a silent empty fallback
+- [ ] Actually clicked through the frontend, confirmed the trigger button
+      works and produces a real playable video file
+- [ ] Ran alembic upgrade head against real Postgres, confirmed new tables
+      exist
+- [ ] End-to-end test queries a FRESH session after task completion
+
+Produce PHASE10_COMPLETION_REPORT.md, explicitly listing anything not
+verified end-to-end.
+
+Run backend tests once, frontend build once. Stop after that — I will
+personally verify the real end-to-end flow myself: trigger assembly on a
+real episode with real animation/voice/music outputs already generated,
+watch Celery, then actually play the resulting video file to confirm it's
+real, watchable, and contains what it should.

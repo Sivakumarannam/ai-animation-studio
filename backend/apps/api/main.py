@@ -39,6 +39,7 @@ from apps.api.routers import (
     animation_engine,
     voice_engine,
     music_engine,
+    video_assembly,
 )
 from database.connection import close_db, init_db
 from packages.core.exceptions import AppError
@@ -222,6 +223,9 @@ v1.include_router(voice_engine.router)
 
 # Phase 9 — Music & Sound Engine
 v1.include_router(music_engine.router)
+
+# Phase 10 — Video Assembly Engine
+v1.include_router(video_assembly.router)
 
 app.mount(API_V1_PREFIX, v1)
 
