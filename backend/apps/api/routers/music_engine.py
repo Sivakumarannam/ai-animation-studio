@@ -176,27 +176,28 @@ async def generate_track(
         scene_id=req.scene_id,
         episode_id=req.episode_id,
         mood=req.mood,
-        params=req.model_dump(),
+        params=req.model_dump(mode="json"),
         triggered_by="api",
     )
     await session.flush()
 
     dispatcher = TaskDispatcher()
-    mode = await dispatcher.dispatch(
+    dispatch_result = await dispatcher.dispatch(
         celery_task=generate_track_task,
         core_coro_factory=lambda: _generate_track_core(
             job_id=str(job.id),
             project_id=str(req.project_id),
-            params=req.model_dump(),
+            params=req.model_dump(mode="json"),
         ),
         job_id=str(job.id),
         queue="ai",
         task_kwargs=dict(
             job_id=str(job.id),
             project_id=str(req.project_id),
-            params=req.model_dump(),
+            params=req.model_dump(mode="json"),
         ),
     )
+    mode = dispatch_result["mode"]
 
     logger.info("music_generate_track_dispatched", job_id=str(job.id), mode=mode)
     return DispatchResponse(
@@ -226,19 +227,19 @@ async def generate_scene_audio(
         scene_id=req.scene_id,
         episode_id=req.episode_id,
         mood=req.mood,
-        params=req.model_dump(),
+        params=req.model_dump(mode="json"),
         triggered_by="api",
     )
     await session.flush()
 
     dispatcher = TaskDispatcher()
-    mode = await dispatcher.dispatch(
+    dispatch_result = await dispatcher.dispatch(
         celery_task=generate_scene_audio_task,
         core_coro_factory=lambda: _generate_scene_audio_core(
             job_id=str(job.id),
             scene_id=str(req.scene_id),
             project_id=str(req.project_id),
-            params=req.model_dump(),
+            params=req.model_dump(mode="json"),
         ),
         job_id=str(job.id),
         queue="ai",
@@ -246,9 +247,10 @@ async def generate_scene_audio(
             job_id=str(job.id),
             scene_id=str(req.scene_id),
             project_id=str(req.project_id),
-            params=req.model_dump(),
+            params=req.model_dump(mode="json"),
         ),
     )
+    mode = dispatch_result["mode"]
 
     logger.info("music_generate_scene_audio_dispatched", job_id=str(job.id), mode=mode)
     return DispatchResponse(
@@ -307,7 +309,7 @@ async def process_retry_queue(
     await session.flush()
 
     dispatcher = TaskDispatcher()
-    mode = await dispatcher.dispatch(
+    dispatch_result = await dispatcher.dispatch(
         celery_task=process_music_retry_queue_task,
         core_coro_factory=lambda: _process_music_retry_queue_core(
             job_id=str(job.id),
@@ -322,6 +324,7 @@ async def process_retry_queue(
             params={},
         ),
     )
+    mode = dispatch_result["mode"]
 
     return DispatchResponse(
         job_id=job.id,
