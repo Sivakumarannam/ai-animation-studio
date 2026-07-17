@@ -173,6 +173,19 @@ class Settings(BaseSettings):
     # Embedding batch size
     AG_EMBEDDING_BATCH_SIZE: int = 50
 
+    # ── Phase 7 — Animation Engine ────────────────────────────────────────────
+    AN_ANIMATION_PROVIDER: str = "mock"
+
+    # ── Phase 8 — Voice Engine ────────────────────────────────────────────────
+    VO_VOICE_PROVIDER: str = "mock"
+    PIPER_BINARY: str = "piper"
+    PIPER_MODELS_DIR: str = "/models/piper"
+
+    # ── Phase 9 — Music & Sound Engine ───────────────────────────────────────
+    # Music provider: "mock" (deterministic sine-tone WAV, zero-dependency) |
+    # "suno" | "udio" | "musicgen" — future real providers registered here.
+    MU_MUSIC_PROVIDER: str = "mock"
+
 
 @lru_cache
 def get_settings() -> Settings:

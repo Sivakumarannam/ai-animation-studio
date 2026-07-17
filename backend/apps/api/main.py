@@ -38,6 +38,7 @@ from apps.api.routers import (
     asset_generation,
     animation_engine,
     voice_engine,
+    music_engine,
 )
 from database.connection import close_db, init_db
 from packages.core.exceptions import AppError
@@ -218,6 +219,9 @@ v1.include_router(animation_engine.router)
 
 # Phase 8 — Voice Engine
 v1.include_router(voice_engine.router)
+
+# Phase 9 — Music & Sound Engine
+v1.include_router(music_engine.router)
 
 app.mount(API_V1_PREFIX, v1)
 

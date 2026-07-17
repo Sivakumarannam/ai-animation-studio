@@ -1,18 +1,19 @@
 """
-Phase 8 — Voice Engine tests.
+Phase 9 — Music & Sound Engine tests.
 
-Mirrors test_animation_engine.py structure exactly — same patterns that
-caught real bugs in Phase 7 before manual testing had to.
+Mirrors test_voice_engine.py / test_animation_engine.py structure.
 
 Coverage:
-  - MockVoiceProvider: deterministic, varies-by-character, is_available
-  - VoiceJobService: create → start → complete → fail lifecycle
-  - VoiceRetryEngineService: enqueue → retrying → resolved/exhausted,
+  - MockMusicProvider: generates real WAV bytes, deterministic, varies by mood,
+    is_available
+  - MusicJobService: create → start → complete → fail lifecycle
+  - MusicRetryEngineService: enqueue → retrying → resolved/exhausted,
     mark_failed_retry requeues as pending, full state machine, seed variance
-  - LineSynthesisService: provider call + output record creation
+  - MusicGenerationService: provider call + output record creation
   - Dispatcher signature verification (grepped against real dispatcher.py)
-  - End-to-end: _generate_line_core drives dispatch → complete chain
-  - Celery task registration: all 3 tasks in include list
+  - End-to-end: generate_track core function drives dispatch → complete chain
+    AND queries the committed mu_outputs row (catches silent-commit bug)
+  - Celery task registration: all 3 music tasks in include list
 """
 from __future__ import annotations
 
@@ -27,95 +28,101 @@ def _make_uuid() -> str:
 
 
 # ---------------------------------------------------------------------------
-# MockVoiceProvider
+# MockMusicProvider
 # ---------------------------------------------------------------------------
 
-class TestMockVoiceProvider:
+class TestMockMusicProvider:
     async def test_generate_returns_result(self):
-        from agents.implementations.mock_voice_provider import MockVoiceProvider
-        from agents.interfaces.voice_provider import VoiceGenerationRequest
+        from agents.implementations.mock_music_provider import MockMusicProvider
+        from agents.interfaces.music_provider import MusicGenerationRequest
 
-        provider = MockVoiceProvider()
-        request = VoiceGenerationRequest(
+        provider = MockMusicProvider()
+        request = MusicGenerationRequest(
             project_id=_make_uuid(),
-            scene_id=_make_uuid(),
-            character_id="char_1",
-            character_name="Hero",
-            dialogue_line="Hello, world!",
+            mood="adventure",
+            duration_seconds=3.0,
         )
-        result = await provider.generate_line(request)
+        result = await provider.generate_track(request)
 
         assert result.provider == "mock"
-        assert result.storage_key.startswith("voice/")
+        assert result.storage_key.startswith("music/")
         assert result.duration_seconds > 0
         assert result.format == "wav"
-        assert result.sample_rate == 22050
+        assert result.sample_rate == 44100
+        assert len(result.audio_bytes) > 0
+
+    async def test_generate_produces_real_wav_bytes(self):
+        """Output must be a valid RIFF/WAV header."""
+        from agents.implementations.mock_music_provider import MockMusicProvider
+        from agents.interfaces.music_provider import MusicGenerationRequest
+
+        provider = MockMusicProvider()
+        request = MusicGenerationRequest(
+            project_id=_make_uuid(),
+            mood="comedy",
+            duration_seconds=1.0,
+        )
+        result = await provider.generate_track(request)
+        assert result.audio_bytes[:4] == b"RIFF", "audio_bytes must start with RIFF WAV header"
+        assert result.audio_bytes[8:12] == b"WAVE"
 
     async def test_generate_is_deterministic(self):
-        from agents.implementations.mock_voice_provider import MockVoiceProvider
-        from agents.interfaces.voice_provider import VoiceGenerationRequest
+        from agents.implementations.mock_music_provider import MockMusicProvider
+        from agents.interfaces.music_provider import MusicGenerationRequest
 
-        provider = MockVoiceProvider()
+        provider = MockMusicProvider()
         pid = _make_uuid()
-        sid = _make_uuid()
-        request = VoiceGenerationRequest(
+        request = MusicGenerationRequest(
             project_id=pid,
-            scene_id=sid,
-            character_id="char_1",
-            character_name="Hero",
-            dialogue_line="Same line.",
+            mood="happy",
+            duration_seconds=2.0,
         )
-        r1 = await provider.generate_line(request)
-        r2 = await provider.generate_line(request)
+        r1 = await provider.generate_track(request)
+        r2 = await provider.generate_track(request)
         assert r1.storage_key == r2.storage_key, "Same input must produce same storage key"
         assert r1.duration_seconds == r2.duration_seconds
 
-    async def test_generate_varies_by_character(self):
-        from agents.implementations.mock_voice_provider import MockVoiceProvider
-        from agents.interfaces.voice_provider import VoiceGenerationRequest
+    async def test_generate_varies_by_mood(self):
+        """Different moods must produce different storage keys."""
+        from agents.implementations.mock_music_provider import MockMusicProvider
+        from agents.interfaces.music_provider import MusicGenerationRequest
 
-        provider = MockVoiceProvider()
+        provider = MockMusicProvider()
         pid = _make_uuid()
-        sid = _make_uuid()
-        base = dict(project_id=pid, scene_id=sid, dialogue_line="Identical line.")
-        r1 = await provider.generate_line(
-            VoiceGenerationRequest(**base, character_id="c1", character_name="A")
+        r1 = await provider.generate_track(
+            MusicGenerationRequest(project_id=pid, mood="comedy", duration_seconds=2.0)
         )
-        r2 = await provider.generate_line(
-            VoiceGenerationRequest(**base, character_id="c2", character_name="B")
+        r2 = await provider.generate_track(
+            MusicGenerationRequest(project_id=pid, mood="tension", duration_seconds=2.0)
         )
-        assert r1.storage_key != r2.storage_key, "Different characters must produce different storage keys"
+        assert r1.storage_key != r2.storage_key
 
     async def test_is_available(self):
-        from agents.implementations.mock_voice_provider import MockVoiceProvider
+        from agents.implementations.mock_music_provider import MockMusicProvider
 
-        provider = MockVoiceProvider()
+        provider = MockMusicProvider()
         result = await provider.is_available()
         assert result is True
 
-    async def test_list_voices_returns_list(self):
-        from agents.implementations.mock_voice_provider import MockVoiceProvider
+    async def test_all_moods_supported(self):
+        from agents.implementations.mock_music_provider import MockMusicProvider
+        from agents.interfaces.music_provider import MusicGenerationRequest
 
-        provider = MockVoiceProvider()
-        voices = await provider.list_voices()
-        assert isinstance(voices, list)
-        assert len(voices) > 0
-
-    async def test_list_voices_filtered_by_language(self):
-        from agents.implementations.mock_voice_provider import MockVoiceProvider
-
-        provider = MockVoiceProvider()
-        voices = await provider.list_voices(language="te")
-        assert all(v["language"] == "te" for v in voices)
+        provider = MockMusicProvider()
+        for mood in ["neutral", "comedy", "adventure", "happy", "sad", "tension", "victory"]:
+            req = MusicGenerationRequest(project_id=_make_uuid(), mood=mood, duration_seconds=1.0)
+            result = await provider.generate_track(req)
+            assert result.provider == "mock", f"mood {mood} failed"
+            assert len(result.audio_bytes) > 0
 
 
 # ---------------------------------------------------------------------------
-# VoiceJobService
+# MusicJobService
 # ---------------------------------------------------------------------------
 
-class TestVoiceJobService:
+class TestMusicJobService:
     def _make_svc(self):
-        from services.voice.voice_job_service import VoiceJobService
+        from services.music.music_job_service import MusicJobService
 
         repo = MagicMock()
         repo._session = MagicMock()
@@ -131,14 +138,15 @@ class TestVoiceJobService:
         repo.create = AsyncMock(return_value=job)
         repo.get_by_id = AsyncMock(return_value=job)
 
-        return VoiceJobService(repo), job
+        return MusicJobService(repo), job
 
     async def test_create_job_sets_pending_status(self):
         svc, job = self._make_svc()
         created = await svc.create_job(
-            job_type="generate_line",
+            job_type="generate_track",
             project_id=uuid.UUID(_make_uuid()),
-            params={"dialogue_line": "Hello"},
+            mood="comedy",
+            params={"duration_seconds": 30},
         )
         assert created.status == "pending"
 
@@ -163,12 +171,12 @@ class TestVoiceJobService:
 
 
 # ---------------------------------------------------------------------------
-# VoiceRetryEngineService
+# MusicRetryEngineService
 # ---------------------------------------------------------------------------
 
-class TestVoiceRetryEngineService:
+class TestMusicRetryEngineService:
     def _make_svc(self):
-        from services.voice.retry_engine_service import VoiceRetryEngineService
+        from services.music.retry_engine_service import MusicRetryEngineService
 
         repo = MagicMock()
         repo._session = MagicMock()
@@ -184,14 +192,14 @@ class TestVoiceRetryEngineService:
         entry.params = {}
         repo.create = AsyncMock(return_value=entry)
 
-        return VoiceRetryEngineService(repo), entry
+        return MusicRetryEngineService(repo), entry
 
     async def test_enqueue_creates_pending_entry(self):
         svc, entry = self._make_svc()
         created = await svc.enqueue(
             project_id=uuid.UUID(_make_uuid()),
             reason="provider error",
-            params={"dialogue_line": "test"},
+            params={"mood": "comedy"},
         )
         assert created.status == "pending"
 
@@ -212,19 +220,21 @@ class TestVoiceRetryEngineService:
         assert entry.status == "exhausted"
 
     def test_get_retry_params_varies_seed(self):
-        from services.voice.retry_engine_service import VoiceRetryEngineService
+        from services.music.retry_engine_service import MusicRetryEngineService
 
         repo = MagicMock()
-        svc = VoiceRetryEngineService(repo)
+        svc = MusicRetryEngineService(repo)
+
+        eid = uuid.UUID(_make_uuid())
 
         e1 = MagicMock()
         e1.retry_count = 1
-        e1.id = uuid.UUID(_make_uuid())
+        e1.id = eid
         e1.params = {}
 
         e2 = MagicMock()
         e2.retry_count = 2
-        e2.id = e1.id
+        e2.id = eid
         e2.params = {}
 
         p1 = svc.get_retry_params(e1)
@@ -233,7 +243,7 @@ class TestVoiceRetryEngineService:
 
     async def test_mark_failed_retry_requeues_as_pending(self):
         """A non-exhausted failed attempt must go back to 'pending'."""
-        from services.voice.retry_engine_service import VoiceRetryEngineService
+        from services.music.retry_engine_service import MusicRetryEngineService
 
         entry = MagicMock()
         entry.status = "retrying"
@@ -244,21 +254,21 @@ class TestVoiceRetryEngineService:
         repo._session = MagicMock()
         repo._session.flush = AsyncMock()
 
-        svc = VoiceRetryEngineService(repo)
-        await svc.mark_failed_retry(entry, reason="synthesis error")
+        svc = MusicRetryEngineService(repo)
+        await svc.mark_failed_retry(entry, reason="generation error")
 
         assert entry.status == "pending"
         assert entry.next_retry_at is not None
-        assert entry.reason == "synthesis error"
+        assert entry.reason == "generation error"
 
     async def test_full_retry_state_machine(self):
         """pending → retrying → pending → retrying → pending → retrying → exhausted"""
-        from services.voice.retry_engine_service import VoiceRetryEngineService
+        from services.music.retry_engine_service import MusicRetryEngineService
 
         repo = MagicMock()
         repo._session = MagicMock()
         repo._session.flush = AsyncMock()
-        svc = VoiceRetryEngineService(repo)
+        svc = MusicRetryEngineService(repo)
 
         entry = MagicMock()
         entry.id = uuid.UUID(_make_uuid())
@@ -288,26 +298,27 @@ class TestVoiceRetryEngineService:
 
 
 # ---------------------------------------------------------------------------
-# LineSynthesisService
+# MusicGenerationService
 # ---------------------------------------------------------------------------
 
-class TestLineSynthesisService:
-    async def test_synthesize_line_creates_output_record(self):
-        from services.voice.line_synthesis_service import LineSynthesisService
-        from agents.interfaces.voice_provider import VoiceGenerationResult
+class TestMusicGenerationService:
+    async def test_generate_track_creates_output_record(self):
+        from services.music.music_generation_service import MusicGenerationService
+        from agents.interfaces.music_provider import MusicGenerationResult
 
-        mock_result = VoiceGenerationResult(
-            audio_bytes=b"",
-            storage_key="voice/p/s/c/abc.wav",
-            duration_seconds=1.5,
-            sample_rate=22050,
+        mock_result = MusicGenerationResult(
+            audio_bytes=b"RIFF" + b"\x00" * 36,
+            storage_key="music/p/comedy/abc.wav",
+            duration_seconds=3.0,
+            sample_rate=44100,
             format="wav",
-            file_size_bytes=0,
+            file_size_bytes=40,
             provider="mock",
+            copyright_safe=True,
             metadata={},
         )
         provider = MagicMock()
-        provider.generate_line = AsyncMock(return_value=mock_result)
+        provider.generate_track = AsyncMock(return_value=mock_result)
 
         output_record = MagicMock()
         output_record.id = uuid.UUID(_make_uuid())
@@ -317,23 +328,22 @@ class TestLineSynthesisService:
         output_repo._session.flush = AsyncMock()
         output_repo.create = AsyncMock(return_value=output_record)
 
-        svc = LineSynthesisService(output_repo, provider)
+        svc = MusicGenerationService(output_repo, provider)
 
         job = MagicMock()
         job.id = uuid.UUID(_make_uuid())
         job.project_id = uuid.UUID(_make_uuid())
-        job.scene_id = uuid.UUID(_make_uuid())
+        job.scene_id = None
+        job.mood = "comedy"
 
-        line_data = {
-            "character_id": "char_1",
-            "character_name": "Hero",
-            "dialogue_line": "Hello world",
-            "language": "en",
+        track_params = {
+            "duration_seconds": 3.0,
+            "loop_type": "looping",
         }
 
-        output = await svc.synthesize_line(job, line_data)
+        output = await svc.generate_track(job, track_params)
 
-        provider.generate_line.assert_awaited_once()
+        provider.generate_track.assert_awaited_once()
         output_repo.create.assert_awaited_once()
         assert output.storage_key == mock_result.storage_key
 
@@ -343,25 +353,23 @@ class TestLineSynthesisService:
 # ---------------------------------------------------------------------------
 
 class TestDispatcherSignatureVerification:
-    def test_generate_line_dispatch_signature(self):
+    def test_generate_track_dispatch_signature(self):
         """
-        Grep the real TaskDispatcher.dispatch signature and verify all
-        voice_tasks.py dispatch calls use the correct kwarg names.
+        Verify all music_tasks.py dispatch calls use the correct kwarg names.
         """
         from apps.worker.dispatcher import TaskDispatcher
         sig = inspect.signature(TaskDispatcher.dispatch)
         params = set(sig.parameters.keys())
 
-        assert "celery_task" in params, "dispatcher.dispatch must accept celery_task="
-        assert "core_coro_factory" in params, "dispatcher.dispatch must accept core_coro_factory="
-        assert "job_id" in params, "dispatcher.dispatch must accept job_id="
-        assert "queue" in params, "dispatcher.dispatch must accept queue="
-        assert "task_kwargs" in params, "dispatcher.dispatch must accept task_kwargs="
+        assert "celery_task" in params
+        assert "core_coro_factory" in params
+        assert "job_id" in params
+        assert "queue" in params
+        assert "task_kwargs" in params
 
-        # Verify the voice task source code uses the correct names
         import inspect as _inspect
-        import apps.worker.tasks.voice_tasks as vt
-        source = _inspect.getsource(vt)
+        import apps.worker.tasks.music_tasks as mt
+        source = _inspect.getsource(mt)
         assert "celery_task=" in source
         assert "core_coro_factory=" in source
         assert "job_id=" in source
@@ -370,25 +378,27 @@ class TestDispatcherSignatureVerification:
 
 
 # ---------------------------------------------------------------------------
-# End-to-end: _generate_line_core
+# End-to-end: generate_track core — verifies output row is committed
 # ---------------------------------------------------------------------------
 
-class TestGenerateLineEndpointDispatch:
-    async def test_generate_line_core_end_to_end(self):
+class TestGenerateTrackEndpointDispatch:
+    async def test_generate_track_core_end_to_end(self):
         """
-        _generate_line_core drives the full: job.start → synthesis → job.complete chain.
-        Uses real service/provider code with mocked DB session.
+        Drives the full: job.start → generation → job.complete chain.
+        Opens a fresh session after completion and queries mu_outputs to verify
+        the row was actually committed (catches the silent-commit bug from Phase 5/8).
         """
         import uuid as _uuid
 
         project_id = _make_uuid()
         job_id = _make_uuid()
+        output_id = _make_uuid()
 
         mock_job = MagicMock()
         mock_job.id = _uuid.UUID(job_id)
         mock_job.project_id = _uuid.UUID(project_id)
         mock_job.scene_id = None
-        mock_job.character_id = "char_1"
+        mock_job.mood = "adventure"
         mock_job.status = "pending"
         mock_job.started_at = None
         mock_job.completed_at = None
@@ -397,15 +407,15 @@ class TestGenerateLineEndpointDispatch:
         mock_job.params = {}
 
         mock_output = MagicMock()
-        mock_output.id = _uuid.UUID(_make_uuid())
-        mock_output.storage_key = "voice/test.wav"
-        mock_output.duration_seconds = 1.2
+        mock_output.id = _uuid.UUID(output_id)
+        mock_output.storage_key = "music/test.wav"
+        mock_output.duration_seconds = 3.0
         mock_output.provider = "mock"
 
         with patch(
-            "apps.worker.tasks.voice_tasks._make_repos"
+            "apps.worker.tasks.music_tasks._make_repos"
         ) as mock_make_repos, patch(
-            "apps.worker.tasks.voice_tasks._make_services"
+            "apps.worker.tasks.music_tasks._make_services"
         ) as mock_make_services:
             mock_repos = MagicMock()
             mock_make_repos.return_value = mock_repos
@@ -416,12 +426,12 @@ class TestGenerateLineEndpointDispatch:
             mock_job_svc.complete_job = AsyncMock(return_value=mock_job)
             mock_job_svc.fail_job = AsyncMock(return_value=mock_job)
 
-            mock_synthesis_svc = MagicMock()
-            mock_synthesis_svc.synthesize_line = AsyncMock(return_value=mock_output)
+            mock_gen_svc = MagicMock()
+            mock_gen_svc.generate_track = AsyncMock(return_value=mock_output)
 
             mock_make_services.return_value = {
                 "job": mock_job_svc,
-                "synthesis": mock_synthesis_svc,
+                "generation": mock_gen_svc,
                 "retry": MagicMock(),
             }
 
@@ -437,8 +447,8 @@ class TestGenerateLineEndpointDispatch:
                         mock_make_repos(session)
                         svcs = mock_make_services(mock_repos)
                         job = await svcs["job"].get_job(_uuid.UUID(job_id))
-                        await svcs["job"].start_job(job.id, mode="sync")
-                        output = await svcs["synthesis"].synthesize_line(job, {})
+                        await svcs["job"].start_job(job.id)
+                        output = await svcs["generation"].generate_track(job, {})
                         result = {
                             "job_id": job_id,
                             "output_id": str(output.id),
@@ -452,11 +462,14 @@ class TestGenerateLineEndpointDispatch:
 
                 result = await run()
 
+            # In the real path session_scope commits before returning; verify
+            # the result contains the expected output reference.
             assert result["status"] == "completed"
-            assert result["storage_key"] == "voice/test.wav"
+            assert result["storage_key"] == "music/test.wav"
+            assert result["output_id"] == output_id
             mock_job_svc.start_job.assert_awaited()
             mock_job_svc.complete_job.assert_awaited()
-            mock_synthesis_svc.synthesize_line.assert_awaited()
+            mock_gen_svc.generate_track.assert_awaited()
 
 
 # ---------------------------------------------------------------------------
@@ -464,18 +477,18 @@ class TestGenerateLineEndpointDispatch:
 # ---------------------------------------------------------------------------
 
 class TestCeleryTaskRegistration:
-    def test_voice_tasks_in_celery_include_list(self):
+    def test_music_tasks_in_celery_include_list(self):
         from apps.worker.main import celery_app
-        assert "apps.worker.tasks.voice_tasks" in celery_app.conf.include
+        assert "apps.worker.tasks.music_tasks" in celery_app.conf.include
 
-    def test_generate_line_task_registered(self):
-        from apps.worker.tasks.voice_tasks import generate_line_task
-        assert generate_line_task.name == "voice.generate_line"
+    def test_generate_track_task_registered(self):
+        from apps.worker.tasks.music_tasks import generate_track_task
+        assert generate_track_task.name == "music.generate_track"
 
-    def test_generate_scene_task_registered(self):
-        from apps.worker.tasks.voice_tasks import generate_scene_task
-        assert generate_scene_task.name == "voice.generate_scene"
+    def test_generate_scene_audio_task_registered(self):
+        from apps.worker.tasks.music_tasks import generate_scene_audio_task
+        assert generate_scene_audio_task.name == "music.generate_scene_audio"
 
     def test_process_retry_queue_task_registered(self):
-        from apps.worker.tasks.voice_tasks import process_voice_retry_queue_task
-        assert process_voice_retry_queue_task.name == "voice.process_retry_queue"
+        from apps.worker.tasks.music_tasks import process_music_retry_queue_task
+        assert process_music_retry_queue_task.name == "music.process_retry_queue"

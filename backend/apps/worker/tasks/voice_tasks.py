@@ -110,7 +110,7 @@ async def _generate_line_core(
             await job_svc.complete_job(job.id, result)
             logger.info(
                 f"generate_line_complete job_id={job_id} "
-                f"character={params.get('character_id', '')} "
+                f"character={params.get('character_name') or params.get('character_id', '')} "
                 f"output_id={output.id}"
             )
             return result

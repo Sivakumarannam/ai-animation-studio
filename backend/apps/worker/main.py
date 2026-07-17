@@ -33,6 +33,7 @@ celery_app = Celery(
         "apps.worker.tasks.asset_tasks",
         "apps.worker.tasks.animation_tasks",
         "apps.worker.tasks.voice_tasks",
+        "apps.worker.tasks.music_tasks",
     ],
 )
 

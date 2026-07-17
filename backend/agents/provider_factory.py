@@ -12,6 +12,7 @@ from agents.interfaces.llm_provider import LLMProvider
 from agents.interfaces.renderer_provider import RendererProvider
 from agents.interfaces.seo_provider import SEOProvider
 from agents.interfaces.subtitle_provider import SubtitleProvider
+from agents.interfaces.music_provider import MusicProvider
 from agents.interfaces.tts_provider import TTSProvider
 from agents.interfaces.vector_store_provider import VectorStoreProvider
 from agents.registry import ProviderRegistry
@@ -44,6 +45,8 @@ def setup_providers(settings: object, registry: ProviderRegistry) -> None:
     _register_animation(settings, registry)
     # Phase 8 — Voice Engine providers
     _register_voice(settings, registry)
+    # Phase 9 — Music & Sound Engine providers
+    _register_music(settings, registry)
 
     registered = registry.list_registered()
     logger.info("providers_registered", providers=registered)
@@ -310,3 +313,25 @@ def _register_voice(settings: object, registry: ProviderRegistry) -> None:
 
     from agents.implementations.mock_voice_provider import MockVoiceProvider
     registry.register(VoiceProvider, MockVoiceProvider())
+
+
+# ---------------------------------------------------------------------------
+# Phase 9 — Music & Sound Engine providers
+# ---------------------------------------------------------------------------
+
+def _register_music(settings: object, registry: ProviderRegistry) -> None:
+    """
+    Select the music generation backend based on `MU_MUSIC_PROVIDER`.
+
+    Supported values: "mock" (deterministic sine-tone WAV, zero-dependency).
+    Unknown values fall back to "mock" with a warning so the app never
+    crashes at startup — swap in a real implementation (suno, udio, musicgen)
+    without touching any calling code.
+    """
+    provider_name: str = getattr(settings, "MU_MUSIC_PROVIDER", "mock").lower()
+
+    if provider_name != "mock":
+        logger.warning("music_provider_unsupported_falling_back_to_mock", requested=provider_name)
+
+    from agents.implementations.mock_music_provider import MockMusicProvider
+    registry.register(MusicProvider, MockMusicProvider())

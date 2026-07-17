@@ -1,0 +1,118 @@
+Phase 9 — Music & Sound Engine. Follow the EXACT same architecture and
+process discipline used for Phases 6-8: models → repository → service →
+router → Celery task → frontend, mirroring their shape precisely.
+
+CRITICAL LESSON FROM TODAY — READ FIRST:
+A serious bug was just found and fixed across intelligence_tasks.py,
+knowledge_tasks.py, and research_tasks.py: 10 Celery core functions used
+the pattern `async for session in get_session(): ... return result` — an
+early return inside the loop forces the async generator to close via
+GeneratorExit AT the yield line, meaning the commit-after-yield code in
+get_session() (backend/database/connection.py) never runs. Every one of
+these functions logged full "success" while silently never persisting
+anything — confirmed via direct psql inspection showing zero rows for
+episodes that Celery had logged as fully created.
+
+The fix (already applied elsewhere): call `await session.commit()`
+explicitly INSIDE the loop, immediately before the return, e.g.:
+  async for session in get_session():
+      ...
+      result = await orchestrator.some_method(...)
+      await session.commit()
+      return result
+  return {}
+
+asset_tasks.py, animation_tasks.py, and voice_tasks.py (Phases 6-8) already
+use the CORRECT pattern via session_scope() — use THAT pattern as your
+template for Phase 9's Celery tasks, not the broken get_session() loop
+pattern. Before considering Phase 9 complete, explicitly grep your own new
+task file for this anti-pattern:
+  grep -n "async for session in get_session" apps/worker/tasks/music_tasks.py
+This should return NOTHING. If it does, you've reintroduced the bug — fix
+it before reporting complete.
+
+CONTEXT — what already exists, do not duplicate:
+- Check for any existing music/SFX provider stubs (grep -rn "music\|sound_effect"
+  backend/agents/ backend/workflow/steps/) before building from scratch.
+- Phase 7/8's an_*/vo_* model and file structure — Phase 9 should use mu_*
+  table prefix, following the identical shape.
+
+SCOPE — Phase 9 generates mood-matched background music and sound effects
+per scene/episode: comedy/adventure/sad/happy/tension/victory moods, looping
+support, scene-matched transitions, copyright-safe generation/sourcing, and
+a basic SFX library (footsteps, doors, notification sounds, etc. — whatever
+reasonable default set fits the plugin's family-comedy content type).
+
+Build:
+1. SQLAlchemy models (mu_* prefix): MusicGenerationJob, MusicOutput,
+   SoundEffectAsset, MusicRetryQueue — mirror an_jobs/an_render_outputs
+   shape exactly.
+2. Alembic migration (`alembic heads` first — merge cleanly if needed).
+3. Repository layer.
+4. Service layer: MusicGenerationService (mood → track), SFXLibraryService
+   (browse/select preset sound effects), RetryEngineService (reuse the
+   established max_retries=3 pattern).
+5. Provider interface (backend/agents/interfaces/music_provider.py) with
+   MusicGenerationRequest/MusicGenerationResult dataclasses, modeled
+   exactly on AnimationProvider/VoiceProvider's shape.
+6. MockMusicProvider (deterministic, zero-dependency, generates a real
+   short placeholder audio file via a simple tone/silence generator — same
+   spirit as the Pillow-based mock image provider) as default, selected via
+   MU_MUSIC_PROVIDER env var, with room for a real provider later.
+7. FastAPI router (/mu prefix) — literal routes before parameterized
+   (Phase 7's lesson). REGISTER in apps/api/main.py's import block AND
+   include_router calls — confirm by starting the server and curling a new
+   endpoint yourself, not just checking the file exists.
+8. Celery tasks in apps/worker/tasks/music_tasks.py — music.generate_track,
+   music.generate_scene_audio, music.process_retry_queue. Use session_scope()
+   (Phase 6-8's correct pattern), NOT get_session() in a loop. Every
+   dispatcher.dispatch() call MUST use celery_task=, core_coro_factory=,
+   job_id=, queue=, task_kwargs= — grep-check against the real
+   TaskDispatcher signature yourself.
+9. REGISTER the new task module in apps/worker/main.py's include=[...] list
+   — confirm by starting the worker and checking task names appear in the
+   [tasks] startup log yourself.
+10. Frontend: dashboard + job monitoring + outputs + retry queue pages,
+    following Phase 7/8's page structure. Include the actual "Generate
+    Music" trigger button and modal from the start, with a mood selector.
+11. Nav card in ProjectDetailPage.tsx, routes in App.tsx.
+12. Tests: unit tests per service/provider, a dispatcher-signature
+    verification test, AND a full end-to-end dispatch-to-completion test —
+    but this time, per today's lesson, the end-to-end test MUST open a
+    SEPARATE new session after the task completes and query for the
+    persisted row, not just check the in-memory return value. This is the
+    only kind of test that would have caught today's bug.
+
+ALSO — two small, non-blocking cleanup items from today, fix only if time
+allows after Phase 9 is otherwise complete (do not let these delay the
+main build):
+a) test_voice_engine.py has ~18 pre-existing test failures from using the
+   deprecated asyncio.get_event_loop() API. Update these to the current
+   asyncio pattern (e.g. asyncio.get_running_loop() or proper pytest-asyncio
+   fixture usage).
+b) Voice generation's Celery log line prints "character=" with an empty
+   value: `generate_line_complete job_id=... character= output_id=...`.
+   Find where this log line is built in voice_tasks.py and either populate
+   it with the real character name/id, or remove the field from the log
+   line if it's not meant to be tracked at this stage.
+
+SELF-CHECK before claiming complete:
+- [ ] Grepped your new task file for the get_session()-in-a-loop anti-pattern
+      — confirmed absent
+- [ ] Actually started the server, curled every new endpoint
+- [ ] Actually started Celery, confirmed new task names in startup log
+- [ ] Grepped every dispatcher.dispatch() call against the real signature
+- [ ] Actually clicked through the frontend, confirmed the trigger button
+      works
+- [ ] Ran alembic upgrade head against real Postgres, confirmed new tables
+      exist
+- [ ] End-to-end test queries a FRESH session after task completion, not
+      just the in-memory result
+
+Produce PHASE9_COMPLETION_REPORT.md, explicitly listing anything not
+verified end-to-end.
+
+Run backend tests once, frontend build once. Stop after that — I will
+personally verify the real end-to-end flow myself, including a direct psql
+check that generated rows actually persisted, before this is considered
+done.
