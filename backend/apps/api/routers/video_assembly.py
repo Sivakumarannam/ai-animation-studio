@@ -139,6 +139,9 @@ async def sweep_retry_queue(
     """Trigger a retry-queue sweep for a project."""
     from apps.worker.dispatcher import TaskDispatcher
     from apps.worker.tasks.video_assembly_tasks import process_video_retry_queue_task
+    from apps.worker.tasks.video_assembly_tasks import assemble_episode_task
+    from apps.worker.tasks.video_assembly_tasks import process_video_retry_queue_task, _process_video_retry_queue_core
+    
 
     repos = _make_repos(session)
     svcs = _make_services(repos, session)
@@ -155,10 +158,18 @@ async def sweep_retry_queue(
     dispatcher = TaskDispatcher()
     dispatch_result = await dispatcher.dispatch(
         celery_task=process_video_retry_queue_task,
-        core_coro_factory=lambda: _noop(),
+        core_coro_factory=lambda: _process_video_retry_queue_core(
+            job_id=str(job.id),
+            project_id=str(req.project_id),
+            params=req.model_dump(mode="json"),
+        ),
         job_id=str(job.id),
         queue="default",
-        task_kwargs=req.model_dump(mode="json"),
+        task_kwargs=dict(
+            job_id=str(job.id),
+            project_id=str(req.project_id),
+            params=req.model_dump(mode="json"),
+        ),
     )
     mode = dispatch_result["mode"]
 
@@ -183,6 +194,7 @@ async def trigger_assemble_episode(
     """Trigger video assembly for an episode (episode cut or short-form cut)."""
     from apps.worker.dispatcher import TaskDispatcher
     from apps.worker.tasks.video_assembly_tasks import assemble_episode_task
+    from apps.worker.tasks.video_assembly_tasks import assemble_episode_task, _assemble_episode_core
 
     repos = _make_repos(session)
     svcs = _make_services(repos, session)
@@ -199,10 +211,18 @@ async def trigger_assemble_episode(
     dispatcher = TaskDispatcher()
     dispatch_result = await dispatcher.dispatch(
         celery_task=assemble_episode_task,
-        core_coro_factory=lambda: _noop(),
+        core_coro_factory=lambda: _assemble_episode_core(
+            job_id=str(job.id),
+            project_id=str(req.project_id),
+            params=req.model_dump(mode="json"),
+        ),
         job_id=str(job.id),
         queue="render",
-        task_kwargs=req.model_dump(mode="json"),
+        task_kwargs=dict(
+            job_id=str(job.id),
+            project_id=str(req.project_id),
+            params=req.model_dump(mode="json"),
+        ),
     )
     mode = dispatch_result["mode"]
 

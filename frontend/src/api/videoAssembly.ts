@@ -2,8 +2,11 @@
  * Phase 10 — Video Assembly Engine API client.
  * Mirrors musicEngine.ts structure exactly.
  */
+import apiClient from './client'
 
-const BASE = "/api/v1/va";
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 export interface VideoAssemblyJob {
   id: string;
@@ -100,61 +103,58 @@ export interface TriggerAssembleEpisodeRequest {
   triggered_by?: string;
 }
 
-// ─── helpers ───────────────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// API
+// ---------------------------------------------------------------------------
 
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem("access_token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...authHeaders(), ...init?.headers },
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: res.statusText }));
-    throw new Error(err.message ?? res.statusText);
-  }
-  return res.json();
-}
-
-// ─── API ───────────────────────────────────────────────────────────────────
+const BASE = '/va'
 
 export const videoAssemblyApi = {
   getDashboard: (projectId: string) =>
-    apiFetch<VideoAssemblyDashboardStats>(`${BASE}/dashboard/${projectId}`),
+    apiClient
+      .get<VideoAssemblyDashboardStats>(`${BASE}/dashboard/${projectId}`)
+      .then((r) => r.data),
 
-  listJobs: (projectId: string, params?: { page?: number; page_size?: number; status?: string }) => {
-    const q = new URLSearchParams({ project_id: projectId, ...params } as Record<string, string>);
-    return apiFetch<{ items: VideoAssemblyJob[]; meta: PaginationMeta }>(`${BASE}/jobs?${q}`);
-  },
+  listJobs: (
+    projectId: string,
+    params?: { page?: number; page_size?: number; status?: string }
+  ) =>
+    apiClient
+      .get<{ items: VideoAssemblyJob[]; meta: PaginationMeta }>(`${BASE}/jobs`, {
+        params: { project_id: projectId, ...params },
+      })
+      .then((r) => r.data),
 
   getJob: (jobId: string) =>
-    apiFetch<VideoAssemblyJob>(`${BASE}/jobs/${jobId}`),
+    apiClient.get<VideoAssemblyJob>(`${BASE}/jobs/${jobId}`).then((r) => r.data),
 
-  listOutputs: (projectId: string, params?: { page?: number; page_size?: number; output_type?: string }) => {
-    const q = new URLSearchParams({ project_id: projectId, ...params } as Record<string, string>);
-    return apiFetch<{ items: VideoOutput[]; meta: PaginationMeta }>(`${BASE}/outputs?${q}`);
-  },
+  listOutputs: (
+    projectId: string,
+    params?: { page?: number; page_size?: number; output_type?: string }
+  ) =>
+    apiClient
+      .get<{ items: VideoOutput[]; meta: PaginationMeta }>(`${BASE}/outputs`, {
+        params: { project_id: projectId, ...params },
+      })
+      .then((r) => r.data),
 
   getOutput: (outputId: string) =>
-    apiFetch<VideoOutput>(`${BASE}/outputs/${outputId}`),
+    apiClient.get<VideoOutput>(`${BASE}/outputs/${outputId}`).then((r) => r.data),
 
-  listRetryQueue: (projectId: string, params?: { page?: number; page_size?: number }) => {
-    const q = new URLSearchParams({ project_id: projectId, ...params } as Record<string, string>);
-    return apiFetch<{ items: VideoRetryEntry[]; meta: PaginationMeta }>(`${BASE}/retry-queue?${q}`);
-  },
+  listRetryQueue: (projectId: string, params?: { page?: number; page_size?: number }) =>
+    apiClient
+      .get<{ items: VideoRetryEntry[]; meta: PaginationMeta }>(`${BASE}/retry-queue`, {
+        params: { project_id: projectId, ...params },
+      })
+      .then((r) => r.data),
 
   triggerAssembleEpisode: (req: TriggerAssembleEpisodeRequest) =>
-    apiFetch<DispatchResponse>(`${BASE}/generate/assemble-episode`, {
-      method: "POST",
-      body: JSON.stringify(req),
-    }),
+    apiClient
+      .post<DispatchResponse>(`${BASE}/generate/assemble-episode`, req)
+      .then((r) => r.data),
 
   sweepRetryQueue: (projectId: string, limit = 10) =>
-    apiFetch<DispatchResponse>(`${BASE}/retry-queue/sweep`, {
-      method: "POST",
-      body: JSON.stringify({ project_id: projectId, limit }),
-    }),
+    apiClient
+      .post<DispatchResponse>(`${BASE}/retry-queue/sweep`, { project_id: projectId, limit })
+      .then((r) => r.data),
 };
