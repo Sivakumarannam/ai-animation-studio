@@ -1,0 +1,78 @@
+CRITICAL BUG — Video Assembly (Phase 10) cannot process any Phase 7/8/9
+mock outputs due to a storage_key convention mismatch, discovered via
+manual end-to-end testing.
+
+SYMPTOM: Triggering Assemble Video correctly dispatches to Celery now (both
+prior bugs — task_kwargs shape and _noop() sync fallback — are fixed and
+confirmed working). But the task fails with an FFmpeg error trying to open:
+  animations/mock/{project_id}/scene_905632ec-...-0b4260be.mp4
+as if it were a literal local filesystem path.
+
+ROOT CAUSE: video_assembly_service.py assumes mock outputs are identifiable
+by a "mock://" URI prefix:
+  if o.storage_key and not o.storage_key.startswith("mock://"):
+But Phase 7's animation mock provider (and likely Phase 8/9's) actually
+generates keys like "animations/mock/{project}/scene_{id}_{hash}.mp4" —
+using "mock" as a PATH SEGMENT, not a URI scheme. Since this doesn't start
+with literal "mock://", the assembly service incorrectly treats it as a
+real downloadable/local file.
+
+ADDITIONALLY CONFIRMED VIA DIRECT DB QUERY: the actual an_render_outputs
+row for this scene has file_size_bytes = 8 — this is not a real video file,
+it's a tiny placeholder stub. This raises a bigger question that needs
+answering, not just patching around:
+
+INVESTIGATE FIRST, do not just patch the string check:
+1. Check EVERY mock provider across Phases 7, 8, 9
+   (mock_animation_provider.py, mock voice provider, mock music provider)
+   — what do they ACTUALLY write to MinIO, if anything? Do they upload
+   real (even if minimal/synthetic) playable file bytes, or do they only
+   write a storage_key string with no real object behind it, or a tiny
+   non-functional stub?
+2. Check what convention EACH mock provider actually uses for storage_key
+   (grep for how each one builds its storage_key string) — confirm whether
+   they're consistent with each other or each invented its own pattern.
+3. Decide and implement ONE consistent, correct approach going forward:
+   Option A: every mock provider genuinely uploads a small real, valid file
+   to MinIO (already proven working for Phase 6 images — real PNG bytes via
+   Pillow) — extend the same discipline to animation (a tiny valid MP4),
+   voice (already confirmed working — real WAV bytes), and music (already
+   confirmed working — real WAV bytes via RIFF header) — meaning animation
+   is likely the ONLY phase where this was never properly done. Fix
+   mock_animation_provider.py to genuinely write a small valid MP4 to MinIO
+   (e.g. via ffmpeg generating a 1-2 second color/test-pattern clip, or a
+   minimal valid MP4 container written in pure Python, matching how
+   music's mock provider avoided needing ffmpeg by writing raw RIFF bytes).
+   Option B (only if A is infeasible): standardize a real "mock://" prefix
+   convention across all mock providers and make ALL consumers (video
+   assembly, or anywhere else that reads storage_key) correctly detect and
+   handle true mock placeholders WITHOUT attempting to open them as real
+   files — e.g. generate a valid short placeholder clip on the fly at
+   assembly time instead of trying to read a nonexistent/fake source file.
+   Tell me which option you're implementing and why before writing code if
+   it's not obviously A.
+4. Fix video_assembly_service.py's mock-detection logic to match whatever
+   real, consistent convention is decided in step 3.
+5. Confirm the assembly service actually DOWNLOADS the real object bytes
+   from MinIO to a local temp file before invoking FFmpeg for any output
+   that IS real (this download step appears to be entirely missing — grep
+   confirmed no download/get_object call in video_assembly_service.py at
+   all, only direct path usage).
+6. Re-test: I will trigger Assemble Video again on the same episode
+   (project_id 8a5a42bc-bfc0-4db9-8cdf-0b8c5fa2f04f) and expect either a
+   real, playable, non-trivial-sized video output, or a clear, honest error
+   if genuinely nothing real exists yet to assemble — never a silent
+   success on fake/empty data.
+7. Add a regression test that creates a real animation output row with
+   actual MinIO bytes and confirms the assembly service can download and
+   process it end-to-end.
+8. Run backend tests, update PHASE7_COMPLETION_REPORT.md (note the
+   animation mock provider gap if Option A) and PHASE10_COMPLETION_REPORT.md
+   with this finding and fix.
+
+This connects to a pattern from earlier today: Phase 6's images and Phase
+9's music mock providers both correctly write real bytes to MinIO. If
+Phase 7's animation mock provider is confirmed to only write an 8-byte
+stub, that's a real regression/gap in Phase 7 that was never caught because
+nothing ever tried to actually READ and use the animation file until now,
+in Phase 10.

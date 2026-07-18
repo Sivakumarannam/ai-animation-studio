@@ -33,8 +33,7 @@ class TestMockAnimationProvider:
             background_storage_key="assets/mock/bg.png",
             duration_seconds=5.0,
         )
-        loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(provider.render_scene(req))
+        result = asyncio.run(provider.render_scene(req))
 
         assert result.provider == "mock"
         assert result.duration_seconds == 5.0
@@ -54,9 +53,8 @@ class TestMockAnimationProvider:
             background_storage_key="assets/mock/bg.png",
             duration_seconds=5.0,
         )
-        loop = asyncio.get_event_loop()
-        r1 = loop.run_until_complete(provider.render_scene(req))
-        r2 = loop.run_until_complete(provider.render_scene(req))
+        r1 = asyncio.run(provider.render_scene(req))
+        r2 = asyncio.run(provider.render_scene(req))
         assert r1.storage_key == r2.storage_key, "Render must be deterministic"
 
     def test_render_varies_by_scene_id(self):
@@ -65,7 +63,6 @@ class TestMockAnimationProvider:
 
         provider = MockAnimationProvider()
         project_id = _make_uuid()
-        loop = asyncio.get_event_loop()
         keys = set()
         for _ in range(5):
             req = AnimationRenderRequest(
@@ -74,15 +71,14 @@ class TestMockAnimationProvider:
                 background_storage_key="assets/mock/bg.png",
                 duration_seconds=5.0,
             )
-            result = loop.run_until_complete(provider.render_scene(req))
+            result = asyncio.run(provider.render_scene(req))
             keys.add(result.storage_key)
         assert len(keys) == 5, "Different scenes must produce different storage keys"
 
     def test_is_available(self):
         from agents.implementations.mock_animation_provider import MockAnimationProvider
         provider = MockAnimationProvider()
-        loop = asyncio.get_event_loop()
-        assert loop.run_until_complete(provider.is_available()) is True
+        assert asyncio.run(provider.is_available()) is True
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -114,8 +110,7 @@ class TestRenderJobService:
         repo.create = AsyncMock(return_value=created_job)
 
         svc = RenderJobService(repo)
-        loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(
+        result = asyncio.run(
             svc.create_job(
                 job_type="render_scene",
                 project_id=uuid.UUID(_make_uuid()),
@@ -137,8 +132,7 @@ class TestRenderJobService:
         repo._session.flush = AsyncMock()
 
         svc = RenderJobService(repo)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(svc.start_job(job.id, mode="sync"))
+        asyncio.run(svc.start_job(job.id, mode="sync"))
         assert job.status == "running"
         assert job.mode == "sync"
 
@@ -154,8 +148,7 @@ class TestRenderJobService:
         repo._session.flush = AsyncMock()
 
         svc = RenderJobService(repo)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(svc.complete_job(job.id, result={"output_id": "abc"}))
+        asyncio.run(svc.complete_job(job.id, result={"output_id": "abc"}))
         assert job.status == "completed"
         assert job.result == {"output_id": "abc"}
         assert job.duration_seconds is not None
@@ -172,8 +165,7 @@ class TestRenderJobService:
         repo._session.flush = AsyncMock()
 
         svc = RenderJobService(repo)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(svc.fail_job(job.id, error_message="FFmpeg not found"))
+        asyncio.run(svc.fail_job(job.id, error_message="FFmpeg not found"))
         assert job.status == "failed"
         assert job.error_message == "FFmpeg not found"
 
@@ -191,8 +183,7 @@ class TestRetryEngineService:
         repo.create = AsyncMock(return_value=created_entry)
 
         svc = RetryEngineService(repo)
-        loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(
+        result = asyncio.run(
             svc.enqueue(
                 project_id=uuid.UUID(_make_uuid()),
                 reason="render failed",
@@ -215,8 +206,7 @@ class TestRetryEngineService:
         repo._session.flush = AsyncMock()
 
         svc = RetryEngineService(repo)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(svc.mark_retrying(entry))
+        asyncio.run(svc.mark_retrying(entry))
         assert entry.status == "retrying"
         assert entry.retry_count == 1
 
@@ -231,8 +221,7 @@ class TestRetryEngineService:
         repo._session.flush = AsyncMock()
 
         svc = RetryEngineService(repo)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(svc.mark_resolved(entry))
+        asyncio.run(svc.mark_resolved(entry))
         assert entry.status == "resolved"
         assert entry.resolved_at is not None
 
@@ -246,8 +235,7 @@ class TestRetryEngineService:
         repo._session.flush = AsyncMock()
 
         svc = RetryEngineService(repo)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(svc.mark_exhausted(entry))
+        asyncio.run(svc.mark_exhausted(entry))
         assert entry.status == "exhausted"
 
     def test_get_retry_params_varies_seed(self):
@@ -284,8 +272,7 @@ class TestRetryEngineService:
         repo._session.flush = AsyncMock()
 
         svc = RetryEngineService(repo)
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(svc.mark_failed_retry(entry, reason="provider timeout"))
+        asyncio.run(svc.mark_failed_retry(entry, reason="provider timeout"))
 
         assert entry.status == "pending", "Failed non-exhausted entry must return to 'pending'"
         assert entry.next_retry_at is not None, "next_retry_at must be set for back-off"
@@ -312,34 +299,33 @@ class TestRetryEngineService:
         entry.next_retry_at = None
         entry.reason = ""
 
-        loop = asyncio.get_event_loop()
 
         # Attempt 1 — mark retrying
-        loop.run_until_complete(svc.mark_retrying(entry))
+        asyncio.run(svc.mark_retrying(entry))
         assert entry.status == "retrying"
         assert entry.retry_count == 1
 
         # Attempt 1 fails, not exhausted → back to pending
-        loop.run_until_complete(svc.mark_failed_retry(entry, reason="timeout"))
+        asyncio.run(svc.mark_failed_retry(entry, reason="timeout"))
         assert entry.status == "pending"
         assert entry.next_retry_at is not None
 
         # Attempt 2 — mark retrying
-        loop.run_until_complete(svc.mark_retrying(entry))
+        asyncio.run(svc.mark_retrying(entry))
         assert entry.status == "retrying"
         assert entry.retry_count == 2
 
         # Attempt 2 fails → back to pending
-        loop.run_until_complete(svc.mark_failed_retry(entry, reason="timeout again"))
+        asyncio.run(svc.mark_failed_retry(entry, reason="timeout again"))
         assert entry.status == "pending"
 
         # Attempt 3 — mark retrying
-        loop.run_until_complete(svc.mark_retrying(entry))
+        asyncio.run(svc.mark_retrying(entry))
         assert entry.status == "retrying"
         assert entry.retry_count == 3
 
         # Attempt 3 fails — NOW exhausted (retry_count == max_retries)
-        loop.run_until_complete(svc.mark_exhausted(entry))
+        asyncio.run(svc.mark_exhausted(entry))
         assert entry.status == "exhausted"
 
     def test_process_retry_queue_requeues_on_non_exhausted_failure(self):
@@ -363,8 +349,7 @@ class TestRetryEngineService:
         entry.reason = ""
 
         # Non-exhausted failure path
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(svc.mark_failed_retry(entry, reason="render exploded"))
+        asyncio.run(svc.mark_failed_retry(entry, reason="render exploded"))
         assert entry.status == "pending", (
             "process_retry_queue must transition non-exhausted failures back to pending"
         )
@@ -393,8 +378,7 @@ class TestRetryEngineService:
         entry.next_retry_at = None
         entry.reason = ""
 
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(svc.mark_failed_retry(entry))
+        asyncio.run(svc.mark_failed_retry(entry))
         # After the fix, entry is pending again — not stuck
         assert entry.status == "pending"
 
@@ -407,15 +391,17 @@ class TestSceneCompositionService:
     def test_render_scene_creates_output_record(self):
         from services.animation.scene_composition_service import SceneCompositionService
         from agents.interfaces.animation_provider import AnimationRenderResult
+        from packages.utils.mp4_stub import MINIMAL_MP4_STUB
 
         project_id = uuid.UUID(_make_uuid())
         scene_id = uuid.UUID(_make_uuid())
 
+        # Use real MP4 bytes matching the fixed mock provider contract.
         mock_result = AnimationRenderResult(
-            video_bytes=b"\x00\x00\x00\x08ftyp",
+            video_bytes=MINIMAL_MP4_STUB,
             storage_key=f"animations/mock/{project_id}/scene_{scene_id}_abc12345.mp4",
             duration_seconds=5.0,
-            file_size_bytes=8,
+            file_size_bytes=len(MINIMAL_MP4_STUB),
             width=1920,
             height=1080,
             fps=24,
@@ -453,12 +439,26 @@ class TestSceneCompositionService:
             "camera_motion": "static",
         }
 
-        loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(svc.render_scene(job, scene_data))
+        # Mock MinIO so the test does not require a running MinIO server.
+        mock_storage = MagicMock()
+        mock_storage.upload_bytes = MagicMock(return_value=mock_result.storage_key)
+
+        with patch(
+            "plugins.storage.minio_storage.MinIOStorage.from_settings",
+            return_value=mock_storage,
+        ):
+            result = asyncio.run(svc.render_scene(job, scene_data))
 
         assert mock_provider.render_scene.called
         assert output_repo.create.called
         assert result.storage_key == mock_result.storage_key
+        # Verify the MinIO upload was attempted with the correct bucket and key.
+        mock_storage.upload_bytes.assert_called_once_with(
+            "animations",
+            mock_result.storage_key,
+            MINIMAL_MP4_STUB,
+            content_type="video/mp4",
+        )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -494,8 +494,7 @@ class TestDispatcherSignatureVerification:
         test_job_id = _make_uuid()
 
         dispatcher = TaskDispatcher.__new__(TaskDispatcher)
-        loop = asyncio.get_event_loop()
-        result = loop.run_until_complete(
+        result = asyncio.run(
             fake_dispatch(
                 dispatcher,
                 celery_task=mock_celery_task,
@@ -608,8 +607,7 @@ class TestGenerateSceneEndpointDispatch:
             }
             mock_make_services.return_value = mock_svcs
 
-            loop = asyncio.get_event_loop()
-            result = loop.run_until_complete(
+            result = asyncio.run(
                 _render_scene_core(
                     job_id=job_id,
                     scene_id=scene_id,
@@ -726,7 +724,7 @@ class TestRenderEpisodeSceneLookup:
             patch("apps.worker.tasks.animation_tasks._make_services", return_value=mock_svcs),
             patch("database.connection.session_scope", return_value=mock_session),
         ):
-            result = asyncio.get_event_loop().run_until_complete(
+            result = asyncio.run(
                 _render_episode_core(
                     job_id=job_id,
                     episode_id=episode_id,
@@ -766,7 +764,7 @@ class TestRenderEpisodeSceneLookup:
             patch("database.connection.session_scope", return_value=mock_session),
         ):
             with pytest.raises(ValueError, match="no scenes"):
-                asyncio.get_event_loop().run_until_complete(
+                asyncio.run(
                     _render_episode_core(
                         job_id=job_id,
                         episode_id=episode_id,

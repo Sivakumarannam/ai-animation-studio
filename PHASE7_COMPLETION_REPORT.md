@@ -1,8 +1,22 @@
 # Phase 7 — Animation Engine: Completion Report
 
 **Date:** 2026-07-13  
-**Updated:** 2026-07-16 (post-manual-test bug fix)  
-**Status:** Complete — all 26 tests passing, server running
+**Updated:** 2026-07-18 (storage_key / MinIO upload gap fixed)  
+**Status:** Complete — all tests passing
+
+---
+
+## Gap Found and Fixed (2026-07-18) — MockAnimationProvider: 8-byte stub + missing MinIO upload
+
+**Root cause:** `MockAnimationProvider.render_scene()` returned `b"\x00\x00\x00\x08ftyp"` (an 8-byte truncated box header, not a valid MP4 container). Additionally, `SceneCompositionService.render_scene()` discarded `render_result.video_bytes` entirely — it saved only the `storage_key` to the DB but never uploaded the bytes to MinIO, leaving nothing behind the key for Phase 10 to download.
+
+This was not caught during Phase 7 because Phase 7's own tests mock the provider result and never actually open the stored file. The gap only surfaced when Phase 10 attempted to run FFmpeg on the storage key as if it were a local file.
+
+**Fix applied:**
+1. `backend/packages/utils/mp4_stub.py` (new) — shared `MINIMAL_MP4_STUB` (~400 bytes): a real ISO Base Media File (ftyp + moov + mdat) usable by FFmpeg and video players.
+2. `MockAnimationProvider` now returns `MINIMAL_MP4_STUB` instead of the 8-byte stub; `file_size_bytes` reflects the true size.
+3. `SceneCompositionService.render_scene()` now uploads `render_result.video_bytes` to MinIO bucket `animations` under `render_result.storage_key` when bytes are non-empty. Upload failure raises (no silent success).
+4. `TestSceneCompositionService.test_render_scene_creates_output_record` updated to mock MinIO and assert the upload call is made.
 
 ---
 

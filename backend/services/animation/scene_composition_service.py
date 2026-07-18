@@ -3,6 +3,12 @@ Phase 7 — SceneCompositionService (animation layer).
 
 Takes Phase 6 image assets and composites them into animated scene clips.
 Uses the AnimationProvider (mock or FFmpeg-backed) to produce video output.
+
+FIX (2026-07-18): After calling the provider, if video_bytes are non-empty,
+the service now uploads them to MinIO under the provider's storage_key.
+Previously the bytes were silently discarded and only the key was stored in
+the DB, leaving nothing in MinIO for Phase 10 to download.  Phase 6 images
+and Phase 9 music both upload real bytes; this brings animation into parity.
 """
 from __future__ import annotations
 
@@ -20,6 +26,9 @@ from database.models.animation_engine import AnimationJob, AnimationRenderOutput
 from repositories.animation_engine_repository import AnimationRenderOutputRepository
 
 logger = structlog.get_logger()
+
+# MinIO bucket used for animation scene clips.
+_ANIMATION_BUCKET = "animations"
 
 
 class SceneCompositionService:
@@ -96,6 +105,41 @@ class SceneCompositionService:
 
         render_result = await self._provider.render_scene(request)
 
+        # ------------------------------------------------------------------
+        # Upload video bytes to MinIO so Phase 10 assembly can download them.
+        # Previously this step was missing: only the storage_key string was
+        # saved to the DB while the actual bytes were discarded, leaving nothing
+        # in MinIO for FFmpeg to read.  Phase 6 images and Phase 9 music both
+        # upload real bytes; animation must do the same.
+        # ------------------------------------------------------------------
+        if render_result.video_bytes:
+            try:
+                from plugins.storage.minio_storage import MinIOStorage
+                storage = MinIOStorage.from_settings(bucket=_ANIMATION_BUCKET)
+                storage.upload_bytes(
+                    _ANIMATION_BUCKET,
+                    render_result.storage_key,
+                    render_result.video_bytes,
+                    content_type="video/mp4",
+                )
+                logger.info(
+                    "scene_render_uploaded",
+                    job_id=str(job.id),
+                    storage_key=render_result.storage_key,
+                    bytes_uploaded=len(render_result.video_bytes),
+                )
+            except Exception as exc:
+                # Upload failure is logged but must not silently hide the error —
+                # raise so the job is marked failed instead of appearing successful
+                # with an empty MinIO object behind it.
+                logger.error(
+                    "scene_render_upload_failed",
+                    job_id=str(job.id),
+                    storage_key=render_result.storage_key,
+                    error=str(exc),
+                )
+                raise
+
         output = AnimationRenderOutput(
             job_id=job.id,
             project_id=job.project_id,
@@ -104,7 +148,7 @@ class SceneCompositionService:
             output_type="scene_clip",
             status="completed",
             storage_key=render_result.storage_key,
-            storage_bucket="animations",
+            storage_bucket=_ANIMATION_BUCKET,
             file_size_bytes=render_result.file_size_bytes,
             duration_seconds=render_result.duration_seconds,
             width=render_result.width,

@@ -99,3 +99,29 @@
 The following are flagged for your manual verification:
 - **Real FFmpeg assembly with actual media files** — in dev mode all providers use `mock://` keys, so the FFmpeg real-file branch runs only when a production storage back-end has real `an_render_outputs` with filesystem or MinIO paths. The logic is written and tested; the mock path exercises the quality gate and persistence correctly.
 - **Video playback in browser** — the `<video>` player in `VideoAssemblyOutputsPage` is wired to `/api/v1/va/outputs/{id}/stream` (a streaming endpoint you can add later), but shows a "mock output" notice when `storage_key` starts with `mock://`. Real playback requires a production storage backend.
+
+---
+
+## Bug Fixed (2026-07-18) — storage_key convention mismatch / missing MinIO download
+
+**Symptom:** Triggering "Assemble Video" dispatched the Celery task correctly but failed with an FFmpeg error trying to open `animations/mock/{project_id}/scene_....mp4` as a local filesystem path.
+
+**Root causes found (all three fixed):**
+
+1. **`MockAnimationProvider` wrote an 8-byte ftyp stub** (`b"\x00\x00\x00\x08ftyp"`) — not a valid MP4 container. The stub was stored in DB as `file_size_bytes=8` with nothing real behind it in MinIO.
+
+2. **`SceneCompositionService` never uploaded bytes to MinIO.** The provider's `video_bytes` were silently discarded; only the `storage_key` string was persisted to DB. Phase 6 images and Phase 9 music both upload real bytes — animation was the only phase that skipped this step.
+
+3. **`_have_real_files()` used wrong `mock://` prefix check.** No current mock provider uses the `mock://` URI scheme (they all use `mock` as a path segment, e.g. `animations/mock/...`). The check always returned `True`, forcing `_ffmpeg_assemble()` to run even when nothing was in MinIO.
+
+4. **`_ffmpeg_assemble()` used `storage_key` directly as a local filesystem path** instead of downloading from MinIO first. The MinIO download step was entirely absent.
+
+**Fixes applied:**
+
+| File | Change |
+|---|---|
+| `backend/packages/utils/mp4_stub.py` | New shared utility: `make_minimal_mp4_stub()` / `MINIMAL_MP4_STUB` constant — a real ISO Base Media File (~400 bytes) with ftyp + moov + mdat boxes |
+| `backend/agents/implementations/mock_animation_provider.py` | Returns `MINIMAL_MP4_STUB` instead of 8-byte stub; `file_size_bytes` now reflects the real size |
+| `backend/services/animation/scene_composition_service.py` | After provider call: uploads `render_result.video_bytes` to MinIO bucket `animations` under `render_result.storage_key`; upload failure raises (no silent success on empty MinIO) |
+| `backend/services/video_assembly/video_assembly_service.py` | `_have_real_files()`: added `file_size_bytes >= 100` threshold to reject old 8-byte stub rows; `_ffmpeg_assemble()`: downloads each clip from MinIO to a temp file before building the concat list |
+| `backend/tests/test_video_assembly.py` | Added 6 regression tests in `TestMockAnimationProviderRealBytes` covering: MP4 validity, file_size_bytes honesty, old-stub rejection by `_have_real_files()`, new real-MP4 acceptance, MinIO download invocation, and end-to-end mock-path fallback for old stub rows |

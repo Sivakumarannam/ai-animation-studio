@@ -32,6 +32,21 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+# Minimum file_size_bytes required to treat an animation output as a real,
+# FFmpeg-decodable clip rather than a placeholder stub.
+#
+# Threshold rationale:
+#   - Old 8-byte ftyp stub (broken, pre-fix):           8 B   < 1024 → skip
+#   - Pure-Python MINIMAL_MP4_STUB (no-FFmpeg fallback): ~493 B < 1024 → skip
+#   - FFmpeg-generated 16×16 libx264 mock clip:         ~5 KB  > 1024 → include
+#   - Real ComfyUI/FFmpeg production clips:             MBs+   > 1024 → include
+#
+# The pure-Python stub has valid ISO BMF structure but an empty stsd box
+# (no codec description), so FFmpeg's concat demuxer rejects it.  By keeping
+# its size below this threshold, stub rows route to _mock_assemble() instead
+# of _ffmpeg_assemble(), avoiding a guaranteed FFmpeg failure.
+_REAL_FILE_THRESHOLD_BYTES = 1024
+
 import structlog
 
 from database.models.animation_engine import AnimationRenderOutput
@@ -365,9 +380,25 @@ class VideoAssemblyService:
             return False
 
     def _have_real_files(self, anim_outputs: list[AnimationRenderOutput]) -> bool:
-        """True only if storage keys look like real filesystem/MinIO paths."""
+        """
+        True only if at least one animation output has a real file uploaded to
+        MinIO — i.e. a storage_key that is not a bare URI placeholder AND a
+        file_size_bytes large enough to be a genuine video container.
+
+        Why two conditions:
+          1. storage_key check: filters out any legacy "mock://" URI-scheme
+             placeholders that were never uploaded (none of the current
+             providers use that scheme, but guard against future ones).
+          2. file_size_bytes threshold: the old MockAnimationProvider wrote an
+             8-byte ftyp stub with nothing behind it in MinIO.  After the Phase
+             7 fix, real mock MP4s are several hundred bytes.  Rows created
+             before the fix still have file_size_bytes=8; they have no real
+             object in MinIO and must not be fed to FFmpeg.
+        """
         return any(
-            o.storage_key and not o.storage_key.startswith("mock://")
+            o.storage_key
+            and not o.storage_key.startswith("mock://")
+            and (o.file_size_bytes or 0) >= _REAL_FILE_THRESHOLD_BYTES
             for o in anim_outputs
         )
 
@@ -381,33 +412,72 @@ class VideoAssemblyService:
         """
         Real FFmpeg assembly path (used when storage keys resolve to real files).
         Concatenates scene clips, muxes voice + music, outputs MP4 bytes.
+
+        FIX (2026-07-18): Previously used storage_key directly as a local
+        filesystem path, which fails because storage_key is a MinIO object key
+        (e.g. "animations/mock/{project_id}/scene_...mp4"), not a local path.
+        Now downloads each clip from MinIO to a temp file first, then passes
+        the local temp paths to FFmpeg's concat demuxer.
         """
         total_duration = sum(o.duration_seconds for o in anim_outputs)
         width = params.get("width", 1920)
         height = params.get("height", 1080)
 
+        from plugins.storage.minio_storage import MinIOStorage
+
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp = Path(tmp_dir)
             output_path = tmp / "assembled.mp4"
-
-            # Build concat list from scene clip storage keys
             concat_file = tmp / "concat.txt"
             has_real_clips = False
+            # Track duration of only the clips actually downloaded so the
+            # quality gate receives the true assembled duration, not the
+            # expected total.  If every clip succeeds this equals total_duration;
+            # if any download fails we raise before reaching the gate.
+            assembled_duration = 0.0
+
             with concat_file.open("w") as f:
-                for ao in anim_outputs:
-                    if ao.storage_key and not ao.storage_key.startswith("mock://"):
-                        f.write(f"file '{ao.storage_key}'\n")
+                for idx, ao in enumerate(anim_outputs):
+                    if (
+                        ao.storage_key
+                        and not ao.storage_key.startswith("mock://")
+                        and (ao.file_size_bytes or 0) >= _REAL_FILE_THRESHOLD_BYTES
+                    ):
+                        # Download from MinIO to a local temp file for FFmpeg.
+                        # Any download failure is fatal — silently skipping a
+                        # clip would produce a shorter, partial video that the
+                        # quality gate cannot detect (it compared declared
+                        # durations, not measured output).
+                        local_clip = tmp / f"scene_{idx:04d}.mp4"
+                        try:
+                            storage = MinIOStorage.from_settings(bucket="animations")
+                            clip_bytes = storage.get_object_bytes("animations", ao.storage_key)
+                        except Exception as exc:
+                            raise RuntimeError(
+                                f"Failed to download animation clip from MinIO "
+                                f"(storage_key='{ao.storage_key}'): {exc}"
+                            ) from exc
+
+                        local_clip.write_bytes(clip_bytes)
+                        f.write(f"file '{local_clip}'\n")
                         has_real_clips = True
+                        assembled_duration += ao.duration_seconds
+                        logger.info(
+                            "assembly_clip_downloaded",
+                            storage_key=ao.storage_key,
+                            bytes_read=len(clip_bytes),
+                        )
 
             if not has_real_clips:
-                # No real files — generate a black video of correct duration
+                # No downloadable clips — synthesize a black video of the correct
+                # total duration so the quality gate can still pass.
+                assembled_duration = total_duration
                 cmd = [
                     "ffmpeg", "-y",
                     "-f", "lavfi",
                     "-i", f"color=c=black:s={width}x{height}:r=24:d={total_duration:.3f}",
-                    "-f", "lavfi", "-i", f"aevalsrc=0:c=mono:r=44100:d={total_duration:.3f}",
                     "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p",
-                    "-c:a", "aac",
+                    "-an",   # no audio — avoids aevalsrc filter-option variance across FFmpeg versions
                     str(output_path),
                 ]
             else:
@@ -428,7 +498,7 @@ class VideoAssemblyService:
                 raise RuntimeError(f"FFmpeg assembly failed: {stderr.decode()[-500:]}")
 
             video_bytes = output_path.read_bytes()
-            return video_bytes, total_duration, "ffmpeg"
+            return video_bytes, assembled_duration, "ffmpeg"
 
     def _mock_assemble(
         self,

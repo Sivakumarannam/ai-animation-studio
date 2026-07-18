@@ -509,6 +509,377 @@ class TestCeleryTaskRegistration:
 
 
 # ===========================================================================
+# TestMockAnimationProviderRealBytes
+# ===========================================================================
+
+class TestMockAnimationProviderRealBytes:
+    """
+    Regression tests for the Phase 7 animation mock provider gap:
+    previously returned an 8-byte ftyp stub that FFmpeg cannot parse.
+    Now must return a genuine ISO Base Media File container.
+    """
+
+    def test_mock_provider_returns_parseable_mp4(self):
+        """video_bytes must be a real MP4 container, not an 8-byte header stub."""
+        import asyncio
+        from agents.implementations.mock_animation_provider import MockAnimationProvider
+        from agents.interfaces.animation_provider import AnimationRenderRequest
+
+        provider = MockAnimationProvider()
+        req = AnimationRenderRequest(
+            project_id=str(uuid.uuid4()),
+            scene_id=str(uuid.uuid4()),
+            background_storage_key="assets/mock/bg.png",
+            duration_seconds=5.0,
+        )
+        result = asyncio.run(provider.render_scene(req))
+
+        # Must be large enough to hold ftyp + moov boxes (the old stub was 8 bytes)
+        assert result.file_size_bytes > 100, (
+            f"Expected > 100 bytes for a valid MP4 container, got {result.file_size_bytes}"
+        )
+        assert len(result.video_bytes) == result.file_size_bytes
+
+        # Must start with a valid ISO BMF box: size(4) + box_name(4)
+        # ftyp box name must appear within the first 12 bytes
+        assert b"ftyp" in result.video_bytes[:16], (
+            "video_bytes must start with an ftyp box (ISO Base Media File)"
+        )
+        # moov box must also be present for the file to be parseable
+        assert b"moov" in result.video_bytes, (
+            "video_bytes must contain a moov box"
+        )
+
+    def test_mock_provider_file_size_matches_bytes(self):
+        """file_size_bytes must equal len(video_bytes) — no lies to the DB."""
+        import asyncio
+        from agents.implementations.mock_animation_provider import MockAnimationProvider
+        from agents.interfaces.animation_provider import AnimationRenderRequest
+
+        provider = MockAnimationProvider()
+        req = AnimationRenderRequest(
+            project_id=str(uuid.uuid4()),
+            scene_id=str(uuid.uuid4()),
+            background_storage_key="assets/mock/bg.png",
+            duration_seconds=3.0,
+        )
+        result = asyncio.run(provider.render_scene(req))
+        assert result.file_size_bytes == len(result.video_bytes)
+
+    def test_have_real_files_false_for_old_8byte_stub_rows(self):
+        """
+        Rows created before the fix have file_size_bytes=8.  _have_real_files()
+        must return False for them so the assembly falls back to mock-assemble
+        rather than trying to download a nonexistent MinIO object.
+        """
+        from services.video_assembly.video_assembly_service import VideoAssemblyService
+
+        svc = VideoAssemblyService(MagicMock(), MagicMock())
+
+        old_stub_output = MagicMock()
+        old_stub_output.storage_key = "animations/mock/proj-id/scene_abc_12345678.mp4"
+        old_stub_output.file_size_bytes = 8  # the old broken stub size
+
+        assert svc._have_real_files([old_stub_output]) is False, (
+            "_have_real_files() must return False for 8-byte stubs — they have no real MinIO object"
+        )
+
+    def test_have_real_files_true_for_ffmpeg_generated_rows(self):
+        """
+        Rows produced by FFmpeg (several KB) must return True so the assembly
+        attempts the real FFmpeg concat path.  The threshold is 1024 bytes to
+        exclude pure-Python stubs (~493 bytes) that lack codec metadata.
+        """
+        from services.video_assembly.video_assembly_service import (
+            VideoAssemblyService,
+            _REAL_FILE_THRESHOLD_BYTES,
+        )
+
+        svc = VideoAssemblyService(MagicMock(), MagicMock())
+
+        ffmpeg_output = MagicMock()
+        ffmpeg_output.storage_key = "animations/mock/proj-id/scene_abc_12345678.mp4"
+        # Simulates a real FFmpeg-generated 16×16 libx264 clip (~5-20 KB)
+        ffmpeg_output.file_size_bytes = 8192
+
+        assert ffmpeg_output.file_size_bytes >= _REAL_FILE_THRESHOLD_BYTES, (
+            "Test fixture must be >= threshold to be meaningful"
+        )
+        assert svc._have_real_files([ffmpeg_output]) is True, (
+            "_have_real_files() must return True for FFmpeg-generated clips"
+        )
+
+    def test_have_real_files_false_for_python_stub_rows(self):
+        """
+        Pure-Python MINIMAL_MP4_STUB rows (~493 bytes) must return False —
+        the stub lacks codec metadata so FFmpeg concat would reject it.
+        These rows should route to _mock_assemble() instead.
+        """
+        from services.video_assembly.video_assembly_service import VideoAssemblyService
+        from packages.utils.mp4_stub import MINIMAL_MP4_STUB
+
+        svc = VideoAssemblyService(MagicMock(), MagicMock())
+
+        stub_output = MagicMock()
+        stub_output.storage_key = "animations/mock/proj-id/scene_abc_12345678.mp4"
+        stub_output.file_size_bytes = len(MINIMAL_MP4_STUB)  # ~493 bytes < 1024
+
+        assert svc._have_real_files([stub_output]) is False, (
+            "_have_real_files() must return False for pure-Python stub rows "
+            f"(size={len(MINIMAL_MP4_STUB)} bytes is below the 1 KB threshold)"
+        )
+
+    @pytest.mark.asyncio
+    async def test_ffmpeg_assemble_downloads_from_minio(self):
+        """
+        _ffmpeg_assemble() must call MinIOStorage.get_object_bytes() for each
+        animation output that passes the real-file threshold — not use storage_key
+        as a local filesystem path.
+        """
+        from services.video_assembly.video_assembly_service import (
+            VideoAssemblyService,
+            _REAL_FILE_THRESHOLD_BYTES,
+        )
+        from packages.utils.mp4_stub import MINIMAL_MP4_STUB
+
+        svc = VideoAssemblyService(MagicMock(), MagicMock())
+
+        # Simulate an animation output with real bytes behind it in MinIO.
+        # file_size_bytes must exceed _REAL_FILE_THRESHOLD_BYTES (1024) to
+        # reach the download path; MINIMAL_MP4_STUB (~493 bytes) is below it.
+        ao = MagicMock()
+        ao.id = uuid.uuid4()
+        ao.storage_key = "animations/mock/proj/scene_test_abc12345.mp4"
+        ao.file_size_bytes = max(8192, _REAL_FILE_THRESHOLD_BYTES + 1)
+        ao.duration_seconds = 1.0
+
+        mock_storage = MagicMock()
+        mock_storage.get_object_bytes.return_value = MINIMAL_MP4_STUB
+
+        # ffmpeg not available in test environment — patch _ffmpeg_available to
+        # force the real ffmpeg path only if ffmpeg is present; otherwise verify
+        # the download path is reached before FFmpeg is called.
+        with patch(
+            "plugins.storage.minio_storage.MinIOStorage.from_settings",
+            return_value=mock_storage,
+        ):
+            # We only verify the MinIO download is attempted, not the FFmpeg
+            # output (FFmpeg may not be in the test environment).
+            try:
+                await svc._ffmpeg_assemble([ao], [], [], {})
+            except Exception:
+                pass  # FFmpeg may fail; we only care that get_object_bytes was called
+
+        mock_storage.get_object_bytes.assert_called_once_with("animations", ao.storage_key)
+
+    @pytest.mark.asyncio
+    async def test_ffmpeg_assemble_fails_clearly_on_minio_download_error(self):
+        """
+        Regression: if a clip's MinIO download fails, _ffmpeg_assemble() must
+        raise immediately with a clear error — never silently skip the clip and
+        produce a shorter partial video that the quality gate cannot detect.
+        """
+        from services.video_assembly.video_assembly_service import (
+            VideoAssemblyService,
+            _REAL_FILE_THRESHOLD_BYTES,
+        )
+
+        svc = VideoAssemblyService(MagicMock(), MagicMock())
+
+        ao = MagicMock()
+        ao.id = uuid.uuid4()
+        ao.storage_key = "animations/mock/proj/scene_missing.mp4"
+        ao.file_size_bytes = max(8192, _REAL_FILE_THRESHOLD_BYTES + 1)
+        ao.duration_seconds = 10.0
+
+        mock_storage = MagicMock()
+        mock_storage.get_object_bytes.side_effect = Exception(
+            "S3Error: NoSuchKey — object does not exist in MinIO"
+        )
+
+        with patch(
+            "plugins.storage.minio_storage.MinIOStorage.from_settings",
+            return_value=mock_storage,
+        ):
+            with pytest.raises(RuntimeError, match="Failed to download animation clip"):
+                await svc._ffmpeg_assemble([ao], [], [], {})
+
+    @pytest.mark.asyncio
+    async def test_mock_provider_generates_ffmpeg_decodable_clip_when_ffmpeg_available(self):
+        """
+        When FFmpeg is present, MockAnimationProvider must produce bytes that
+        FFmpeg can actually concat — not just a container stub with empty codec tables.
+        Clips must exceed the 1 KB assembly threshold so they reach _ffmpeg_assemble().
+        """
+        from services.video_assembly.video_assembly_service import (
+            VideoAssemblyService,
+            _REAL_FILE_THRESHOLD_BYTES,
+        )
+        from agents.implementations.mock_animation_provider import MockAnimationProvider
+        from agents.interfaces.animation_provider import AnimationRenderRequest
+
+        svc = VideoAssemblyService(MagicMock(), MagicMock())
+        if not await svc._ffmpeg_available():
+            pytest.skip("FFmpeg not available in this environment")
+
+        provider = MockAnimationProvider()
+        req = AnimationRenderRequest(
+            project_id=str(uuid.uuid4()),
+            scene_id=str(uuid.uuid4()),
+            background_storage_key="assets/mock/bg.png",
+            duration_seconds=1.0,
+        )
+        result = await provider.render_scene(req)
+
+        # Must exceed the assembly threshold so _have_real_files() returns True
+        assert result.file_size_bytes >= _REAL_FILE_THRESHOLD_BYTES, (
+            f"FFmpeg-generated clip must be >= {_REAL_FILE_THRESHOLD_BYTES} bytes "
+            f"to reach the FFmpeg assembly path; got {result.file_size_bytes} bytes"
+        )
+        assert len(result.video_bytes) == result.file_size_bytes
+        # Must have valid MP4 structure
+        assert b"ftyp" in result.video_bytes[:16]
+        assert b"moov" in result.video_bytes
+
+    @pytest.mark.asyncio
+    async def test_ffmpeg_assemble_succeeds_end_to_end_with_ffmpeg_generated_clips(self):
+        """
+        Full end-to-end: MockAnimationProvider generates real FFmpeg-decodable clips,
+        mock MinIO serves them, _ffmpeg_assemble() downloads and concatenates them
+        into valid output bytes.  Skip if FFmpeg unavailable.
+        """
+        from services.video_assembly.video_assembly_service import VideoAssemblyService
+        from agents.implementations.mock_animation_provider import MockAnimationProvider
+        from agents.interfaces.animation_provider import AnimationRenderRequest
+
+        svc = VideoAssemblyService(MagicMock(), MagicMock())
+        if not await svc._ffmpeg_available():
+            pytest.skip("FFmpeg not available in this environment")
+
+        provider = MockAnimationProvider()
+
+        # Generate two real clips to concatenate
+        clips_bytes: list[bytes] = []
+        for _ in range(2):
+            req = AnimationRenderRequest(
+                project_id=str(uuid.uuid4()),
+                scene_id=str(uuid.uuid4()),
+                background_storage_key="assets/mock/bg.png",
+                duration_seconds=1.0,
+            )
+            r = await provider.render_scene(req)
+            clips_bytes.append(r.video_bytes)
+
+        # Build animation output mocks with realistic file sizes
+        anim_outputs = []
+        for i, clip in enumerate(clips_bytes):
+            ao = MagicMock()
+            ao.id = uuid.uuid4()
+            ao.storage_key = f"animations/mock/proj/scene_{i:04d}.mp4"
+            ao.file_size_bytes = len(clip)
+            ao.duration_seconds = 1.0
+            anim_outputs.append(ao)
+
+        # Mock MinIO returns the real clip bytes for each key
+        def fake_get_object_bytes(bucket, key):
+            idx = int(key.split("scene_")[1].split(".")[0])
+            return clips_bytes[idx]
+
+        mock_storage = MagicMock()
+        mock_storage.get_object_bytes.side_effect = fake_get_object_bytes
+
+        with patch(
+            "plugins.storage.minio_storage.MinIOStorage.from_settings",
+            return_value=mock_storage,
+        ):
+            video_bytes, actual_duration, provider_name = await svc._ffmpeg_assemble(
+                anim_outputs, [], [], {}
+            )
+
+        assert len(video_bytes) > 0, "Assembled output must have non-zero bytes"
+        assert provider_name == "ffmpeg"
+        assert actual_duration == pytest.approx(2.0, rel=0.1), (
+            f"Expected ~2.0s assembled duration, got {actual_duration}"
+        )
+        assert mock_storage.get_object_bytes.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_assembly_fails_when_real_clip_missing_from_minio(self):
+        """
+        End-to-end: if animation outputs have real file_size_bytes (> threshold)
+        but the actual MinIO object is missing, assemble_episode() must fail the
+        job with a clear error — not silently produce a partial or empty video.
+        """
+        from services.video_assembly.video_assembly_service import (
+            VideoAssemblyService,
+            _REAL_FILE_THRESHOLD_BYTES,
+        )
+
+        real_output = MagicMock()
+        real_output.id = uuid.uuid4()
+        real_output.storage_key = "animations/mock/proj/scene_real_but_gone.mp4"
+        # Must exceed threshold so _have_real_files() returns True → FFmpeg path
+        real_output.file_size_bytes = max(8192, _REAL_FILE_THRESHOLD_BYTES + 1)
+        real_output.duration_seconds = 10.0
+
+        output_repo = MagicMock()
+        output_repo.create = AsyncMock(return_value=_make_mock_output())
+        session = MagicMock()
+
+        svc = VideoAssemblyService(output_repo, session)
+        svc._get_animation_outputs = AsyncMock(return_value=[real_output])
+        svc._get_voice_outputs = AsyncMock(return_value=[])
+        svc._get_music_outputs = AsyncMock(return_value=[])
+        svc._ffmpeg_available = AsyncMock(return_value=True)
+
+        mock_storage = MagicMock()
+        mock_storage.get_object_bytes.side_effect = Exception("MinIO: object not found")
+
+        job = _make_mock_job()
+
+        with patch(
+            "plugins.storage.minio_storage.MinIOStorage.from_settings",
+            return_value=mock_storage,
+        ):
+            with pytest.raises((RuntimeError, ValueError)):
+                await svc.assemble_episode(job, {})
+
+    @pytest.mark.asyncio
+    async def test_assembly_uses_mock_path_for_old_stub_rows(self):
+        """
+        End-to-end: when all animation outputs have file_size_bytes=8 (old stubs),
+        assemble_episode() must fall through to _mock_assemble() and still succeed —
+        never attempt to open the stub storage_key as a local file.
+        """
+        from services.video_assembly.video_assembly_service import VideoAssemblyService
+
+        old_stub = MagicMock()
+        old_stub.id = uuid.uuid4()
+        old_stub.storage_key = "animations/mock/proj/scene_old_stub.mp4"
+        old_stub.file_size_bytes = 8
+        old_stub.duration_seconds = 5.0
+
+        output_repo = MagicMock()
+        output_repo.create = AsyncMock(return_value=_make_mock_output())
+        session = MagicMock()
+
+        svc = VideoAssemblyService(output_repo, session)
+        svc._get_animation_outputs = AsyncMock(return_value=[old_stub])
+        svc._get_voice_outputs = AsyncMock(return_value=[])
+        svc._get_music_outputs = AsyncMock(return_value=[])
+        svc._ffmpeg_available = AsyncMock(return_value=True)  # even with FFmpeg present…
+
+        job = _make_mock_job()
+        output = await svc.assemble_episode(job, {})
+
+        # Must have succeeded via mock path
+        assert output is not None
+        # FFmpeg path was skipped because _have_real_files() returned False
+        create_call = output_repo.create.call_args
+        assert create_call[1]["quality_passed"] is True
+
+
+# ===========================================================================
 # Helpers
 # ===========================================================================
 
